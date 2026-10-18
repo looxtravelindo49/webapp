@@ -1,0 +1,16 @@
+{
+  "slug": "transportasi",
+  "title": "Transportasi",
+  "category": "Tambahan",
+  "summary": "Atur kebutuhan kendaraan dari titik keberangkatan timmu.",
+  "image": "/media/forest.svg",
+  "imageAlt": "Ilustrasi pelengkap untuk Transportasi.",
+  "priceLabel": "Sesuai kebutuhan",
+  "duration": "Dibahas saat konsultasi",
+  "minimum": "",
+  "published": true,
+  "order": 1,
+  "body": "Diskusikan titik penjemputan, rute, jumlah peserta, dan lama penggunaan kendaraan. Pilihan kendaraan mengikuti ketersediaan dan kebutuhan perjalanan.",
+  "includes": "Pilihan kendaraan\nTitik penjemputan\nDurasi dan rute perjalanan",
+  "notes": "BBM, tol, parkir, biaya pengemudi, overtime, dan tip perlu dirinci dalam penawaran."
+}

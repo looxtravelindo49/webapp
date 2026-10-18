@@ -1,0 +1,189 @@
+# Lembang Adventures
+
+Situs SvelteKit + Tailwind dengan SQLite. Paket dan nomor WhatsApp dibaca dari database pada setiap request.
+
+## Menjalankan lokal
+
+```sh
+npm install        # npm 10 (Node 22): gunakan `npm install --ignore-scripts`, binary SQLite sudah termasuk di paket
+npm run dev        # http://localhost:5173, database di ./data/app.db
+npm test           # tes Vitest (unit dan render server; cepat, tanpa peramban)
+npm run test:e2e   # tes e2e Playwright (lihat bagian "Tes e2e")
+npm run check      # svelte-check
+npm run build && npm start   # build produksi (adapter-node)
+```
+
+Migrasi (`migrations/*.sql`) dan seed berjalan otomatis saat server start. Seed hanya mengisi data jika tabel
+`package` kosong dan tidak pernah menimpa data yang sudah diedit.
+
+## Kalkulator trip
+
+Section "Konsultasikan Tripmu" (`#konsultasi`) menghitung estimasi di browser: `harga per orang × max(peserta, min_pax)`
+untuk setiap paket terpilih. Paket tanpa harga tampil "Harga menyusul" dan tidak masuk total; bila semua paket
+terpilih tanpa harga, totalnya "Dibahas via WhatsApp". Harga dan `min_pax` dibaca dari tabel `package`.
+
+- **Simpan PDF** membuat PDF di browser (jsPDF, dimuat lazy saat pengguna mulai berinteraksi dengan section).
+- **Kirim ke WhatsApp** muncul bila pengaturan `whatsapp` valid. Di perangkat yang mendukung Web Share dengan berkas,
+  PDF dibagikan sebagai lampiran (pengguna memilih kontak). Selain itu PDF diunduh dan `wa.me/<nomor>` terbuka dengan
+  ringkasan teks; pengguna diminta melampirkan PDF yang baru diunduh (`wa.me` tidak bisa melampirkan berkas).
+- Teks di PDF memakai font bawaan (Latin-1): emoji dan aksara di luar Latin-1 diganti `?`.
+- Tidak ada data formulir yang dikirim ke server.
+
+## Admin
+
+Area `/admin` dilindungi login. Saat database masih tanpa akun, server membuat satu akun awal:
+
+| | |
+|---|---|
+| Login | `admin@looxtravel` |
+| Password | `12345678` |
+
+Akun awal **wajib ganti password** pada login pertama (semua halaman admin lain dialihkan ke
+`/admin/ganti-password` sampai selesai). **Jangan buka situs ke publik sebelum password itu diganti**: password
+bawaan tertulis di repositori ini. Untuk menimpanya sejak awal, setel `ADMIN_SEED_LOGIN` dan
+`ADMIN_SEED_PASSWORD` sebelum start pertama (hanya dipakai bila tabel `user` kosong).
+
+- **Kelola paket** di `/admin/paket`: daftar semua paket (termasuk draft) dengan status, harga, dan minimal peserta.
+  - *Tambah paket* (`/admin/paket/baru`): paket baru selalu **draft** dan ditaruh di urutan terakhir; terbitkan dari daftar
+    setelah siap. Slug dibuat otomatis dari nama dan **tidak berubah** walau nama diganti, supaya tautan
+    `/#paket-<slug>` tetap berlaku.
+  - *Ubah paket*: nama, ringkasan, penjelasan, fasilitas (satu per baris), catatan, durasi, foto dan teks alternatif,
+    **harga per orang**, dan **minimal peserta**. Harga berupa rupiah bulat: `250000`, `250.000`, `Rp 250.000`, atau
+    `Rp250000` (titik hanya sebagai pemisah ribuan, jadi `250.5` ditolak; maksimal 100.000.000). Kosongkan harga =
+    "Harga menyusul"; kosongkan minimal peserta = 1.
+  - *Terbitkan/Sembunyikan*, *Naik/Turun* (mengubah urutan tab dan kalkulator), dan *Hapus* (selalu minta konfirmasi,
+    juga ditegakkan di server; tidak bisa dibatalkan). Perubahan langsung tampil di situs tanpa build atau restart.
+  - Beranda admin memperingatkan bila ada paket terbit yang belum berharga.
+- **Foto paket**: JPEG, PNG, WebP, atau AVIF, maksimal **5 MB** (ideal sekitar 1600 px lebar). Jenis berkas ditentukan
+  dari isinya, bukan nama atau `Content-Type`; SVG dan GIF ditolak. Berkas disimpan dengan nama acak di folder unggahan
+  (`UPLOAD_DIR`, bawaan: folder `uploads` di samping berkas database, jadi ikut volume `/data`) dan disajikan di
+  `/uploads/<nama>`. Foto dari ponsel dapat memuat data lokasi (EXIF); ekspor ulang tanpa lokasi bila perlu, karena
+  berkas disimpan apa adanya. Mengganti atau menghapus foto (dan menghapus paket) menghapus berkas unggahan lamanya;
+  gambar bawaan di `static/media/` tidak pernah dihapus.
+- **Pengaturan** di `/admin/pengaturan`: nomor WhatsApp tujuan. Format lokal (`0812-3456-7890`) atau internasional
+  (`+62 812 3456 7890`) disimpan sebagai `6281234567890`. Kosong menyembunyikan tombol "Kirim ke WhatsApp" di kalkulator.
+- **Batas ukuran body.** `adapter-node` menolak body di atas `BODY_SIZE_LIMIT` (bawaan 512 KB, yang menolak foto).
+  Image container menyetelnya ke 8 MB; di lingkungan lain setel `BODY_SIZE_LIMIT=8M`. Reverse proxy di depan server juga
+  harus mengizinkan body minimal 6 MB (mis. `client_max_body_size 8m;` di nginx).
+- **Kelola akun** di `/admin/akun`: buat akun (password sementara), reset password akun lain, hapus akun. Semua admin
+  setara. Akun baru dan akun yang direset wajib mengganti password saat login berikutnya. Tidak bisa menghapus akun
+  sendiri atau akun terakhir.
+- **Sesi**: cookie `session` (HttpOnly, SameSite=Lax, 7 hari). Server hanya menyimpan hash token.
+- **Pembatasan login**: 5 kegagalan per 15 menit per kombinasi login + IP (disimpan di memori, hilang saat restart).
+  Di balik reverse proxy, setel `ADDRESS_HEADER` (mis. `X-Forwarded-For`) dan `XFF_DEPTH` agar IP klien benar; tanpa itu
+  semua pengunjung tampak berasal dari satu IP.
+- **Lupa password dan tidak ada admin lain?** Start server sekali dengan `ADMIN_RESET_LOGIN=<login>` dan
+  `ADMIN_RESET_PASSWORD=<password sementara>`. Password akun itu diatur ulang dan ia wajib menggantinya. **Hapus kedua
+  variabel setelahnya**; bila dibiarkan, password diatur ulang di setiap start.
+- **HTTPS di depan server.** Form admin memakai pemeriksaan asal (CSRF) bawaan SvelteKit, dan cookie sesi bertanda
+  `Secure` bila permintaan dianggap HTTPS. Pada `adapter-node` 6 (SvelteKit 3), alamat asal diturunkan dari header
+  permintaan dengan **protokol bawaan `https`** dan host dari header `Host`; variabel `ORIGIN` tidak lagi dibaca. Jadi di
+  produksi pasang reverse proxy HTTPS yang meneruskan `Host` (bila proxy memakai header lain, setel `HOST_HEADER`,
+  `PROTOCOL_HEADER`, `PORT_HEADER`). **Mengakses server langsung lewat HTTP polos (mis. `npm start` atau `docker run`
+  tanpa proxy) membuat form login ditolak 403**; untuk uji lokal pakai `npm run dev` (pemeriksaan asal tidak aktif di
+  mode dev) atau jalankan di belakang proxy yang mengirim `X-Forwarded-Proto` dengan `PROTOCOL_HEADER=x-forwarded-proto`.
+
+## Tes e2e
+
+Suite end-to-end memakai [Playwright Test](https://playwright.dev) dan menguji perilaku yang tidak bisa dibuktikan
+tes unit: interaksi di peramban, alur lintas halaman (login → paksa ganti password → kelola akun), header/cookie HTTP,
+dan hal yang hanya ada di **build produksi** (pemeriksaan CSRF, chunk ber-hash). `npm test` tidak menjalankannya.
+
+```sh
+CHROMIUM_PATH=/usr/bin/chromium npm run test:e2e              # semuanya
+CHROMIUM_PATH=/usr/bin/chromium npx playwright test e2e/admin # satu folder / satu file
+CHROMIUM_PATH=/usr/bin/chromium npx playwright test --headed  # lihat peramban
+CHROMIUM_PATH=/usr/bin/chromium npx playwright test --ui      # mode interaktif
+npx playwright test --list                                     # daftar tes (tanpa peramban)
+npx playwright show-report                                     # laporan HTML setelah kegagalan
+npm run check:e2e                                              # typecheck folder e2e/
+```
+
+**Peramban.** Paket tidak mengunduh peramban otomatis. Pilih salah satu: setel `CHROMIUM_PATH` ke Chromium sistem
+(mis. `/usr/bin/chromium`), atau jalankan `npx playwright install chromium` sekali. Tanpa keduanya Playwright berhenti
+dengan pesan "Executable doesn't exist". Bila peramban gagal start di lingkungan tanpa sandbox (kontainer), setel
+`E2E_NO_SANDBOX=1`.
+
+**Cara kerja.** `npm run test:e2e` menjalankan `npm run build`, lalu `e2e/support/start-server.mjs` memulai **build
+produksi** di `127.0.0.1:4180` (ubah dengan `E2E_PORT`) dengan database baru di `test-results/e2e-data/` yang dihapus
+setiap eksekusi; `./data/app.db` tidak disentuh. Server dijalankan dengan `PROTOCOL_HEADER=x-forwarded-proto` dan klien
+uji mengirim `X-Forwarded-Proto: http`, meniru reverse proxy TLS (lihat bagian Admin). Variabel `ADMIN_SEED_*` sengaja
+dikosongkan agar akun awal bawaan ikut teruji. Permintaan ke luar server uji (mis. `wa.me`) tidak keluar jaringan.
+
+**Memakai server yang sudah berjalan** (iterasi cepat, atau menguji kontainer): setel `E2E_BASE_URL` dan `E2E_DB`
+(jalur berkas SQLite server itu). Suite tidak membangun atau menjalankan server sendiri. Tes `first-login` di-skip
+bila akun awal sudah pernah diganti; gunakan database baru untuk menjalankannya lagi.
+
+**Konvensi.**
+- Judul tes: `[capability] Requirement › skenario`, sama dengan nama capability di `openspec/specs/`.
+- Tanpa `waitForTimeout`. Setelah navigasi penuh, tunggu penanda hidrasi (`gotoReady`, `submit` di
+  `e2e/support/fixtures.ts`; aplikasi memasang `data-hydrated="true"` di `<html>`).
+- Setiap tes gagal bila ada galat konsol, peringatan, atau `pageerror` (kecuali "Failed to load resource" dari respons
+  4xx yang disengaja); gunakan `allowConsole(/pola/)` bila memang diharapkan.
+- Tes admin memakai akun dengan login unik (`insertAdmin(uniqueLogin(...))`) dan tidak membuat pernyataan tentang
+  jumlah akun global. Tes yang sementara mengubah data yang dilihat publik (menerbitkan atau menyembunyikan paket,
+  urutan, harga, foto yang tampil, nomor WhatsApp) hanya boleh berada di `e2e/mutating/`, yang berjalan sesudah proyek
+  utama (satu proyek berantai per file, jadi tidak pernah bersamaan) dan memulihkan data. Tes CMS di proyek utama
+  (`e2e/admin/package-cms.spec.ts`, `image-uploads.spec.ts`) hanya membuat dan mengubah paket **draft** dengan judul
+  berawalan "Tes CMS"/"Tes Foto"; sisanya dibersihkan oleh tes mutating. Unggahan e2e berada di
+  `test-results/e2e-data/uploads`.
+- Harga fixture (Offroad 250.000, Rafting 200.000 dengan minimal 10, Paintball 150.000) diatur `ensureFixtures()`.
+
+## Variabel environment
+
+| Nama | Default | Keterangan |
+|---|---|---|
+| `DATABASE_PATH` | `./data/app.db` (container: `/data/app.db`) | Lokasi berkas SQLite; direktori dibuat otomatis. |
+| `PUBLIC_SITE_URL` | `http://localhost:3000` | Alamat publik untuk canonical, Open Graph, sitemap, robots. |
+| `PROTOCOL_HEADER` / `HOST_HEADER` / `PORT_HEADER` | (kosong) | Header dari reverse proxy untuk menurunkan alamat asal (mis. `x-forwarded-proto`, `x-forwarded-host`). Tanpa ini protokol dianggap `https` dan host diambil dari `Host`. |
+| `PORT` | `3000` | Port server produksi. |
+| `UPLOAD_DIR` | `<folder database>/uploads` (kontainer: `/data/uploads`) | Folder foto paket yang diunggah admin; dibuat otomatis. Ikut volume dan backup. |
+| `BODY_SIZE_LIMIT` | `512K` (kontainer: `8M`) | Batas ukuran body permintaan. Unggah foto (maks. 5 MB) butuh minimal `8M`; batas reverse proxy juga minimal 6 MB. |
+| `ADMIN_SEED_LOGIN` / `ADMIN_SEED_PASSWORD` | `admin@looxtravel` / `12345678` | Akun admin awal (hanya bila tabel `user` kosong; wajib ganti password). |
+| `ADMIN_RESET_LOGIN` / `ADMIN_RESET_PASSWORD` | (kosong) | Pemulihan: atur ulang password satu akun saat start. Hapus setelah dipakai. |
+| `ADDRESS_HEADER` / `XFF_DEPTH` | (kosong) | Header dan kedalaman IP klien di balik reverse proxy (dipakai pembatasan login). |
+
+Nilai ini dibaca dari environment proses (di dev, default sudah cukup; file `.env` tidak dimuat otomatis).
+
+## Container
+
+```sh
+docker build -t lembang-adventures .
+docker run -d --name lembang -p 3000:3000 \
+  -v lembang-data:/data \
+  -e PROTOCOL_HEADER=x-forwarded-proto -e HOST_HEADER=x-forwarded-host \
+  -e PUBLIC_SITE_URL=https://lembangadventures.com \
+  lembang-adventures
+```
+
+**Pasang volume di `/data`.** Tanpa volume, database ikut hilang saat container diganti. Jika memakai bind mount,
+pastikan direktori host dapat ditulis oleh user `node` (uid 1000).
+
+`GET /healthz` mengembalikan `{"ok":true}` (200) bila database terbaca, 503 bila tidak.
+
+## Backup manual
+
+Yang perlu dibackup ada dua: database **dan folder `uploads/`** (foto paket; keduanya di volume `/data`). Database
+memakai mode WAL, jadi jangan menyalin berkas `app.db` mentah saat server berjalan. Gunakan:
+
+```sh
+docker exec lembang node -e "require('better-sqlite3')('/data/app.db').backup('/data/backup.db').then(()=>console.log('ok'))"
+docker cp lembang:/data/backup.db ./backup.db
+docker cp lembang:/data/uploads ./uploads-backup
+```
+
+Memulihkan: letakkan `backup.db` sebagai `app.db` dan salin folder `uploads` kembali ke samping database. Database tanpa
+folder `uploads` tetap berjalan, tetapi foto yang diunggah akan tampil rusak.
+
+## Struktur
+
+- `src/routes/(site)/` — halaman publik; `src/routes/admin/` — area admin (login, paket, pengaturan, akun, ganti password)
+- `src/routes/uploads/[name]/` — penyajian foto unggahan (hanya nama berpola `<uuid>.<jpg|png|webp|avif>`)
+- `src/lib/server/` — database, migrasi, seed, akses data, autentikasi (password, sesi, akun, pembatas login), pengelolaan paket, unggahan; hanya server
+- `src/lib/package-form.ts`, `slug.ts` — validasi form paket (harga, minimal peserta, batas teks) dan pembuat slug (murni, dites unit)
+- `src/lib/components/` — komponen Svelte per section
+- `src/lib/content/` — teks statis Hero, Destinasi, Planner, Inspirasi
+- `src/lib/pricing.ts`, `estimate.ts`, `pdf.ts`, `share.ts` — hitungan estimasi, teks pesan, PDF, dan Web Share
+- `migrations/` — SQL bernomor
+- `e2e/` — tes end-to-end Playwright (`public/`, `admin/`, `mutating/`, `support/`; proyek `main`, `mutating`, `mutating-cms`); `playwright.config.ts`
+- `legacy/` — situs statis lama (Cloudflare Pages + Pages CMS), disimpan sebagai arsip

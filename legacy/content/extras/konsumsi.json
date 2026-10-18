@@ -1,0 +1,16 @@
+{
+  "slug": "konsumsi",
+  "title": "Konsumsi",
+  "category": "Tambahan",
+  "summary": "Susun kebutuhan makan dan kudapan selama kegiatan.",
+  "image": "/media/camp.svg",
+  "imageAlt": "Ilustrasi pelengkap untuk Konsumsi.",
+  "priceLabel": "Sesuai kebutuhan",
+  "duration": "Dibahas saat konsultasi",
+  "minimum": "",
+  "published": true,
+  "order": 3,
+  "body": "Lengkapi kegiatan dengan rencana makan sesuai jadwal dan kebutuhan peserta.\n\nDiskusikan jumlah kali makan, menu, tempat makan atau katering, dan kebutuhan makanan khusus.",
+  "includes": "Pilihan makan bersama\nOpsi snack atau coffee break\nKebutuhan makanan khusus",
+  "notes": "Menu, porsi, tempat makan, waktu penyajian, dan kebutuhan makanan khusus dikonfirmasi dalam penawaran."
+}

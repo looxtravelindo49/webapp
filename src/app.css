@@ -1,0 +1,100 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/montserrat';
+
+@theme static {
+	/* Palet: hijau ~40%, putih/krem ~50%, emas ~10%. Emas hanya sebagai isi/latar. */
+	--color-*: initial;
+	--color-white: #ffffff;
+	--color-transparent: transparent;
+	--color-current: currentColor;
+	--color-green-900: #113a33;
+	--color-green-800: #1b4d44;
+	--color-green-100: #e7efec;
+	--color-accent: #f3d284;
+	--color-accent-hover: #ebc66b;
+	--color-accent-700: #8a6414;
+	--color-surface: #ffffff;
+	--color-cream: #f8f6ee;
+	--color-muted: #5d716b;
+	--color-line: #dce4e0;
+	/* Kesalahan dan aksi berbahaya; kontras ≥ 7:1 di atas putih dan krem, teks putih di atasnya ≥ 7:1. */
+	--color-danger: #a12020;
+	--color-danger-hover: #861a1a;
+
+	--font-sans: 'Montserrat Variable', Arial, sans-serif;
+	--tracking-tightest: -0.06em;
+}
+
+@layer base {
+	html {
+		scroll-behavior: smooth;
+		scroll-padding-top: 96px;
+		-webkit-text-size-adjust: 100%;
+	}
+	body {
+		background: var(--color-surface);
+		color: var(--color-green-900);
+		font-family: var(--font-sans);
+		font-size: 14px;
+		line-height: 1.6;
+	}
+	button,
+	a {
+		touch-action: manipulation;
+		-webkit-tap-highlight-color: transparent;
+	}
+	button {
+		cursor: pointer;
+	}
+	:focus-visible {
+		outline: 3px solid var(--color-accent-700);
+		outline-offset: 3px;
+	}
+	/* Fokus di atas latar hijau memakai emas supaya tetap terlihat. */
+	.on-dark :focus-visible {
+		outline-color: var(--color-accent);
+	}
+	/* Kartu terang di dalam pita hijau memakai kembali warna fokus untuk latar terang. */
+	.on-dark .on-light :focus-visible {
+		outline-color: var(--color-accent-700);
+	}
+	dialog::backdrop {
+		background: rgb(8 28 24 / 0.78);
+		backdrop-filter: blur(4px);
+	}
+}
+
+@layer components {
+	.wrap {
+		width: min(1180px, calc(100% - 64px));
+		margin-inline: auto;
+	}
+	@media (max-width: 900px) {
+		.wrap {
+			width: calc(100% - 40px);
+		}
+	}
+	@media (max-width: 650px) {
+		.wrap {
+			width: calc(100% - 36px);
+		}
+	}
+	.eyebrow {
+		font-size: 10px;
+		font-weight: 800;
+		letter-spacing: 2px;
+		text-transform: uppercase;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html {
+		scroll-behavior: auto;
+	}
+	*,
+	*::before,
+	*::after {
+		transition: none !important;
+		animation: none !important;
+	}
+}

@@ -1,0 +1,16 @@
+{
+  "slug": "akomodasi",
+  "title": "Akomodasi",
+  "category": "Tambahan",
+  "summary": "Tambahkan penginapan jika ingin lebih lama menikmati Lembang.",
+  "image": "/media/camp.svg",
+  "imageAlt": "Ilustrasi pelengkap untuk Akomodasi.",
+  "priceLabel": "Sesuai kebutuhan",
+  "duration": "Dibahas saat konsultasi",
+  "minimum": "",
+  "published": true,
+  "order": 2,
+  "body": "Sesuaikan penginapan dengan jumlah peserta, kebutuhan kamar, dan kisaran anggaran.\n\nSampaikan kebutuhan tempat berkumpul, ruang acara, atau kemudahan akses.",
+  "includes": "Pilihan hotel, vila, atau penginapan\nKebutuhan kamar\nOpsi tempat acara",
+  "notes": "Ketersediaan kamar, kapasitas, tipe tempat tidur, waktu check-in, dan fasilitas mengikuti konfirmasi penginapan."
+}

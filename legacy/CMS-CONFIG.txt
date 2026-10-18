@@ -1,0 +1,288 @@
+media:
+  input: public/media
+  output: /media
+  extensions:
+  - jpg
+  - jpeg
+  - png
+  - webp
+  - avif
+  - svg
+  rename: safe
+content:
+- name: settings
+  label: 1. Identitas & WhatsApp
+  type: file
+  path: content/settings.json
+  format: json
+  fields:
+  - name: name
+    label: Nama website
+    type: string
+    required: true
+  - name: byline
+    label: Keterangan merek
+    type: string
+  - name: url
+    label: Alamat website
+    type: string
+    required: true
+    description: Alamat lengkap dengan https://, tanpa path tambahan.
+  - name: description
+    label: Deskripsi untuk Google
+    type: text
+  - name: whatsapp
+    label: Nomor WhatsApp
+    type: string
+    description: Isi nomor aktif dengan awalan 62 atau 08.
+  - name: logo
+    label: Logo (opsional)
+    type: image
+  - name: primaryColor
+    label: Warna utama
+    type: string
+    pattern: ^#[0-9A-Fa-f]{6}$
+  - name: accentColor
+    label: Warna aksen
+    type: string
+    pattern: ^#[0-9A-Fa-f]{6}$
+- name: home
+  label: 2. Beranda
+  type: file
+  path: content/home.json
+  format: json
+  fields:
+  - name: topline
+    label: Kalimat paling atas
+    type: string
+  - name: seoTitle
+    label: Judul beranda untuk Google
+    type: string
+  - name: eyebrow
+    label: Baris jenis kegiatan
+    type: string
+  - name: title
+    label: Judul utama
+    type: text
+    description: Enter untuk membuat baris baru.
+  - name: description
+    label: Penjelasan utama
+    type: text
+  - name: image
+    label: Foto besar beranda
+    type: image
+  - name: imageAlt
+    label: Keterangan foto beranda
+    type: string
+  - name: note
+    label: Catatan kecil pada foto
+    type: text
+  - name: captionTitle
+    label: Judul pada foto
+    type: string
+  - name: captionText
+    label: Kalimat pada foto
+    type: string
+  - name: activitiesTitle
+    label: Judul bagian aktivitas
+    type: string
+  - name: extrasTitle
+    label: Judul bagian tambahan
+    type: string
+  - name: articlesTitle
+    label: Judul bagian artikel
+    type: string
+  - name: planningTitle
+    label: Judul ajakan konsultasi
+    type: text
+  - name: planningText
+    label: Isi ajakan konsultasi
+    type: text
+  - name: priceNote
+    label: Catatan harga dan fasilitas
+    type: text
+  - name: footerNote
+    label: Keterangan paling bawah
+    type: string
+- name: activities
+  label: 3. Aktivitas Lembang
+  type: collection
+  path: content/activities
+  format: json
+  filename: '{fields.slug}.json'
+  subfolders: false
+  view:
+    primary: title
+    fields:
+    - title
+    - published
+    - order
+    sort: order
+  fields:
+  - name: slug
+    label: Alamat pendek halaman
+    type: string
+    required: true
+    pattern:
+      regex: ^[a-z0-9]+(?:-[a-z0-9]+)*$
+      message: 'Gunakan huruf kecil, angka, dan tanda hubung. Contoh: offroad-cikole.'
+    description: Jaga tetap sama setelah dibagikan agar tautan tidak berubah.
+  - name: title
+    label: Nama paket / halaman
+    type: string
+    required: true
+  - name: published
+    label: Tampilkan di website
+    type: boolean
+    description: Aktifkan untuk menerbitkan. Matikan untuk menyimpan sebagai draft.
+  - name: order
+    label: Urutan tampil
+    type: number
+  - name: category
+    label: Jenis aktivitas / kategori
+    type: string
+  - name: summary
+    label: Deskripsi singkat
+    type: text
+    required: true
+  - name: image
+    label: Foto utama
+    type: image
+  - name: imageAlt
+    label: Keterangan foto
+    type: string
+  - name: priceLabel
+    label: Tulisan harga
+    type: string
+    description: Isi harga dan syarat yang sudah dikonfirmasi.
+  - name: duration
+    label: Durasi
+    type: string
+  - name: minimum
+    label: Minimal peserta / syarat singkat
+    type: string
+  - name: body
+    label: Penjelasan lengkap
+    type: text
+  - name: includes
+    label: Pilihan fasilitas yang bisa dibahas
+    type: text
+    description: Satu item per baris. Isi sesuai penawaran yang benar.
+  - name: notes
+    label: Catatan dan ketentuan
+    type: text
+- name: extras
+  label: 4. Pilihan Tambahan
+  type: collection
+  path: content/extras
+  format: json
+  filename: '{fields.slug}.json'
+  subfolders: false
+  view:
+    primary: title
+    fields:
+    - title
+    - published
+    - order
+    sort: order
+  fields:
+  - name: slug
+    label: Alamat pendek halaman
+    type: string
+    required: true
+    pattern:
+      regex: ^[a-z0-9]+(?:-[a-z0-9]+)*$
+      message: 'Gunakan huruf kecil, angka, dan tanda hubung. Contoh: offroad-cikole.'
+    description: Jaga tetap sama setelah dibagikan agar tautan tidak berubah.
+  - name: title
+    label: Nama paket / halaman
+    type: string
+    required: true
+  - name: published
+    label: Tampilkan di website
+    type: boolean
+    description: Aktifkan untuk menerbitkan. Matikan untuk menyimpan sebagai draft.
+  - name: order
+    label: Urutan tampil
+    type: number
+  - name: category
+    label: Jenis aktivitas / kategori
+    type: string
+  - name: summary
+    label: Deskripsi singkat
+    type: text
+    required: true
+  - name: image
+    label: Foto utama
+    type: image
+  - name: imageAlt
+    label: Keterangan foto
+    type: string
+  - name: priceLabel
+    label: Tulisan harga
+    type: string
+    description: Isi harga dan syarat yang sudah dikonfirmasi.
+  - name: duration
+    label: Durasi
+    type: string
+  - name: minimum
+    label: Minimal peserta / syarat singkat
+    type: string
+  - name: body
+    label: Penjelasan lengkap
+    type: text
+  - name: includes
+    label: Pilihan fasilitas yang bisa dibahas
+    type: text
+    description: Satu item per baris. Isi sesuai penawaran yang benar.
+  - name: notes
+    label: Catatan dan ketentuan
+    type: text
+- name: articles
+  label: 5. Artikel & Inspirasi
+  type: collection
+  path: content/articles
+  format: json
+  filename: '{fields.slug}.json'
+  subfolders: false
+  view:
+    primary: title
+    fields:
+    - title
+    - published
+    - order
+    sort: order
+  fields:
+  - name: slug
+    label: Alamat pendek halaman
+    type: string
+    required: true
+    pattern:
+      regex: ^[a-z0-9]+(?:-[a-z0-9]+)*$
+      message: 'Gunakan huruf kecil, angka, dan tanda hubung. Contoh: offroad-cikole.'
+    description: Jaga tetap sama setelah dibagikan agar tautan tidak berubah.
+  - name: title
+    label: Judul artikel
+    type: string
+    required: true
+  - name: published
+    label: Tampilkan di website
+    type: boolean
+  - name: order
+    label: Urutan
+    type: number
+  - name: category
+    label: Kategori
+    type: string
+  - name: summary
+    label: Ringkasan
+    type: text
+  - name: image
+    label: Foto (opsional)
+    type: image
+  - name: imageAlt
+    label: Keterangan foto
+    type: string
+  - name: body
+    label: Isi artikel
+    type: text

@@ -1,0 +1,11 @@
+node_modules
+.svelte-kit
+build
+data
+legacy
+.claude
+openspec
+.git
+.env
+.env.*
+!.env.example
