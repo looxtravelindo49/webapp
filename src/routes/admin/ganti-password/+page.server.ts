@@ -14,8 +14,8 @@ type Errors = { current?: string; next?: string; confirm?: string };
 export const actions: Actions = {
 	default: async ({ request, locals }) => {
 		if (!locals.user) redirect(303, '/admin/login');
-		const db = getDb();
-		const user = findUserById(db, locals.user.id);
+		const db = await getDb();
+		const user = await findUserById(db, locals.user.id);
 		if (!user) redirect(303, '/admin/login');
 
 		const form = await request.formData();
@@ -33,9 +33,9 @@ export const actions: Actions = {
 		}
 		if (errors.current || errors.next || errors.confirm) return fail(400, { errors });
 
-		setPassword(db, user.id, await hashPassword(next), false);
+		await setPassword(db, user.id, await hashPassword(next), false);
 		// Sesi di perangkat lain dibatalkan; sesi saat ini dipertahankan.
-		deleteUserSessions(db, user.id, locals.sessionToken ?? undefined);
+		await deleteUserSessions(db, user.id, locals.sessionToken ?? undefined);
 		redirect(303, '/admin');
 	}
 };

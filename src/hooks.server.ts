@@ -7,7 +7,7 @@ import { initOrExit } from '#lib/server/startup.js';
 
 // Migrasi, seed, dan inisialisasi akun admin berjalan sekali saat server start, bukan pada
 // request pertama. Jika gagal, proses berhenti dengan exit code 1.
-export const init: ServerInit = () => initOrExit(async () => initAdmin(getDb()));
+export const init: ServerInit = () => initOrExit(async () => initAdmin(await getDb()));
 
 export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = null;
@@ -19,7 +19,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	const token = event.cookies.get(SESSION_COOKIE) ?? null;
 	if (token) {
-		const user = getSessionUser(getDb(), token);
+		const user = await getSessionUser(await getDb(), token);
 		if (user) {
 			event.locals.user = { id: user.id, login: user.login, must_change_password: user.must_change_password };
 			event.locals.sessionToken = token;

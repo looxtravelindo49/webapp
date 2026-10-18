@@ -6,7 +6,7 @@
 	import { LIMITS, type PackageErrors, type PackageRaw } from '#lib/package-form.js';
 
 	/** Batas dan jenis yang diterima di sisi klien (server tetap menjadi penentu). */
-	const MAX_BYTES = 5 * 1024 * 1024;
+	const MAX_BYTES = 4 * 1024 * 1024;
 	const ACCEPT = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
 
 	let {
@@ -37,7 +37,7 @@
 		clientPhotoError = '';
 		if (!file) return;
 		if (!ACCEPT.includes(file.type)) clientPhotoError = 'Jenis berkas tidak didukung. Pilih foto JPEG, PNG, WebP, atau AVIF.';
-		else if (file.size > MAX_BYTES) clientPhotoError = 'Foto terlalu besar. Maksimal 5 MB.';
+		else if (file.size > MAX_BYTES) clientPhotoError = 'Foto terlalu besar. Maksimal 4 MB.';
 		if (clientPhotoError) e.currentTarget.value = ''; // batalkan pilihan agar tidak terkirim
 	}
 </script>
@@ -98,7 +98,7 @@
 				class="block w-full text-xs file:mr-3 file:cursor-pointer file:rounded-md file:border file:border-line file:bg-cream file:px-3 file:py-2 file:text-xs file:font-bold file:text-green-900"
 			/>
 			<p id="{uid}-photo-hint" class="mt-1.5 text-[11px] text-muted">
-				JPEG, PNG, WebP, atau AVIF, maksimal 5 MB (ideal sekitar 1600 px lebar). Foto dari ponsel dapat memuat data
+				JPEG, PNG, WebP, atau AVIF, maksimal 4 MB (ideal sekitar 1600 px lebar). Foto dari ponsel dapat memuat data
 				lokasi; ekspor ulang tanpa lokasi bila perlu. Setelah ada kesalahan, pilih foto lagi.
 			</p>
 			{#if shownPhotoError}<p id={photoErrId} role="alert" class="mt-1.5 text-[11px] font-semibold text-danger">{shownPhotoError}</p>{/if}

@@ -131,27 +131,27 @@ test.describe('[image-uploads] Penolakan', () => {
 		expect(pkgById(p.id).image).toBeNull();
 	});
 
-	test('5 MB + 1 byte ditolak di server dengan pesan batas; tepat 5 MB diterima', async ({ page, baseURL }) => {
+	test('4 MB + 1 byte ditolak di server dengan pesan batas; tepat 4 MB diterima', async ({ page, baseURL }) => {
 		await login(page);
 		const headers = { origin: new URL(baseURL!).origin };
 		const before = uploadedFiles();
 		const over = uniqueTitle(`${PREFIX} Besar`);
 		const res = await page.request.post('/admin/paket/baru', {
-			multipart: { title: over, summary: 'x', photo: file('besar.png', pngOfSize(5 * MB + 1), PNG_MIME) },
+			multipart: { title: over, summary: 'x', photo: file('besar.png', pngOfSize(4 * MB + 1), PNG_MIME) },
 			headers
 		});
-		expect(await res.text()).toContain('Foto terlalu besar. Maksimal 5 MB.');
+		expect(await res.text()).toContain('Foto terlalu besar. Maksimal 4 MB.');
 		expect(pkgByTitle(over)).toBeUndefined();
 		expect(uploadedFiles()).toEqual(before);
 
 		const exact = uniqueTitle(`${PREFIX} Pas`);
 		await page.request.post('/admin/paket/baru', {
-			multipart: { title: exact, summary: 'x', photo: file('pas.png', pngOfSize(5 * MB), PNG_MIME) },
+			multipart: { title: exact, summary: 'x', photo: file('pas.png', pngOfSize(4 * MB), PNG_MIME) },
 			headers
 		});
 		const row = pkgByTitle(exact);
 		expect(row?.image).toMatch(UPLOAD_PATH);
-		expect(readFileSync(fileOf(row.image!)).length).toBe(5 * MB);
+		expect(readFileSync(fileOf(row.image!)).length).toBe(4 * MB);
 	});
 
 	test('validasi lain gagal: foto valid tidak meninggalkan berkas baru', async ({ page }) => {
@@ -272,7 +272,7 @@ test.describe('[image-uploads] Pemeriksaan di sisi klien', () => {
 		let posts = 0;
 		page.on('request', (r) => r.method() === 'POST' && posts++);
 		await photoInput(page).setInputFiles(file('besar.png', pngOfSize(6 * MB), PNG_MIME));
-		await expect(page.getByRole('alert')).toHaveText('Foto terlalu besar. Maksimal 5 MB.');
+		await expect(page.getByRole('alert')).toHaveText('Foto terlalu besar. Maksimal 4 MB.');
 		expect(await photoInput(page).evaluate((el: HTMLInputElement) => el.files!.length)).toBe(0);
 		await page.evaluate(() => 0); // putaran balik ke halaman: permintaan yang tertunda (bila ada) sudah terkirim
 		expect(posts).toBe(0);

@@ -2,13 +2,13 @@ import { fail } from '@sveltejs/kit';
 import { getDb } from '#lib/server/database.js';
 import { deletePackage, getPackage, listAllPackages, movePackage, setPublished } from '#lib/server/packages.js';
 import { requireUser } from '#lib/server/require-user.js';
-import { deleteUpload } from '#lib/server/uploads.js';
+import { deleteUpload, getStore, isUploadPath } from '#lib/server/uploads.js';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ locals }) => {
+export const load: PageServerLoad = async ({ locals }) => {
 	requireUser(locals);
 	return {
-		packages: listAllPackages(getDb()).map((p) => ({
+		packages: (await listAllPackages(await getDb())).map((p) => ({
 			id: p.id,
 			title: p.title,
 			slug: p.slug,
@@ -39,11 +39,11 @@ export const actions: Actions = {
 		requireUser(locals);
 		const form = await request.formData();
 		const id = targetId(form);
-		const db = getDb();
-		const pkg = getPackage(db, id);
+		const db = await getDb();
+		const pkg = await getPackage(db, id);
 		if (!pkg) return fail(404, { action: 'terbit' as const, id, error: NOT_FOUND });
 		const publish = pkg.published !== 1;
-		setPublished(db, id, publish);
+		await setPublished(db, id, publish);
 		return {
 			action: 'terbit' as const,
 			ok: true as const,
@@ -60,17 +60,18 @@ export const actions: Actions = {
 		if (form.get('confirm') !== 'yes') {
 			return fail(400, { action: 'hapus' as const, id, error: 'Penghapusan perlu konfirmasi. Muat ulang halaman, lalu coba lagi.' });
 		}
-		const db = getDb();
-		const pkg = getPackage(db, id);
-		const result = deletePackage(db, id);
+		const db = await getDb();
+		const pkg = await getPackage(db, id);
+		const result = await deletePackage(db, id);
 		if (!result.ok) return fail(404, { action: 'hapus' as const, id, error: NOT_FOUND });
-		deleteUpload(result.image); // foto bawaan (/media/…) diabaikan
+		// Foto bawaan (/media/…) tidak pernah dihapus; kegagalan menghapus berkas tidak membatalkan penghapusan paket.
+		if (isUploadPath(result.image)) await deleteUpload(getStore(), result.image).catch((err) => console.error('[uploads] gagal menghapus', result.image, err));
 		return { action: 'hapus' as const, ok: true as const, notice: `Paket "${pkg?.title}" dihapus.` };
 	}
 };
 
-function move(id: number, direction: 'up' | 'down') {
-	const result = movePackage(getDb(), id, direction);
+async function move(id: number, direction: 'up' | 'down') {
+	const result = await movePackage(await getDb(), id, direction);
 	if (result === 'notfound') return fail(404, { action: 'urutan' as const, id, error: NOT_FOUND });
 	// Di batas tidak ada yang berubah dan itu bukan kesalahan.
 	return { action: 'urutan' as const, ok: true as const, notice: result === 'moved' ? 'Urutan paket diperbarui.' : 'Urutan tidak berubah.' };

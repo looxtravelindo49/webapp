@@ -1,17 +1,21 @@
 import { building } from '$app/env';
-import { openDatabase, type Db } from './db';
+import { databaseTarget, openDatabase, type Db } from './db';
 import { seed } from './seed';
 
-let db: Db | undefined;
+let ready: Promise<Db> | undefined;
 
-/** Koneksi tunggal; membuka database, migrasi, lalu seed pada pemanggilan pertama. */
-export function getDb(): Db {
+/** Koneksi tunggal per instance; membuka database, migrasi, lalu seed pada pemanggilan pertama. */
+export function getDb(): Promise<Db> {
 	if (building) throw new Error('Database tidak tersedia saat build.');
-	if (!db) {
-		const path = process.env.DATABASE_PATH || './data/app.db';
-		db = openDatabase(path);
-		seed(db);
-		console.log(`[db] siap di ${path}`);
-	}
-	return db;
+	ready ??= (async () => {
+		const target = databaseTarget();
+		const db = await openDatabase(target, undefined, process.env.DATABASE_AUTH_TOKEN);
+		await seed(db);
+		console.log(`[db] siap di ${target.replace(/\?.*$/, '')}`);
+		return db;
+	})().catch((err) => {
+		ready = undefined; // izinkan percobaan ulang pada pemanggilan berikutnya
+		throw err;
+	});
+	return ready;
 }

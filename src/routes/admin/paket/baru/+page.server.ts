@@ -24,7 +24,7 @@ export const actions: Actions = {
 				photoError: photo.kind === 'error' ? photo.message : ''
 			});
 		}
-		const created = createWithPhoto(getDb(), parsed.values, photo);
+		const created = await createWithPhoto(await getDb(), parsed.values, photo);
 		redirect(303, `/admin/paket/${created.id}?dibuat=1`);
 	}
 };

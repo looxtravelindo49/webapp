@@ -1,11 +1,12 @@
 # Lembang Adventures
 
-Situs SvelteKit + Tailwind dengan SQLite. Paket dan nomor WhatsApp dibaca dari database pada setiap request.
+Situs SvelteKit + Tailwind dengan SQLite (libSQL). Paket dan nomor WhatsApp dibaca dari database pada setiap request.
+Berjalan di Vercel (database Turso + foto di Vercel Blob) atau di server/kontainer (berkas SQLite + folder foto); kodenya sama.
 
 ## Menjalankan lokal
 
 ```sh
-npm install        # npm 10 (Node 22): gunakan `npm install --ignore-scripts`, binary SQLite sudah termasuk di paket
+npm install        # npm 10 (Node 22): gunakan `npm install --ignore-scripts`; binary libSQL sudah termasuk di paket
 npm run dev        # http://localhost:5173, database di ./data/app.db
 npm test           # tes Vitest (unit dan render server; cepat, tanpa peramban)
 npm run test:e2e   # tes e2e Playwright (lihat bagian "Tes e2e")
@@ -54,10 +55,10 @@ bawaan tertulis di repositori ini. Untuk menimpanya sejak awal, setel `ADMIN_SEE
   - *Terbitkan/Sembunyikan*, *Naik/Turun* (mengubah urutan tab dan kalkulator), dan *Hapus* (selalu minta konfirmasi,
     juga ditegakkan di server; tidak bisa dibatalkan). Perubahan langsung tampil di situs tanpa build atau restart.
   - Beranda admin memperingatkan bila ada paket terbit yang belum berharga.
-- **Foto paket**: JPEG, PNG, WebP, atau AVIF, maksimal **5 MB** (ideal sekitar 1600 px lebar). Jenis berkas ditentukan
+- **Foto paket**: JPEG, PNG, WebP, atau AVIF, maksimal **4 MB** (ideal sekitar 1600 px lebar; batas 4 MB karena badan permintaan fungsi Vercel dibatasi 4,5 MB). Jenis berkas ditentukan
   dari isinya, bukan nama atau `Content-Type`; SVG dan GIF ditolak. Berkas disimpan dengan nama acak di folder unggahan
   (`UPLOAD_DIR`, bawaan: folder `uploads` di samping berkas database, jadi ikut volume `/data`) dan disajikan di
-  `/uploads/<nama>`. Foto dari ponsel dapat memuat data lokasi (EXIF); ekspor ulang tanpa lokasi bila perlu, karena
+  `/uploads/<nama>`. Dengan `BLOB_READ_WRITE_TOKEN` berkas disimpan di Vercel Blob (store privat) dan tetap disajikan lewat rute yang sama. Foto dari ponsel dapat memuat data lokasi (EXIF); ekspor ulang tanpa lokasi bila perlu, karena
   berkas disimpan apa adanya. Mengganti atau menghapus foto (dan menghapus paket) menghapus berkas unggahan lamanya;
   gambar bawaan di `static/media/` tidak pernah dihapus.
 - **Pengaturan** di `/admin/pengaturan`: nomor WhatsApp tujuan. Format lokal (`0812-3456-7890`) atau internasional
@@ -69,12 +70,13 @@ bawaan tertulis di repositori ini. Untuk menimpanya sejak awal, setel `ADMIN_SEE
   setara. Akun baru dan akun yang direset wajib mengganti password saat login berikutnya. Tidak bisa menghapus akun
   sendiri atau akun terakhir.
 - **Sesi**: cookie `session` (HttpOnly, SameSite=Lax, 7 hari). Server hanya menyimpan hash token.
-- **Pembatasan login**: 5 kegagalan per 15 menit per kombinasi login + IP (disimpan di memori, hilang saat restart).
-  Di balik reverse proxy, setel `ADDRESS_HEADER` (mis. `X-Forwarded-For`) dan `XFF_DEPTH` agar IP klien benar; tanpa itu
-  semua pengunjung tampak berasal dari satu IP.
+- **Pembatasan login**: 5 kegagalan per 15 menit per kombinasi login + IP (disimpan di tabel `login_attempt`, jadi dibagi antar instance dan bertahan saat restart).
+  Di balik reverse proxy sendiri (bukan Vercel), setel `ADDRESS_HEADER` (mis. `X-Forwarded-For`) dan `XFF_DEPTH` agar IP
+  klien benar; tanpa itu semua pengunjung tampak berasal dari satu IP. Di Vercel, IP klien sudah benar tanpa pengaturan.
 - **Lupa password dan tidak ada admin lain?** Start server sekali dengan `ADMIN_RESET_LOGIN=<login>` dan
   `ADMIN_RESET_PASSWORD=<password sementara>`. Password akun itu diatur ulang dan ia wajib menggantinya. **Hapus kedua
-  variabel setelahnya**; bila dibiarkan, password diatur ulang di setiap start.
+  variabel setelahnya**; bila dibiarkan, password diatur ulang di setiap start (di Vercel: setiap instance baru, jadi
+  hapus variabelnya lalu deploy ulang).
 - **HTTPS di depan server.** Form admin memakai pemeriksaan asal (CSRF) bawaan SvelteKit, dan cookie sesi bertanda
   `Secure` bila permintaan dianggap HTTPS. Pada `adapter-node` 6 (SvelteKit 3), alamat asal diturunkan dari header
   permintaan dengan **protokol bawaan `https`** dan host dari header `Host`; variabel `ORIGIN` tidak lagi dibaca. Jadi di
@@ -133,17 +135,39 @@ bila akun awal sudah pernah diganti; gunakan database baru untuk menjalankannya 
 
 | Nama | Default | Keterangan |
 |---|---|---|
-| `DATABASE_PATH` | `./data/app.db` (container: `/data/app.db`) | Lokasi berkas SQLite; direktori dibuat otomatis. |
+| `DATABASE_URL` | (kosong) | URL libSQL: `libsql://<nama>.turso.io` untuk Turso, atau `file:…`. **Wajib di Vercel.** Mengalahkan `DATABASE_PATH`. |
+| `DATABASE_AUTH_TOKEN` | (kosong) | Token otentikasi Turso (untuk `libsql://`). |
+| `DATABASE_PATH` | `./data/app.db` (container: `/data/app.db`) | Berkas SQLite lokal bila `DATABASE_URL` tidak diset; direktori dibuat otomatis. |
+| `BLOB_READ_WRITE_TOKEN` | (kosong) | Bila diset, foto unggahan disimpan di Vercel Blob. **Wajib di Vercel** (disk fungsi tidak persisten). |
+| `VERCEL_REGIONS` | (kosong) | Saat build di Vercel: daftar wilayah fungsi dipisah koma (mis. `sin1`), samakan dengan wilayah Turso. |
 | `PUBLIC_SITE_URL` | `http://localhost:3000` | Alamat publik untuk canonical, Open Graph, sitemap, robots. |
 | `PROTOCOL_HEADER` / `HOST_HEADER` / `PORT_HEADER` | (kosong) | Header dari reverse proxy untuk menurunkan alamat asal (mis. `x-forwarded-proto`, `x-forwarded-host`). Tanpa ini protokol dianggap `https` dan host diambil dari `Host`. |
 | `PORT` | `3000` | Port server produksi. |
-| `UPLOAD_DIR` | `<folder database>/uploads` (kontainer: `/data/uploads`) | Folder foto paket yang diunggah admin; dibuat otomatis. Ikut volume dan backup. |
-| `BODY_SIZE_LIMIT` | `512K` (kontainer: `8M`) | Batas ukuran body permintaan. Unggah foto (maks. 5 MB) butuh minimal `8M`; batas reverse proxy juga minimal 6 MB. |
+| `UPLOAD_DIR` | `<folder database>/uploads` (kontainer: `/data/uploads`) | Folder foto paket bila `BLOB_READ_WRITE_TOKEN` tidak diset; dibuat otomatis. Ikut volume dan backup. |
+| `BODY_SIZE_LIMIT` | `512K` (kontainer: `8M`) | Batas ukuran body permintaan. Unggah foto (maks. 4 MB) butuh minimal `8M`; batas reverse proxy juga minimal 5 MB. Hanya untuk adapter-node (tidak berlaku di Vercel). |
 | `ADMIN_SEED_LOGIN` / `ADMIN_SEED_PASSWORD` | `admin@looxtravel` / `12345678` | Akun admin awal (hanya bila tabel `user` kosong; wajib ganti password). |
 | `ADMIN_RESET_LOGIN` / `ADMIN_RESET_PASSWORD` | (kosong) | Pemulihan: atur ulang password satu akun saat start. Hapus setelah dipakai. |
 | `ADDRESS_HEADER` / `XFF_DEPTH` | (kosong) | Header dan kedalaman IP klien di balik reverse proxy (dipakai pembatasan login). |
 
 Nilai ini dibaca dari environment proses (di dev, default sudah cukup; file `.env` tidak dimuat otomatis).
+
+## Deploy ke Vercel
+
+Build memakai `adapter-vercel` otomatis di Vercel (variabel `VERCEL` terisi). Yang perlu disiapkan:
+
+1. **Database Turso**: buat database (pilih wilayah terdekat dengan wilayah fungsi), lalu ambil URL dan token
+   (`turso db show <nama> --url`, `turso db tokens create <nama>`). Migrasi dan seed berjalan otomatis saat instance
+   pertama start; tidak ada langkah migrasi manual.
+2. **Vercel Blob**: buat store **privat** dan hubungkan ke proyek (Storage → Blob); `BLOB_READ_WRITE_TOKEN` terisi otomatis.
+3. **Environment variable** di proyek Vercel: `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `BLOB_READ_WRITE_TOKEN`,
+   `PUBLIC_SITE_URL` (alamat publik), dan opsional `VERCEL_REGIONS` (mis. `sin1`). Isi **berbeda untuk Production dan
+   Preview** (database dan Blob terpisah) supaya deployment Preview tidak menulis ke data produksi.
+4. **Ganti password admin bawaan** (`admin@looxtravel` / `12345678`) segera setelah deployment pertama, sebelum situs
+   dibuka ke publik; atau setel `ADMIN_SEED_LOGIN`/`ADMIN_SEED_PASSWORD` sejak awal.
+
+Catatan: batas badan permintaan fungsi Vercel 4,5 MB, maka batas foto 4 MB. Setiap render halaman membaca database lewat
+jaringan, jadi samakan wilayah fungsi dan Turso. Syarat layanan paket Vercel Hobby setahu kami hanya untuk penggunaan
+non-komersial; periksa ketentuan terbaru Vercel sebelum dipakai untuk situs bisnis.
 
 ## Container
 
@@ -163,11 +187,14 @@ pastikan direktori host dapat ditulis oleh user `node` (uid 1000).
 
 ## Backup manual
 
-Yang perlu dibackup ada dua: database **dan folder `uploads/`** (foto paket; keduanya di volume `/data`). Database
-memakai mode WAL, jadi jangan menyalin berkas `app.db` mentah saat server berjalan. Gunakan:
+**Vercel.** Database ada di Turso (gunakan fitur backup/point-in-time Turso; ekspor manual:
+`turso db shell <nama> .dump > backup.sql`). Foto ada di Vercel Blob; unduh isi store bila perlu salinan.
+
+**Container.** Yang perlu dibackup ada dua: database **dan folder `uploads/`** (foto paket; keduanya di volume `/data`).
+Database memakai mode WAL, jadi jangan menyalin berkas `app.db` mentah saat server berjalan. Gunakan:
 
 ```sh
-docker exec lembang node -e "require('better-sqlite3')('/data/app.db').backup('/data/backup.db').then(()=>console.log('ok'))"
+docker exec lembang node -e "require('@libsql/client').createClient({url:'file:/data/app.db'}).execute(\"VACUUM INTO '/data/backup.db'\").then(()=>console.log('ok'))"
 docker cp lembang:/data/backup.db ./backup.db
 docker cp lembang:/data/uploads ./uploads-backup
 ```

@@ -1,7 +1,7 @@
 import type { PackageValues } from '#lib/package-form.js';
 import { slugify, uniqueSlug } from '#lib/slug.js';
 import type { Package } from '#lib/types.js';
-import type { Db } from './db';
+import { all, column, one, run, scalar, transaction, type Db, type Queryable } from './db';
 
 export type { Package };
 
@@ -9,10 +9,8 @@ const columns = `id, slug, title, summary, body, includes, notes, image, image_a
 	price_per_person, min_pax, published, sort_order`;
 
 /** Paket terbit, urut menurut sort_order lalu id. */
-export function listPublishedPackages(db: Db): Package[] {
-	return db
-		.prepare(`SELECT ${columns} FROM package WHERE published = 1 ORDER BY sort_order, id`)
-		.all() as Package[];
+export function listPublishedPackages(db: Queryable): Promise<Package[]> {
+	return all<Package>(db, `SELECT ${columns} FROM package WHERE published = 1 ORDER BY sort_order, id`);
 }
 
 // ---------------------------------------------------------------------------
@@ -21,32 +19,34 @@ export function listPublishedPackages(db: Db): Package[] {
 const NOW = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')";
 
 /** Semua paket (termasuk draft), urut menurut sort_order lalu id. */
-export function listAllPackages(db: Db): Package[] {
-	return db.prepare(`SELECT ${columns} FROM package ORDER BY sort_order, id`).all() as Package[];
+export function listAllPackages(db: Queryable): Promise<Package[]> {
+	return all<Package>(db, `SELECT ${columns} FROM package ORDER BY sort_order, id`);
 }
 
-export function getPackage(db: Db, id: number): Package | null {
-	return (db.prepare(`SELECT ${columns} FROM package WHERE id = ?`).get(id) as Package | undefined) ?? null;
+/** `id` yang bukan bilangan bulat (mis. NaN dari masukan rusak) berarti tidak ada; libSQL menolak NaN sebagai argumen. */
+export async function getPackage(db: Queryable, id: number): Promise<Package | null> {
+	if (!Number.isInteger(id)) return null;
+	return one<Package>(db, `SELECT ${columns} FROM package WHERE id = ?`, [id]);
 }
 
 /**
  * Buat paket baru: selalu draft, ditaruh di urutan terakhir, slug otomatis dan unik.
  * `image` adalah path foto (mis. `/uploads/<uuid>.png`) atau null.
  */
-export function createPackage(db: Db, values: PackageValues, image: string | null): Package {
-	return db.transaction(() => {
-		const taken = db.prepare('SELECT slug FROM package').pluck().all() as string[];
+export function createPackage(db: Db, values: PackageValues, image: string | null): Promise<Package> {
+	return transaction(db, async (tx) => {
+		const taken = await column<string>(tx, 'SELECT slug FROM package');
 		const slug = uniqueSlug(slugify(values.title), taken);
-		const order = (db.prepare('SELECT COALESCE(MAX(sort_order), 0) + 1 FROM package').pluck().get() as number) ?? 1;
-		const info = db
-			.prepare(
-				`INSERT INTO package (slug, title, summary, body, includes, notes, image, image_alt, duration,
-				                      price_per_person, min_pax, published, sort_order)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`
-			)
-			.run(slug, values.title, values.summary, values.body, values.includes, values.notes, image, values.image_alt, values.duration, values.price_per_person, values.min_pax, order);
-		return getPackage(db, Number(info.lastInsertRowid))!;
-	})();
+		const order = (await scalar<number>(tx, 'SELECT COALESCE(MAX(sort_order), 0) + 1 FROM package')) ?? 1;
+		const info = await run(
+			tx,
+			`INSERT INTO package (slug, title, summary, body, includes, notes, image, image_alt, duration,
+			                      price_per_person, min_pax, published, sort_order)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+			[slug, values.title, values.summary, values.body, values.includes, values.notes, image, values.image_alt, values.duration, values.price_per_person, values.min_pax, order]
+		);
+		return (await getPackage(tx, Number(info.lastInsertRowid)))!;
+	});
 }
 
 export type UpdateResult = { ok: true; previousImage: string | null } | { ok: false };
@@ -55,38 +55,40 @@ export type UpdateResult = { ok: true; previousImage: string | null } | { ok: fa
  * Perbarui paket. Slug TIDAK berubah. `image`: `undefined` = biarkan, `null` = hapus foto,
  * string = path foto baru. Mengembalikan foto sebelumnya agar pemanggil dapat menghapus berkasnya.
  */
-export function updatePackage(db: Db, id: number, values: PackageValues, image?: string | null): UpdateResult {
-	return db.transaction((): UpdateResult => {
-		const current = getPackage(db, id);
+export function updatePackage(db: Db, id: number, values: PackageValues, image?: string | null): Promise<UpdateResult> {
+	return transaction(db, async (tx): Promise<UpdateResult> => {
+		const current = await getPackage(tx, id);
 		if (!current) return { ok: false };
-		db.prepare(
+		await run(
+			tx,
 			`UPDATE package SET title = ?, summary = ?, body = ?, includes = ?, notes = ?, image = ?, image_alt = ?,
 			        duration = ?, price_per_person = ?, min_pax = ?, published = ?, updated_at = ${NOW}
-			 WHERE id = ?`
-		).run(
-			values.title, values.summary, values.body, values.includes, values.notes,
-			image === undefined ? current.image : image,
-			values.image_alt, values.duration, values.price_per_person, values.min_pax, values.published ? 1 : 0, id
+			 WHERE id = ?`,
+			[
+				values.title, values.summary, values.body, values.includes, values.notes,
+				image === undefined ? current.image : image,
+				values.image_alt, values.duration, values.price_per_person, values.min_pax, values.published ? 1 : 0, id
+			]
 		);
 		return { ok: true, previousImage: current.image };
-	})();
+	});
 }
 
 export type DeleteResult = { ok: true; image: string | null } | { ok: false };
 
 /** Hapus paket; mengembalikan path fotonya agar berkas unggahan dapat dihapus. */
-export function deletePackage(db: Db, id: number): DeleteResult {
-	return db.transaction((): DeleteResult => {
-		const current = getPackage(db, id);
+export function deletePackage(db: Db, id: number): Promise<DeleteResult> {
+	return transaction(db, async (tx): Promise<DeleteResult> => {
+		const current = await getPackage(tx, id);
 		if (!current) return { ok: false };
-		db.prepare('DELETE FROM package WHERE id = ?').run(id);
+		await run(tx, 'DELETE FROM package WHERE id = ?', [id]);
 		return { ok: true, image: current.image };
-	})();
+	});
 }
 
-export function setPublished(db: Db, id: number, published: boolean): boolean {
-	const info = db.prepare(`UPDATE package SET published = ?, updated_at = ${NOW} WHERE id = ?`).run(published ? 1 : 0, id);
-	return info.changes > 0;
+export async function setPublished(db: Queryable, id: number, published: boolean): Promise<boolean> {
+	const info = await run(db, `UPDATE package SET published = ?, updated_at = ${NOW} WHERE id = ?`, [published ? 1 : 0, id]);
+	return info.rowsAffected > 0;
 }
 
 export type MoveResult = 'moved' | 'boundary' | 'notfound';
@@ -96,21 +98,20 @@ export type MoveResult = 'moved' | 'boundary' | 'notfound';
  * (draft ikut), lalu rapatkan seluruh sort_order menjadi 1..n dalam satu transaksi.
  * Di batas (pertama/terakhir) tidak mengubah apa pun.
  */
-export function movePackage(db: Db, id: number, direction: 'up' | 'down'): MoveResult {
-	return db.transaction((): MoveResult => {
-		const ids = db.prepare('SELECT id FROM package ORDER BY sort_order, id').pluck().all() as number[];
+export function movePackage(db: Db, id: number, direction: 'up' | 'down'): Promise<MoveResult> {
+	return transaction(db, async (tx): Promise<MoveResult> => {
+		const ids = await column<number>(tx, 'SELECT id FROM package ORDER BY sort_order, id');
 		const i = ids.indexOf(id);
 		if (i < 0) return 'notfound';
 		const j = direction === 'up' ? i - 1 : i + 1;
 		if (j < 0 || j >= ids.length) return 'boundary';
 		[ids[i], ids[j]] = [ids[j], ids[i]];
-		const set = db.prepare('UPDATE package SET sort_order = ? WHERE id = ?');
-		ids.forEach((pid, k) => set.run(k + 1, pid));
+		for (const [k, pid] of ids.entries()) await run(tx, 'UPDATE package SET sort_order = ? WHERE id = ?', [k + 1, pid]);
 		return 'moved';
-	})();
+	});
 }
 
 /** Jumlah paket terbit yang belum berharga (untuk peringatan di beranda admin). */
-export function countPublishedWithoutPrice(db: Db): number {
-	return db.prepare('SELECT COUNT(*) FROM package WHERE published = 1 AND price_per_person IS NULL').pluck().get() as number;
+export async function countPublishedWithoutPrice(db: Queryable): Promise<number> {
+	return (await scalar<number>(db, 'SELECT COUNT(*) FROM package WHERE published = 1 AND price_per_person IS NULL')) ?? 0;
 }

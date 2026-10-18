@@ -5,9 +5,9 @@ import { hashPassword, validateNewPassword } from '#lib/server/password.js';
 import { createUser, deleteUser, findUserById, listUsers, normalizeLogin, resetPassword, validateLogin } from '#lib/server/users.js';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ locals }) => ({
+export const load: PageServerLoad = async ({ locals }) => ({
 	currentId: locals.user?.id ?? null,
-	users: listUsers(getDb()).map((u) => ({
+	users: (await listUsers(await getDb())).map((u) => ({
 		id: u.id,
 		login: u.login,
 		mustChange: u.must_change_password === 1,
@@ -32,7 +32,7 @@ export const actions: Actions = {
 		if (badPassword) errors.password = badPassword;
 		if (errors.login || errors.password) return fail(400, { action: 'buat' as const, login: rawLogin, errors });
 
-		const result = createUser(getDb(), { login, passwordHash: await hashPassword(password), mustChangePassword: true });
+		const result = await createUser(await getDb(), { login, passwordHash: await hashPassword(password), mustChangePassword: true });
 		if (!result.ok) {
 			const taken: { login?: string; password?: string } = { login: result.message };
 			return fail(400, { action: 'buat' as const, login: rawLogin, errors: taken });
@@ -49,8 +49,8 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const id = targetId(form);
 		const password = String(form.get('password') ?? '');
-		const db = getDb();
-		const target = findUserById(db, id);
+		const db = await getDb();
+		const target = await findUserById(db, id);
 		if (!target) return fail(404, { action: 'reset' as const, id, error: 'Akun tidak ditemukan.' });
 		if (target.id === actor.id) {
 			return fail(400, {
@@ -62,7 +62,7 @@ export const actions: Actions = {
 		const bad = validateNewPassword(password, { login: target.login });
 		if (bad) return fail(400, { action: 'reset' as const, id, error: bad });
 
-		const result = resetPassword(db, actor.id, target.id, await hashPassword(password));
+		const result = await resetPassword(db, actor.id, target.id, await hashPassword(password));
 		if (!result.ok) return fail(400, { action: 'reset' as const, id, error: result.message });
 		return {
 			action: 'reset' as const,
@@ -84,9 +84,9 @@ export const actions: Actions = {
 				error: 'Penghapusan perlu konfirmasi. Muat ulang halaman, lalu coba lagi.'
 			});
 		}
-		const db = getDb();
-		const target = findUserById(db, id);
-		const result = deleteUser(db, actor.id, id);
+		const db = await getDb();
+		const target = await findUserById(db, id);
+		const result = await deleteUser(db, actor.id, id);
 		if (!result.ok) return fail(result.error === 'notfound' ? 404 : 400, { action: 'hapus' as const, id, error: result.message });
 		return { action: 'hapus' as const, ok: true as const, notice: `Akun "${target?.login}" dihapus.` };
 	}

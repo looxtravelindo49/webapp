@@ -8,9 +8,9 @@ import type { Actions, PageServerLoad } from './$types';
 
 const parseId = (raw: string) => (/^\d{1,9}$/.test(raw) ? Number(raw) : NaN);
 
-export const load: PageServerLoad = ({ params, locals, url }) => {
+export const load: PageServerLoad = async ({ params, locals, url }) => {
 	requireUser(locals);
-	const pkg = getPackage(getDb(), parseId(params.id));
+	const pkg = await getPackage(await getDb(), parseId(params.id));
 	if (!pkg) error(404, 'Paket tidak ditemukan.');
 	return {
 		id: pkg.id,
@@ -26,8 +26,8 @@ export const actions: Actions = {
 	default: async ({ params, request, locals }) => {
 		requireUser(locals);
 		const id = parseId(params.id);
-		const db = getDb();
-		if (!getPackage(db, id)) error(404, 'Paket tidak ditemukan.');
+		const db = await getDb();
+		if (!(await getPackage(db, id))) error(404, 'Paket tidak ditemukan.');
 
 		const form = await request.formData();
 		const parsed = parsePackageForm(form);
@@ -40,7 +40,7 @@ export const actions: Actions = {
 			});
 		}
 		const removePhoto = form.get('remove_photo') !== null && form.get('remove_photo') !== '';
-		if (!editWithPhoto(db, id, parsed.values, { photo, removePhoto })) error(404, 'Paket tidak ditemukan.');
+		if (!(await editWithPhoto(db, id, parsed.values, { photo, removePhoto }))) error(404, 'Paket tidak ditemukan.');
 		return { ok: true as const, notice: `Paket "${parsed.values.title}" disimpan.` };
 	}
 };

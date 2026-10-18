@@ -1,4 +1,4 @@
-import type { Db } from './db';
+import { run, scalar, transaction, type Db } from './db';
 
 type SeedPackage = {
 	slug: string;
@@ -84,21 +84,25 @@ export const seedSettings: Record<string, string> = {
 
 /**
  * Isi data awal tanpa menimpa apa pun: paket hanya jika tabel `package` kosong,
- * pengaturan hanya untuk kunci yang belum ada. Aman dijalankan di setiap start.
+ * pengaturan hanya untuk kunci yang belum ada. Aman dijalankan di setiap start, juga bila
+ * beberapa instance menjalankannya bersamaan (transaksi tulis + `OR IGNORE` pada slug/kunci unik).
  */
-export function seed(db: Db): void {
-	db.transaction(() => {
-		const count = db.prepare('SELECT COUNT(*) FROM package').pluck().get() as number;
+export async function seed(db: Db): Promise<void> {
+	await transaction(db, async (tx) => {
+		const count = (await scalar<number>(tx, 'SELECT COUNT(*) FROM package')) ?? 0;
 		if (count === 0) {
-			const insert = db.prepare(
-				`INSERT INTO package
-					(slug, title, summary, body, includes, notes, image, image_alt, duration, price_per_person, min_pax, published, sort_order)
-				 VALUES
-					(@slug, @title, @summary, @body, @includes, @notes, @image, @image_alt, @duration, NULL, 1, 1, @sort_order)`
-			);
-			seedPackages.forEach((p, i) => insert.run({ ...p, sort_order: i + 1 }));
+			for (const [i, p] of seedPackages.entries()) {
+				await run(
+					tx,
+					`INSERT OR IGNORE INTO package
+						(slug, title, summary, body, includes, notes, image, image_alt, duration, price_per_person, min_pax, published, sort_order)
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 1, 1, ?)`,
+					[p.slug, p.title, p.summary, p.body, p.includes, p.notes, p.image, p.image_alt, p.duration, i + 1]
+				);
+			}
 		}
-		const setting = db.prepare('INSERT OR IGNORE INTO setting (key, value) VALUES (?, ?)');
-		for (const [key, value] of Object.entries(seedSettings)) setting.run(key, value);
-	})();
+		for (const [key, value] of Object.entries(seedSettings)) {
+			await run(tx, 'INSERT OR IGNORE INTO setting (key, value) VALUES (?, ?)', [key, value]);
+		}
+	});
 }

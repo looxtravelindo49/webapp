@@ -3,8 +3,9 @@
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
-# better-sqlite3 membawa binary prebuilt di dalam paketnya. npm 10 (bawaan Node 22) tetap
-# memanggil node-gyp bila ada binding.gyp, jadi skrip install dimatikan.
+# Binary native libSQL datang dari paket platform (@libsql/linux-x64-gnu) sebagai optional dependency, jadi
+# skrip install dimatikan (better-sqlite3 hanya devDependency untuk helper e2e dan ikut dibuang saat prune).
+# npm 10 (bawaan Node 22) memanggil node-gyp bila ada binding.gyp.
 RUN npm ci --ignore-scripts
 COPY . .
 RUN npm run build && npm prune --omit=dev --ignore-scripts
@@ -18,7 +19,7 @@ WORKDIR /app
 COPY --from=build /app/build ./build
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./package.json
-# BODY_SIZE_LIMIT: bawaan adapter-node 512 KB menolak unggahan foto (maks. 5 MB + overhead multipart).
+# BODY_SIZE_LIMIT: bawaan adapter-node 512 KB menolak unggahan foto (maks. 4 MB + overhead multipart).
 # Foto unggahan disimpan di /data/uploads (UPLOAD_DIR bawaan) dan ikut volume.
 # Direktori data dimiliki user non-root; volume baru mewarisi kepemilikan ini.
 RUN mkdir /data && chown node:node /data

@@ -3,6 +3,6 @@ import { getDb } from '#lib/server/database.js';
 import { listPublishedPackages } from '#lib/server/packages.js';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = () => ({
-	packages: listPublishedPackages(getDb()).map((p) => ({ ...p, image: safeImage(p.image) }))
+export const load: PageServerLoad = async () => ({
+	packages: (await listPublishedPackages(await getDb())).map((p) => ({ ...p, image: safeImage(p.image) }))
 });

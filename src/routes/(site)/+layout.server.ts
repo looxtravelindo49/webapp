@@ -5,7 +5,7 @@ import { normalizeWhatsapp } from '#lib/whatsapp.js';
 import type { LayoutServerLoad } from './$types';
 
 // Dibaca pada setiap request supaya perubahan dari database langsung tampil.
-export const load: LayoutServerLoad = () => ({
-	waNumber: normalizeWhatsapp(getSetting(getDb(), 'whatsapp')),
+export const load: LayoutServerLoad = async () => ({
+	waNumber: normalizeWhatsapp(await getSetting(await getDb(), 'whatsapp')),
 	siteUrl: siteUrl()
 });

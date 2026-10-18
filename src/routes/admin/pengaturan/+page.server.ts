@@ -7,10 +7,10 @@ import type { Actions, PageServerLoad } from './$types';
 
 const WHATSAPP_MESSAGE = 'Nomor WhatsApp tidak valid. Contoh: 0812-3456-7890 atau +62 812 3456 7890.';
 
-export const load: PageServerLoad = ({ locals }) => {
+export const load: PageServerLoad = async ({ locals }) => {
 	requireUser(locals);
 	// Tampilkan nilai tersimpan apa adanya (sudah dinormalisasi saat disimpan).
-	return { whatsapp: getSetting(getDb(), 'whatsapp') ?? '' };
+	return { whatsapp: (await getSetting(await getDb(), 'whatsapp')) ?? '' };
 };
 
 export const actions: Actions = {
@@ -22,12 +22,12 @@ export const actions: Actions = {
 
 		// Kosong diizinkan: aksi WhatsApp di kalkulator disembunyikan.
 		if (trimmed === '') {
-			setSetting(getDb(), 'whatsapp', '');
+			await setSetting(await getDb(), 'whatsapp', '');
 			return { ok: true as const, notice: 'Nomor WhatsApp dikosongkan. Tombol "Kirim ke WhatsApp" disembunyikan dari kalkulator.' };
 		}
 		const normalized = normalizeWhatsapp(trimmed);
 		if (!normalized) return fail(400, { whatsapp: raw, error: WHATSAPP_MESSAGE });
-		setSetting(getDb(), 'whatsapp', normalized);
+		await setSetting(await getDb(), 'whatsapp', normalized);
 		return { ok: true as const, notice: `Nomor WhatsApp disimpan: ${normalized}.` };
 	}
 };

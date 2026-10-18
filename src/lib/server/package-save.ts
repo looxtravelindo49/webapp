@@ -2,10 +2,10 @@ import type { PackageValues } from '#lib/package-form.js';
 import type { Package } from '#lib/types.js';
 import type { Db } from './db';
 import { createPackage, updatePackage } from './packages.js';
-import { deleteUpload, detectImageType, MAX_UPLOAD_BYTES, saveImage, uploadDir, type ImageType } from './uploads.js';
+import { deleteUpload, detectImageType, getStore, isUploadPath, MAX_UPLOAD_BYTES, saveImage, type ImageStore, type ImageType } from './uploads.js';
 
 export const PHOTO_TYPE_MESSAGE = 'Jenis berkas tidak didukung. Pilih foto JPEG, PNG, WebP, atau AVIF.';
-export const PHOTO_SIZE_MESSAGE = 'Foto terlalu besar. Maksimal 5 MB.';
+export const PHOTO_SIZE_MESSAGE = 'Foto terlalu besar. Maksimal 4 MB.';
 export const PHOTO_EMPTY_MESSAGE = 'Berkas foto kosong. Pilih foto lain.';
 
 export type PhotoInput =
@@ -14,7 +14,7 @@ export type PhotoInput =
 	| { kind: 'error'; message: string };
 
 /**
- * Baca isian berkas `photo`. Tidak menulis apa pun ke disk: jenis ditentukan dari isi berkas
+ * Baca isian berkas `photo`. Tidak menulis apa pun ke penyimpanan: jenis ditentukan dari isi berkas
  * dan ukuran diperiksa sebelum isi dibaca, sehingga penolakan tidak meninggalkan berkas.
  */
 export async function readPhoto(form: { get(name: string): unknown }): Promise<PhotoInput> {
@@ -28,16 +28,23 @@ export async function readPhoto(form: { get(name: string): unknown }): Promise<P
 	return type ? { kind: 'new', bytes, type } : { kind: 'error', message: PHOTO_TYPE_MESSAGE };
 }
 
+/** Hapus berkas tanpa menutupi galat asli (pembersihan gagal hanya dicatat). */
+const cleanup = (store: ImageStore, path: string | null | undefined) =>
+	deleteUpload(store, path).catch((err) => console.error('[uploads] gagal menghapus', path, err));
+
 /**
  * Buat paket draft (+ foto). Masukan sudah divalidasi pemanggil. Berkas ditulis dahulu,
  * lalu database; bila database gagal berkas baru dihapus lagi agar tidak ada berkas yatim.
+ * Penyimpanan dibuka hanya bila dibutuhkan, jadi simpan tanpa foto tidak bergantung padanya.
  */
-export function createWithPhoto(db: Db, values: PackageValues, photo: PhotoInput, dir: string = uploadDir()): Package {
-	const image = photo.kind === 'new' ? saveImage(photo.bytes, photo.type, dir) : null;
+export async function createWithPhoto(db: Db, values: PackageValues, photo: PhotoInput, store?: ImageStore): Promise<Package> {
+	if (photo.kind !== 'new') return createPackage(db, values, null);
+	const s = store ?? getStore();
+	const image = await saveImage(s, photo.bytes, photo.type);
 	try {
-		return createPackage(db, values, image);
+		return await createPackage(db, values, image);
 	} catch (err) {
-		deleteUpload(image, dir);
+		await cleanup(s, image);
 		throw err;
 	}
 }
@@ -48,20 +55,22 @@ export type EditOptions = { photo: PhotoInput; removePhoto: boolean };
  * Simpan perubahan paket. Foto baru menggantikan yang lama (berkas lama dihapus setelah
  * database berhasil); "Hapus foto" mengosongkan `image`. Foto bawaan (`/media/…`) tidak pernah dihapus.
  */
-export function editWithPhoto(db: Db, id: number, values: PackageValues, opts: EditOptions, dir: string = uploadDir()): boolean {
-	const added = opts.photo.kind === 'new' ? saveImage(opts.photo.bytes, opts.photo.type, dir) : null;
+export async function editWithPhoto(db: Db, id: number, values: PackageValues, opts: EditOptions, store?: ImageStore): Promise<boolean> {
+	let s = store;
+	const storage = () => (s ??= getStore());
+	const added = opts.photo.kind === 'new' ? await saveImage(storage(), opts.photo.bytes, opts.photo.type) : null;
 	const image = added ?? (opts.removePhoto ? null : undefined);
 	let result;
 	try {
-		result = updatePackage(db, id, values, image);
+		result = await updatePackage(db, id, values, image);
 	} catch (err) {
-		deleteUpload(added, dir);
+		if (added) await cleanup(storage(), added);
 		throw err;
 	}
 	if (!result.ok) {
-		deleteUpload(added, dir);
+		if (added) await cleanup(storage(), added);
 		return false;
 	}
-	if (image !== undefined) deleteUpload(result.previousImage, dir);
+	if (image !== undefined && isUploadPath(result.previousImage)) await cleanup(storage(), result.previousImage);
 	return true;
 }

@@ -3,7 +3,7 @@ import { countPublishedWithoutPrice } from '#lib/server/packages.js';
 import { requireUser } from '#lib/server/require-user.js';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ locals }) => {
+export const load: PageServerLoad = async ({ locals }) => {
 	requireUser(locals);
-	return { withoutPrice: countPublishedWithoutPrice(getDb()) };
+	return { withoutPrice: await countPublishedWithoutPrice(await getDb()) };
 };

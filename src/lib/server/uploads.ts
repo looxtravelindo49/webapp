@@ -1,8 +1,10 @@
+import { BlobNotFoundError, del, get as blobGet, head, put } from '@vercel/blob';
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs';
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 
-export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+/** 4 MB: di bawah batas badan permintaan fungsi serverless Vercel (4,5 MB) termasuk overhead multipart. */
+export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 /** Nama berkas unggahan yang kita buat sendiri: UUID huruf kecil + ekstensi dari jenis terdeteksi. */
 export const UPLOAD_NAME = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\.(?:jpg|png|webp|avif)$/;
@@ -44,28 +46,129 @@ export function uploadDir(env: Record<string, string | undefined> = process.env)
 	return env.UPLOAD_DIR ? resolve(env.UPLOAD_DIR) : join(dirname(resolve(env.DATABASE_PATH || './data/app.db')), 'uploads');
 }
 
+// ---------------------------------------------------------------------------
+// Penyimpanan: berkas di disk (pengembangan, e2e, kontainer) atau Vercel Blob (serverless).
+// Kunci selalu nama berpola `<uuid>.<ext>`; path publik `/uploads/<nama>` tidak bergantung pada penyimpanan.
+// ---------------------------------------------------------------------------
+
+export type StoredImage = { body: Uint8Array | ReadableStream<Uint8Array> };
+
+export interface ImageStore {
+	/** Simpan; melempar bila nama sudah ada (nama acak, tidak pernah ditimpa). */
+	put(name: string, bytes: Uint8Array, mime: string): Promise<void>;
+	/** Isi berkas, atau null bila tidak ada. */
+	get(name: string): Promise<StoredImage | null>;
+	/** Hapus; true bila berkas ada dan terhapus. */
+	delete(name: string): Promise<boolean>;
+}
+
+const isMissing = (err: unknown) => (err as NodeJS.ErrnoException)?.code === 'ENOENT';
+
+/** Penyimpanan di folder disk. Nama yang tidak berpola ditolak di sini juga (lapis kedua melawan traversal). */
+export class FsStore implements ImageStore {
+	constructor(readonly dir: string) {}
+
+	private file(name: string): string {
+		if (!UPLOAD_NAME.test(name)) throw new Error(`Nama unggahan tidak valid: ${name}`);
+		return join(this.dir, name);
+	}
+
+	async put(name: string, bytes: Uint8Array): Promise<void> {
+		const file = this.file(name);
+		await mkdir(this.dir, { recursive: true });
+		await writeFile(file, bytes, { flag: 'wx' });
+	}
+
+	async get(name: string): Promise<StoredImage | null> {
+		if (!UPLOAD_NAME.test(name)) return null;
+		try {
+			return { body: await readFile(join(this.dir, name)) };
+		} catch (err) {
+			if (isMissing(err)) return null;
+			throw err;
+		}
+	}
+
+	async delete(name: string): Promise<boolean> {
+		if (!UPLOAD_NAME.test(name)) return false;
+		try {
+			await unlink(join(this.dir, name));
+			return true;
+		} catch (err) {
+			if (isMissing(err)) return false;
+			throw err;
+		}
+	}
+}
+
+/** Bagian API `@vercel/blob` yang dipakai, supaya bisa diganti klien palsu pada tes. */
+export type BlobClient = Pick<typeof import('@vercel/blob'), 'put' | 'get' | 'head' | 'del'>;
+const vercelBlob: BlobClient = { put, get: blobGet, head, del };
+
+/** Penyimpanan di Vercel Blob (store privat): pathname `uploads/<nama>`, tanpa suffix acak, tanpa URL publik. */
+export class BlobStore implements ImageStore {
+	constructor(
+		private readonly token: string,
+		private readonly client: BlobClient = vercelBlob
+	) {}
+
+	private path(name: string): string {
+		if (!UPLOAD_NAME.test(name)) throw new Error(`Nama unggahan tidak valid: ${name}`);
+		return `uploads/${name}`;
+	}
+
+	async put(name: string, bytes: Uint8Array, mime: string): Promise<void> {
+		await this.client.put(this.path(name), Buffer.from(bytes), {
+			access: 'private',
+			addRandomSuffix: false,
+			allowOverwrite: false,
+			contentType: mime,
+			token: this.token
+		});
+	}
+
+	async get(name: string): Promise<StoredImage | null> {
+		if (!UPLOAD_NAME.test(name)) return null;
+		const found = await this.client.get(this.path(name), { access: 'private', token: this.token });
+		if (!found || found.statusCode !== 200) return null;
+		return { body: found.stream };
+	}
+
+	async delete(name: string): Promise<boolean> {
+		if (!UPLOAD_NAME.test(name)) return false;
+		try {
+			await this.client.head(this.path(name), { token: this.token });
+		} catch (err) {
+			if (err instanceof BlobNotFoundError) return false;
+			throw err;
+		}
+		await this.client.del(this.path(name), { token: this.token });
+		return true;
+	}
+}
+
+/**
+ * Penyimpanan aktif: Vercel Blob bila `BLOB_READ_WRITE_TOKEN` ada, selain itu folder disk.
+ * Di Vercel tanpa token melempar galat (disk fungsi tidak persisten).
+ */
+export function getStore(env: Record<string, string | undefined> = process.env): ImageStore {
+	if (env.BLOB_READ_WRITE_TOKEN) return new BlobStore(env.BLOB_READ_WRITE_TOKEN);
+	if (env.VERCEL) throw new Error('BLOB_READ_WRITE_TOKEN wajib diset di Vercel untuk menyimpan foto unggahan.');
+	return new FsStore(uploadDir(env));
+}
+
 /** Simpan gambar dengan nama acak; mengembalikan path publik `/uploads/<nama>`. */
-export function saveImage(bytes: Uint8Array, type: ImageType, dir: string = uploadDir()): string {
-	mkdirSync(dir, { recursive: true });
+export async function saveImage(store: ImageStore, bytes: Uint8Array, type: ImageType): Promise<string> {
 	const name = `${randomUUID()}.${type.ext}`;
-	writeFileSync(join(dir, name), bytes, { flag: 'wx' });
+	await store.put(name, bytes, type.mime);
 	return `/uploads/${name}`;
 }
 
 /** Path publik `/uploads/<nama berpola>` (satu-satunya bentuk yang kita hasilkan sendiri). */
 export const isUploadPath = (path: string | null | undefined): path is string => !!path && UPLOAD_PATH.test(path);
 
-/** Lokasi berkas di disk untuk nama berpola; null bila nama tidak berpola (menutup traversal). */
-export function uploadFile(name: string, dir: string = uploadDir()): string | null {
-	return UPLOAD_NAME.test(name) ? join(dir, name) : null;
-}
-
 /** Hapus berkas unggahan; path lain (mis. `/media/…`) diabaikan. Mengembalikan true bila berkas terhapus. */
-export function deleteUpload(path: string | null | undefined, dir: string = uploadDir()): boolean {
+export async function deleteUpload(store: ImageStore, path: string | null | undefined): Promise<boolean> {
 	const m = path ? UPLOAD_PATH.exec(path) : null;
-	if (!m) return false;
-	const file = join(dir, m[1]);
-	if (!existsSync(file)) return false;
-	unlinkSync(file);
-	return true;
+	return m ? store.delete(m[1]) : false;
 }
