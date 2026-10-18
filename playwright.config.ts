@@ -36,7 +36,8 @@ export default defineConfig({
 		// proyek utama selesai dan memulihkan data di afterAll. Setiap file mutating mendapat proyek sendiri yang
 		// berantai (dependencies) agar tidak pernah berjalan bersamaan di worker berbeda.
 		{ name: 'mutating', testMatch: '**/mutating/data.spec.ts', dependencies: ['main'] },
-		{ name: 'mutating-cms', testMatch: '**/mutating/cms.spec.ts', dependencies: ['mutating'] }
+		{ name: 'mutating-cms', testMatch: '**/mutating/cms.spec.ts', dependencies: ['mutating'] },
+		{ name: 'mutating-articles', testMatch: '**/mutating/articles.spec.ts', dependencies: ['mutating-cms'] }
 	],
 	// Pakai server yang sudah berjalan bila E2E_BASE_URL diset (lihat README).
 	webServer: process.env.E2E_BASE_URL

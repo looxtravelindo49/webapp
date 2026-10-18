@@ -7,6 +7,10 @@
 	let { data, children }: LayoutProps = $props();
 </script>
 
+<svelte:head>
+	<link rel="alternate" type="application/rss+xml" title="Artikel {site.name}" href="{data.siteUrl}/artikel/rss.xml" />
+</svelte:head>
+
 <a
 	href="#main"
 	class="absolute -top-25 left-5 z-20 bg-white p-2.5 text-green-900 focus:top-3"

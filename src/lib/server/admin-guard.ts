@@ -36,3 +36,11 @@ export const ADMIN_HEADERS: Record<string, string> = {
 	'X-Robots-Tag': 'noindex, nofollow',
 	'X-Frame-Options': 'DENY'
 };
+
+/**
+ * Header robots untuk respons non-admin: halaman galat (status >= 400) tidak boleh terindeks.
+ * Mengembalikan nilai `X-Robots-Tag`, atau null bila tidak perlu header (admin punya aturannya sendiri).
+ */
+export function robotsHeaderFor(pathname: string, status: number): string | null {
+	return !isAdminPath(pathname) && status >= 400 ? 'noindex' : null;
+}

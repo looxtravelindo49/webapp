@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { expect as baseExpect, test as base, type Browser, type BrowserContext, type Download, type Page } from '@playwright/test';
 import { BASE_URL } from './env';
 import { ensureFixtures } from './db';
+import { PNG as PNG_1PX } from './assets';
 
 type Fixtures = {
 	/** Daftarkan pola pesan konsol yang diizinkan untuk tes ini. */
@@ -36,6 +37,8 @@ export const test = base.extend<Fixtures, WorkerFixtures>({
 			(url) => url.hostname !== own,
 			(route) => route.fulfill({ status: 200, contentType: 'text/html', body: 'eksternal' })
 		);
+		// Gambar Unsplash (hotlink) dijawab PNG 1x1 yang valid agar tidak memicu galat muat atau cadangan gambar.
+		await context.route('https://images.unsplash.com/**', (route) => route.fulfill({ status: 200, contentType: 'image/png', body: PNG_1PX }));
 		await use(context);
 	},
 	allowedConsole: async ({}, use) => {

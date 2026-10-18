@@ -128,6 +128,9 @@ export function toDatabaseUrl(target: string): string {
 	return `file:${target}`;
 }
 
+/** Lama menunggu kunci berkas SQLite (beberapa proses/pekerja dapat menulis ke berkas yang sama). */
+export const BUSY_TIMEOUT_MS = 8000;
+
 /**
  * Buka database (buat direktori untuk berkas lokal, aktifkan WAL + foreign keys), lalu migrasi.
  * `target` boleh path berkas, `:memory:`, atau URL libSQL; `authToken` dipakai untuk Turso.
@@ -135,12 +138,12 @@ export function toDatabaseUrl(target: string): string {
 export async function openDatabase(target: string, list: Migration[] = migrations, authToken?: string): Promise<Db> {
 	const url = toDatabaseUrl(target);
 	if (url.startsWith('file:')) mkdirSync(dirname(url.slice('file:'.length)), { recursive: true });
-	const db = createClient({ url, authToken: authToken || undefined });
+	const isFile = url.startsWith('file:');
+	// `timeout` (busy timeout) berlaku untuk SETIAP koneksi yang dibuka klien. `PRAGMA busy_timeout` hanya menyentuh
+	// satu koneksi di kolam, sehingga permintaan paralel yang memakai koneksi lain gagal seketika dengan SQLITE_BUSY.
+	const db = createClient({ url, authToken: authToken || undefined, ...(isFile ? { timeout: BUSY_TIMEOUT_MS } : {}) });
 	try {
-		if (url.startsWith('file:')) {
-			await db.execute('PRAGMA journal_mode = WAL');
-			await db.execute('PRAGMA busy_timeout = 8000'); // beberapa proses/pekerja dapat menulis ke berkas yang sama
-		}
+		if (isFile) await db.execute('PRAGMA journal_mode = WAL');
 		await db.execute('PRAGMA foreign_keys = ON');
 		await migrate(db, list);
 	} catch (err) {

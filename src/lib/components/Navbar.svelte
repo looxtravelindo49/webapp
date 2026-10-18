@@ -28,14 +28,14 @@
 				<a href={link.href} class="hover:text-accent-700" onclick={() => (open = false)}>{link.label}</a>
 			{/each}
 			<div class="lg:hidden">
-				<Button href="#konsultasi" onclick={() => (open = false)}>
+				<Button href="/#konsultasi" onclick={() => (open = false)}>
 					Konsultasi Trip <span aria-hidden="true">↗</span>
 				</Button>
 			</div>
 		</nav>
 
 		<div class="hidden lg:block">
-			<Button href="#konsultasi">Konsultasi Trip <span aria-hidden="true">↗</span></Button>
+			<Button href="/#konsultasi">Konsultasi Trip <span aria-hidden="true">↗</span></Button>
 		</div>
 
 		<button

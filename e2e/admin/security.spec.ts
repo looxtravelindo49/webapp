@@ -115,11 +115,12 @@ test.describe('[admin-auth] Shell admin terpisah dari situs publik', () => {
 		expect((await nav.getByRole('link').allInnerTexts()).map((t) => t.trim())).toEqual([
 			'Beranda',
 			'Paket',
+			'Artikel',
 			'Pengaturan',
 			'Akun',
 			'Lihat situs ↗'
 		]);
-		for (const [name, href] of [['Beranda', '/admin'], ['Paket', '/admin/paket'], ['Pengaturan', '/admin/pengaturan'], ['Akun', '/admin/akun']] as const) {
+		for (const [name, href] of [['Beranda', '/admin'], ['Paket', '/admin/paket'], ['Artikel', '/admin/artikel'], ['Pengaturan', '/admin/pengaturan'], ['Akun', '/admin/akun']] as const) {
 			await expect(nav.getByRole('link', { name })).toHaveAttribute('href', href);
 		}
 		await expect(page.getByText(login)).toBeVisible();

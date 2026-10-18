@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { run, scalar, openDatabase, type Db } from './db';
 import {
-	countPublishedWithoutPrice, createPackage, deletePackage, getPackage, listAllPackages, listPublishedPackages, movePackage, setPublished, updatePackage
+	countPublishedWithoutPrice, createPackage, latestPackageUpdate, deletePackage, getPackage, listAllPackages, listPublishedPackages, movePackage, setPublished, updatePackage
 } from './packages';
 import { seed } from './seed';
 import { getSetting, setSetting } from './settings';
@@ -222,5 +222,22 @@ describe('setSetting', () => {
 		await setSetting(db, 'whatsapp', '');
 		expect(await getSetting(db, 'whatsapp')).toBe('');
 		expect((await scalar(db, "SELECT COUNT(*) FROM setting WHERE key = 'whatsapp'"))).toBe(1);
+	});
+});
+
+describe('latestPackageUpdate', () => {
+	it('mengembalikan updated_at terbaru paket terbit saja; null bila tidak ada', async () => {
+		const db = await fresh(false);
+		expect(await latestPackageUpdate(db)).toBeNull();
+		const a = await createPackage(db, values({ title: 'A' }), null);
+		const b = await createPackage(db, values({ title: 'B' }), null);
+		expect(await latestPackageUpdate(db)).toBeNull(); // keduanya draft
+		await setPublished(db, a.id, true);
+		await run(db, "UPDATE package SET updated_at = '2026-01-01T00:00:00.000Z' WHERE id = ?", [a.id]);
+		await run(db, "UPDATE package SET updated_at = '2027-01-01T00:00:00.000Z' WHERE id = ?", [b.id]);
+		expect(await latestPackageUpdate(db)).toBe('2026-01-01T00:00:00.000Z');
+		await setPublished(db, b.id, true);
+		await run(db, "UPDATE package SET updated_at = '2027-01-01T00:00:00.000Z' WHERE id = ?", [b.id]);
+		expect(await latestPackageUpdate(db)).toBe('2027-01-01T00:00:00.000Z');
 	});
 });

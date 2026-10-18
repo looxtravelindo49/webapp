@@ -6,6 +6,7 @@ export function calc(page: Page) {
 	return {
 		root,
 		team: root.getByLabel('Nama tim / perusahaan'),
+		whatsapp: root.getByLabel(/Nomor WhatsApp/),
 		pax: root.getByLabel('Jumlah peserta'),
 		date: root.getByLabel(/Tanggal rencana/),
 		notes: root.getByLabel(/Catatan/),

@@ -14,7 +14,7 @@
 	import { canShareFile, downloadBlob, sharePdf } from '#lib/share.js';
 	import { getTripContext } from '#lib/trip.svelte.js';
 	import type { Package } from '#lib/types.js';
-	import { waLink } from '#lib/whatsapp.js';
+	import { normalizeWhatsapp, waLink } from '#lib/whatsapp.js';
 	import Button from './Button.svelte';
 
 	let { packages, waNumber }: { packages: Package[]; waNumber: string | null } = $props();
@@ -26,11 +26,15 @@
 	const estimate = $derived(calculateEstimate(packages, trip.selected, pax));
 	const paxError = $derived(trip.pax.trim() !== '' && pax === null);
 
+	const contact = $derived(normalizeWhatsapp(trip.whatsapp));
+	const contactError = $derived(trip.whatsapp.trim() !== '' && contact === null);
+
 	const missing = $derived(
 		[
 			trip.team.trim() === '' ? 'nama tim' : null,
 			estimate.state === 'empty' ? 'minimal satu paket' : null,
-			pax === null ? 'jumlah peserta yang valid' : null
+			pax === null ? 'jumlah peserta yang valid' : null,
+			contactError ? 'nomor WhatsApp yang valid' : null
 		].filter((m): m is string => m !== null)
 	);
 	const ready = $derived(missing.length === 0);
@@ -46,7 +50,7 @@
 
 	// Hasil sebelumnya tidak lagi relevan setelah masukan berubah.
 	$effect(() => {
-		void [trip.team, trip.pax, trip.date, trip.notes, trip.selected.length];
+		void [trip.team, trip.whatsapp, trip.pax, trip.date, trip.notes, trip.selected.length];
 		// `status` dibaca tanpa dilacak, kalau tidak efek ini menghapus hasil begitu hasil itu muncul.
 		untrack(() => {
 			if (status.kind !== 'busy') status = { kind: 'idle' };
@@ -54,7 +58,7 @@
 	});
 
 	function input(): EstimateInput {
-		return { team: trip.team, pax: pax!, estimate, planDate: trip.date, notes: trip.notes };
+		return { team: trip.team, whatsapp: contact ?? '', pax: pax!, estimate, planDate: trip.date, notes: trip.notes };
 	}
 	const makePdf = () => buildEstimatePdf({ ...input(), createdAt: new Date() });
 
@@ -145,6 +149,27 @@
 							placeholder="Tim kamu"
 							bind:value={trip.team}
 						/>
+					</div>
+
+					<div>
+						<label for="{uid}-wa" class={label}>Nomor WhatsApp</label>
+						<input
+							id="{uid}-wa"
+							type="tel"
+							class="{field} {contactError ? 'border-danger' : ''}"
+							inputmode="tel"
+							autocomplete="tel"
+							maxlength="20"
+							placeholder="Misalnya 0812 3456 7890"
+							aria-invalid={contactError}
+							aria-describedby={contactError ? `${uid}-wa-error` : undefined}
+							bind:value={trip.whatsapp}
+						/>
+						{#if contactError}
+							<p id="{uid}-wa-error" class="mt-1.5 text-[11px] font-semibold text-danger">
+								Masukkan nomor Indonesia yang valid, misalnya 081234567890.
+							</p>
+						{/if}
 					</div>
 
 					<fieldset class="m-0 min-w-0 border-0 p-0">

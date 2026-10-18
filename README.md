@@ -114,7 +114,9 @@ dikosongkan agar akun awal bawaan ikut teruji. Permintaan ke luar server uji (mi
 
 **Memakai server yang sudah berjalan** (iterasi cepat, atau menguji kontainer): setel `E2E_BASE_URL` dan `E2E_DB`
 (jalur berkas SQLite server itu). Suite tidak membangun atau menjalankan server sendiri. Tes `first-login` di-skip
-bila akun awal sudah pernah diganti; gunakan database baru untuk menjalankannya lagi.
+bila akun awal sudah pernah diganti; gunakan database baru untuk menjalankannya lagi. Tes pemilih foto butuh Unsplash tiruan
+(`e2e/support/unsplash-stub.mjs`, port server uji + 1): jalankan server dengan `UNSPLASH_ACCESS_KEY=kunci-uji` dan
+`UNSPLASH_API_URL=http://127.0.0.1:<port+1>` sambil menyalakan stub itu, atau biarkan peluncur bawaan yang mengurusnya.
 
 **Konvensi.**
 - Judul tes: `[capability] Requirement › skenario`, sama dengan nama capability di `openspec/specs/`.
@@ -140,16 +142,42 @@ bila akun awal sudah pernah diganti; gunakan database baru untuk menjalankannya 
 | `DATABASE_PATH` | `./data/app.db` (container: `/data/app.db`) | Berkas SQLite lokal bila `DATABASE_URL` tidak diset; direktori dibuat otomatis. |
 | `BLOB_READ_WRITE_TOKEN` | (kosong) | Bila diset, foto unggahan disimpan di Vercel Blob. **Wajib di Vercel** (disk fungsi tidak persisten). |
 | `VERCEL_REGIONS` | (kosong) | Saat build di Vercel: daftar wilayah fungsi dipisah koma (mis. `sin1`), samakan dengan wilayah Turso. |
-| `PUBLIC_SITE_URL` | `http://localhost:3000` | Alamat publik untuk canonical, Open Graph, sitemap, robots. |
+| `PUBLIC_SITE_URL` | `http://localhost:3000` | Alamat publik untuk canonical, Open Graph, JSON-LD, sitemap, RSS, dan robots. **Wajib diisi domain produksi**; bila masih `localhost` saat `NODE_ENV=production`, server mencatat peringatan. |
 | `PROTOCOL_HEADER` / `HOST_HEADER` / `PORT_HEADER` | (kosong) | Header dari reverse proxy untuk menurunkan alamat asal (mis. `x-forwarded-proto`, `x-forwarded-host`). Tanpa ini protokol dianggap `https` dan host diambil dari `Host`. |
 | `PORT` | `3000` | Port server produksi. |
 | `UPLOAD_DIR` | `<folder database>/uploads` (kontainer: `/data/uploads`) | Folder foto paket bila `BLOB_READ_WRITE_TOKEN` tidak diset; dibuat otomatis. Ikut volume dan backup. |
 | `BODY_SIZE_LIMIT` | `512K` (kontainer: `8M`) | Batas ukuran body permintaan. Unggah foto (maks. 4 MB) butuh minimal `8M`; batas reverse proxy juga minimal 5 MB. Hanya untuk adapter-node (tidak berlaku di Vercel). |
+| `UNSPLASH_ACCESS_KEY` | (kosong) | Kunci akses API Unsplash untuk pemilih foto sampul artikel. Kosong = tombol "Cari di Unsplash" tidak tampil. Hanya dibaca di server. |
+| `UNSPLASH_APP_NAME` | `lembang_adventures` | Nama aplikasi Unsplash; menjadi `utm_source` pada tautan kredit foto. Samakan dengan nama aplikasi yang didaftarkan. |
+| `UNSPLASH_API_URL` | `https://api.unsplash.com` | Hanya untuk tes e2e (server Unsplash tiruan). Jangan diisi di produksi. |
 | `ADMIN_SEED_LOGIN` / `ADMIN_SEED_PASSWORD` | `admin@looxtravel` / `12345678` | Akun admin awal (hanya bila tabel `user` kosong; wajib ganti password). |
 | `ADMIN_RESET_LOGIN` / `ADMIN_RESET_PASSWORD` | (kosong) | Pemulihan: atur ulang password satu akun saat start. Hapus setelah dipakai. |
 | `ADDRESS_HEADER` / `XFF_DEPTH` | (kosong) | Header dan kedalaman IP klien di balik reverse proxy (dipakai pembatasan login). |
 
 Nilai ini dibaca dari environment proses (di dev, default sudah cukup; file `.env` tidak dimuat otomatis).
+
+## SEO
+
+- **Metadata** semua halaman publik dirender oleh `src/lib/components/Seo.svelte` (title, description, canonical, Open Graph, Twitter card, JSON-LD). Halaman baru cukup memakai komponen itu.
+- **Sitemap** `/sitemap.xml` berisi beranda, `/artikel`, dan tiap artikel terbit dengan `lastmod`. **RSS** ada di `/artikel/rss.xml` (20 artikel terbaru). Keduanya di-cache CDN selama 1 jam (`s-maxage=3600`), jadi artikel baru bisa terlambat muncul sampai satu jam.
+- **Gambar bagikan**: artikel memakai sampul unggahan JPEG/PNG/WebP sebagai `og:image`; sampul SVG bawaan, AVIF, atau tanpa sampul memakai `static/og-default.png` (1200×630). Untuk membuat ulang gambar bawaan, ubah `scripts/og-default.html` lalu ambil tangkapan layar Chromium berukuran 1200×630 dari berkas itu ke `static/og-default.png`.
+- Respons galat publik (4xx/5xx) membawa `X-Robots-Tag: noindex`; area admin selalu `noindex`.
+- Setelah deploy: cek JSON-LD di Rich Results Test, pratinjau tautan di WhatsApp/Facebook Debugger, dan kirim `/sitemap.xml` ke Search Console (verifikasi domain lewat DNS TXT).
+
+## Foto sampul dari Unsplash
+
+Admin dapat mencari foto gratis di Unsplash dari form artikel (tombol **Cari di Unsplash**). Cara mengaktifkan:
+
+1. Masuk ke <https://unsplash.com/developers>, pilih **Your apps → New Application**, setujui ketentuan, dan beri nama aplikasi (mis. `lembang_adventures`).
+2. Salin **Access Key** (bukan Secret Key) ke environment `UNSPLASH_ACCESS_KEY`, dan isi `UNSPLASH_APP_NAME` dengan nama aplikasi tadi. Di Vercel: *Settings → Environment Variables*, lalu deploy ulang.
+3. Aplikasi baru berstatus **demo**: 50 permintaan/jam ke API Unsplash (pencarian di-cache 10 menit; memuat gambar tidak dihitung). Bila kurang, ajukan *Apply for production* di halaman aplikasi.
+
+Cara kerjanya mengikuti [panduan API Unsplash](https://help.unsplash.com/en/articles/2511245-unsplash-api-guidelines):
+
+- Foto **tidak disalin**: ditayangkan langsung dari `images.unsplash.com` (hotlink) memakai URL dari API. Akibatnya alamat IP pengunjung terlihat oleh CDN Unsplash, dan foto yang dihapus fotografernya akan jatuh ke gambar bawaan situs.
+- Kunci akses tidak pernah sampai ke browser; pencarian lewat proxy di server (`/admin/artikel/unsplash`, hanya admin).
+- Memilih foto lalu menyimpan artikel memicu pelaporan unduhan ke Unsplash, dan halaman artikel menampilkan kredit "Foto oleh … di Unsplash" dengan tautan ber-UTM.
+- Satu artikel hanya punya satu sampul: unggahan atau foto Unsplash. Memilih yang satu menggantikan yang lain.
 
 ## Deploy ke Vercel
 
@@ -209,7 +237,7 @@ folder `uploads` tetap berjalan, tetapi foto yang diunggah akan tampil rusak.
 - `src/lib/server/` — database, migrasi, seed, akses data, autentikasi (password, sesi, akun, pembatas login), pengelolaan paket, unggahan; hanya server
 - `src/lib/package-form.ts`, `slug.ts` — validasi form paket (harga, minimal peserta, batas teks) dan pembuat slug (murni, dites unit)
 - `src/lib/components/` — komponen Svelte per section
-- `src/lib/content/` — teks statis Hero, Destinasi, Planner, Inspirasi
+- `src/lib/content/` — teks statis Hero, Destinasi, Planner, dan section Artikel populer (artikel sendiri ada di database)
 - `src/lib/pricing.ts`, `estimate.ts`, `pdf.ts`, `share.ts` — hitungan estimasi, teks pesan, PDF, dan Web Share
 - `migrations/` — SQL bernomor
 - `e2e/` — tes end-to-end Playwright (`public/`, `admin/`, `mutating/`, `support/`; proyek `main`, `mutating`, `mutating-cms`); `playwright.config.ts`

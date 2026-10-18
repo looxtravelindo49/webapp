@@ -73,6 +73,7 @@ export async function buildEstimatePdf(data: PdfData): Promise<Blob> {
 
 	const meta: [string, string][] = [
 		['Nama tim', data.team.trim()],
+		...(data.whatsapp ? ([['Nomor WhatsApp', `+${data.whatsapp}`]] as [string, string][]) : []),
 		['Dibuat', formatPlanDate(isoDate(data.createdAt))],
 		...(formatPlanDate(data.planDate) ? ([['Tanggal rencana', formatPlanDate(data.planDate)]] as [string, string][]) : []),
 		['Jumlah peserta', `${data.pax} orang`]

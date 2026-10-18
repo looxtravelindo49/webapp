@@ -65,23 +65,54 @@ test.describe('[site-shell] Destinasi membuka detail ide perjalanan', () => {
 	});
 });
 
-test.describe('[site-shell] Inspirasi membuka artikel', () => {
-	test('tiga kartu artikel; mengaktifkan kartu membuka dialog berisi isi artikel', async ({ page }) => {
+test.describe('[site-shell] Artikel populer di beranda', () => {
+	const cards = (page: Page) => page.locator('#artikel-populer').locator('a[href^="/artikel/"]');
+
+	test('tiga kartu artikel tertaut (bukan dialog) dan tautan "Lihat semua artikel"', async ({ page }) => {
 		await gotoReady(page, '/');
-		await expect(page.locator('#inspirasi').getByRole('button')).toHaveCount(3);
-		await page.locator('#inspirasi').getByRole('button').first().click();
-		await expect(openDialog(page)).toContainText('Lima hal ini sudah cukup');
-		await page.keyboard.press('Escape');
-		await expect(openDialog(page)).toHaveCount(0);
+		await expect(cards(page)).toHaveCount(3);
+		await expect(page.locator('#artikel-populer').getByRole('button')).toHaveCount(0);
+		await expect(page.locator('#artikel-populer').getByRole('link', { name: /Lihat semua artikel/ })).toHaveAttribute('href', '/artikel');
 	});
 
-	test('artikel dapat dibuka dengan keyboard (Enter) dan menutup dengan Esc', async ({ page }) => {
+	test('setiap kartu memuat gambar sampul 16:9 yang termuat, di atas kategori dan judul', async ({ page }) => {
 		await gotoReady(page, '/');
-		await page.locator('#inspirasi').getByRole('button').nth(1).focus();
+		const list = cards(page);
+		await expect(list).toHaveCount(3);
+		for (let i = 0; i < 3; i++) {
+			const card = list.nth(i);
+			const img = card.locator('img');
+			await expect(img).toHaveCount(1);
+			await img.scrollIntoViewIfNeeded();
+			await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+			const [imgBox, titleBox] = [await img.boundingBox(), await card.getByRole('heading', { level: 3 }).boundingBox()];
+			expect(imgBox!.y).toBeLessThan(titleBox!.y);
+			expect(Math.abs(imgBox!.width / imgBox!.height - 16 / 9)).toBeLessThan(0.05);
+		}
+	});
+
+	test('360 px: kartu bertumpuk satu kolom dan tanpa scroll horizontal', async ({ page }) => {
+		await page.setViewportSize({ width: 360, height: 800 });
+		await gotoReady(page, '/');
+		const boxes = await Promise.all([0, 1, 2].map((i) => cards(page).nth(i).boundingBox()));
+		expect(new Set(boxes.map((b) => Math.round(b!.x))).size).toBe(1);
+		expect(boxes[1]!.y).toBeGreaterThan(boxes[0]!.y);
+		expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+	});
+
+	test('mengklik kartu membuka halaman artikel dengan isinya', async ({ page }) => {
+		await gotoReady(page, '/');
+		await cards(page).first().click();
+		await expect(page).toHaveURL(/\/artikel\/[a-z0-9-]+$/);
+		await expect(page.getByRole('heading', { level: 1 })).toContainText('Sepakati 5 hal');
+		await expect(page.locator('.article-body')).toContainText('Lima hal ini sudah cukup');
+	});
+
+	test('kartu dapat dibuka dengan keyboard (Enter)', async ({ page }) => {
+		await gotoReady(page, '/');
+		await cards(page).nth(1).focus();
 		await page.keyboard.press('Enter');
-		await expect(openDialog(page)).toContainText('Kenali selera timmu');
-		await page.keyboard.press('Escape');
-		await expect(page.locator('#inspirasi').getByRole('button').nth(1)).toBeFocused();
+		await expect(page).toHaveURL(/\/artikel\/offroad-atau-pantai/);
 	});
 });
 
@@ -102,7 +133,7 @@ test.describe('[site-shell] Footer dan Hero', () => {
 		await gotoReady(page, '/');
 		// Satu-satunya tes yang sengaja memakai tanggal hari ini: yang diuji memang "tahun berjalan" (dirender dari jam server).
 		await expect(page.locator('footer')).toContainText(`© ${new Date().getFullYear()}`);
-		await expect(page.locator('footer').getByRole('link', { name: /Bikin cerita/ })).toHaveAttribute('href', '#rencanakan');
+		await expect(page.locator('footer').getByRole('link', { name: /Bikin cerita/ })).toHaveAttribute('href', '/#rencanakan');
 	});
 
 	test('Hero tanpa formulir pencarian dan menyebut kelima kegiatan', async ({ page }) => {

@@ -4,7 +4,7 @@
 
 </script>
 
-<section id="rencanakan" class="wrap pt-11 sm:pt-16">
+<section id="rencanakan" class="wrap py-11 sm:py-16">
 	<div
 		class="on-dark grid items-center gap-6.5 rounded-xl bg-green-900 p-6 text-white sm:p-8 md:grid-cols-[1.1fr_1fr] md:gap-16 md:px-11.5 md:py-10.5"
 	>

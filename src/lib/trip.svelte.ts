@@ -8,6 +8,8 @@ export class TripState {
 	/** Slug paket terpilih, urut sesuai waktu dipilih. */
 	selected = $state<string[]>([]);
 	team = $state('');
+	/** Nomor WhatsApp pengisi (mentah, opsional). */
+	whatsapp = $state('');
 	/** Jumlah peserta mentah (string) agar kesalahan ketik bisa ditampilkan apa adanya. */
 	pax = $state('');
 	/** yyyy-mm-dd atau kosong. */

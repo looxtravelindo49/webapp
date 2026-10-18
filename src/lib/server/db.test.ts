@@ -2,8 +2,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { spawn } from 'node:child_process';
 import { createClient } from '@libsql/client';
-import { all, column, databaseTarget, migrate, migrations, one, openDatabase, run, scalar, toDatabaseUrl, type Db } from './db';
+import { all, column, databaseTarget, migrate, migrations, one, openDatabase, run, scalar, toDatabaseUrl, transaction, type Db } from './db';
 import { seed, seedPackages } from './seed';
 import { listPublishedPackages } from './packages';
 import { getSetting } from './settings';
@@ -275,5 +276,44 @@ describe('listPublishedPackages', () => {
 		await seed(db);
 		await run(db, 'UPDATE package SET published = 0');
 		expect(await listPublishedPackages(db)).toEqual([]);
+	});
+});
+
+describe('busy timeout berkas SQLite', () => {
+	/** Proses lain yang memegang kunci tulis `ms` milidetik; proses terpisah karena klien libSQL memblokir saat menunggu. */
+	function holdWriteLock(path: string, ms: number) {
+		const script = `
+			import Database from ${JSON.stringify(new URL('../../../node_modules/better-sqlite3/lib/index.js', import.meta.url).href)};
+			const db = new Database(process.argv[1]);
+			db.exec('BEGIN IMMEDIATE');
+			console.log('locked');
+			setTimeout(() => { db.exec('COMMIT'); db.close(); }, ${ms});
+		`;
+		const child = spawn(process.execPath, ['--input-type=module', '-e', script, path], { stdio: ['ignore', 'pipe', 'inherit'] });
+		const locked = new Promise<void>((resolve, reject) => {
+			child.stdout.on('data', (d) => String(d).includes('locked') && resolve());
+			child.once('error', reject);
+			child.once('exit', (code) => code && reject(new Error(`proses penahan kunci berhenti: ${code}`)));
+		});
+		const done = new Promise<void>((resolve) => child.once('exit', () => resolve()));
+		return { locked, done };
+	}
+
+	it('koneksi apa pun (termasuk setelah transaction) menunggu kunci, bukan gagal seketika dengan SQLITE_BUSY', async () => {
+		const path = tempPath();
+		const db = await open(path);
+		await run(db, 'CREATE TABLE IF NOT EXISTS busy_probe (n INTEGER)');
+		// `transaction()` mengambil koneksi lain dari kolam; koneksi itulah yang dulu tidak punya busy timeout.
+		await transaction(db, async (tx) => {
+			await run(tx, 'INSERT INTO busy_probe VALUES (0)');
+		});
+
+		const holder = holdWriteLock(path, 400);
+		await holder.locked;
+		const started = Date.now();
+		await run(db, 'INSERT INTO busy_probe VALUES (1)');
+		expect(Date.now() - started).toBeGreaterThanOrEqual(250);
+		await holder.done;
+		expect(await scalar(db, 'SELECT COUNT(*) FROM busy_probe')).toBe(2);
 	});
 });

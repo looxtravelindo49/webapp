@@ -78,12 +78,59 @@ export const seedPackages: SeedPackage[] = [
 	}
 ];
 
+type SeedArticle = {
+	slug: string;
+	title: string;
+	category: string;
+	excerpt: string;
+	body: string;
+	cover_image: string;
+	cover_alt: string;
+	published_at: string;
+};
+
+// Tiga artikel yang sebelumnya statis di beranda. Tanggal tetap, artikel pertama paling baru,
+// supaya urutan tampil sama dengan sebelumnya (terbaru dulu).
+export const seedArticles: SeedArticle[] = [
+	{
+		slug: 'sepakati-5-hal-sebelum-gathering-kantor',
+		title: 'Mau gathering kantor? Sepakati 5 hal ini dulu.',
+		category: 'PERENCANAAN',
+		excerpt: 'Tujuan, jumlah peserta, tanggal, kisaran anggaran, dan titik keberangkatan sudah cukup untuk mulai berdiskusi dengan penyelenggara.',
+		body: 'Mulai dengan tujuan kegiatan. Apakah tim ingin beristirahat, saling mengenal, atau merayakan pencapaian? Jawaban ini membantu memilih aktivitas yang tepat.\n\nSetelah itu, sepakati jumlah peserta, tanggal, kisaran anggaran, dan titik keberangkatan. Lima hal ini sudah cukup untuk memulai diskusi dengan penyelenggara.\n\nCatat juga kebutuhan khusus peserta, seperti makanan, mobilitas, atau jadwal ibadah. Detail kecil sering menentukan kenyamanan perjalanan.',
+		cover_image: '/media/camp.svg',
+		cover_alt: 'Ilustrasi tenda di perbukitan',
+		published_at: '2026-09-15T00:00:00.000Z'
+	},
+	{
+		slug: 'offroad-atau-pantai-kenali-selera-timmu',
+		title: 'Offroad atau santai di pantai? Kenali selera timmu.',
+		category: 'PILIH KEGIATAN',
+		excerpt: 'Ajak tim menyampaikan keinginan dan batas kenyamanannya sebelum memilih aktivitas, lalu sesuaikan dengan waktu dan tujuan acara.',
+		body: 'Sebelum memilih aktivitas, ajak tim menyampaikan keinginan dan batas kenyamanannya. Aktivitas yang seru bagi sebagian orang belum tentu cocok untuk semua peserta.\n\nOffroad bisa menjadi bahan obrolan baru untuk tim yang menyukai petualangan. Kegiatan pantai memberi ruang lebih fleksibel untuk berkumpul dan bersantai.\n\nPilih program dengan mempertimbangkan kondisi peserta, waktu perjalanan, dan tujuan acara. Sisakan pilihan aktivitas ringan bagi yang membutuhkan.',
+		cover_image: '/media/forest.svg',
+		cover_alt: 'Ilustrasi hutan pinus',
+		published_at: '2026-09-08T00:00:00.000Z'
+	},
+	{
+		slug: 'itinerary-enak-tidak-harus-padat-acara',
+		title: 'Itinerary yang enak tidak harus padat acara.',
+		category: 'TIPS PANITIA',
+		excerpt: 'Sisakan waktu untuk perpindahan, istirahat, makan, dan persiapan agar peserta tetap segar sampai acara terakhir.',
+		body: 'Sisakan waktu untuk perpindahan, istirahat, makan, dan persiapan. Jadwal tanpa jeda mudah membuat peserta lelah dan acara berikutnya terlambat.\n\nTentukan beberapa kegiatan utama sebagai prioritas. Kegiatan tambahan bisa menyesuaikan kondisi di lokasi.\n\nSepakati siapa yang mengambil keputusan saat cuaca berubah atau perjalanan melambat. Siapkan rencana cadangan yang tetap nyaman untuk peserta.',
+		cover_image: '/media/river.svg',
+		cover_alt: 'Ilustrasi sungai di antara tebing hijau',
+		published_at: '2026-09-01T00:00:00.000Z'
+	}
+];
+
 export const seedSettings: Record<string, string> = {
 	whatsapp: '6282120209900'
 };
 
 /**
  * Isi data awal tanpa menimpa apa pun: paket hanya jika tabel `package` kosong,
+ * artikel bawaan tepat sekali (penanda `seeded_articles`, jadi tidak muncul lagi walau admin menghapusnya),
  * pengaturan hanya untuk kunci yang belum ada. Aman dijalankan di setiap start, juga bila
  * beberapa instance menjalankannya bersamaan (transaksi tulis + `OR IGNORE` pada slug/kunci unik).
  */
@@ -100,6 +147,19 @@ export async function seed(db: Db): Promise<void> {
 					[p.slug, p.title, p.summary, p.body, p.includes, p.notes, p.image, p.image_alt, p.duration, i + 1]
 				);
 			}
+		}
+		const articlesSeeded = await scalar(tx, "SELECT 1 FROM setting WHERE key = 'seeded_articles'");
+		if (articlesSeeded === null) {
+			for (const a of seedArticles) {
+				await run(
+					tx,
+					`INSERT OR IGNORE INTO article
+						(slug, title, category, excerpt, body, cover_image, cover_alt, published, featured, published_at)
+					 VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, ?)`,
+					[a.slug, a.title, a.category, a.excerpt, a.body, a.cover_image, a.cover_alt, a.published_at]
+				);
+			}
+			await run(tx, "INSERT OR IGNORE INTO setting (key, value) VALUES ('seeded_articles', '1')");
 		}
 		for (const [key, value] of Object.entries(seedSettings)) {
 			await run(tx, 'INSERT OR IGNORE INTO setting (key, value) VALUES (?, ?)', [key, value]);

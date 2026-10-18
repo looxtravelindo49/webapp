@@ -15,3 +15,7 @@ export const PRICES = {
 	rafting: { price: 200_000, minPax: 10 },
 	paintball: { price: 150_000, minPax: 1 }
 } as const;
+
+/** Unsplash tiruan yang dijalankan peluncur server uji (lihat start-server.mjs dan unsplash-stub.mjs). */
+export const UNSPLASH_STUB = `http://127.0.0.1:${Number(PORT) + 1}`;
+export const UNSPLASH_KEY = 'kunci-uji';

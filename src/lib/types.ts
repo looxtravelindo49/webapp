@@ -16,3 +16,27 @@ export type Package = {
 	published: number;
 	sort_order: number;
 };
+
+/** Artikel lengkap (halaman artikel dan CMS). */
+export type Article = {
+	id: number;
+	slug: string;
+	title: string;
+	category: string;
+	excerpt: string;
+	body: string;
+	cover_image: string | null;
+	cover_alt: string | null;
+	/** Kredit foto Unsplash; ketiganya terisi bersama bila sampul berasal dari Unsplash. */
+	cover_credit_name: string | null;
+	cover_credit_url: string | null;
+	cover_unsplash_id: string | null;
+	published: number;
+	featured: number;
+	published_at: string | null;
+	created_at: string;
+	updated_at: string;
+};
+
+/** Artikel untuk kartu dan daftar: tanpa isi. */
+export type ArticleSummary = Omit<Article, 'body'>;

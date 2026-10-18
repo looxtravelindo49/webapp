@@ -48,6 +48,7 @@ describe('section Konsultasikan Tripmu (render server)', () => {
 		expect(body).not.toMatch(/Anggaran/);
 		expect(body).toContain('Nama tim / perusahaan');
 		expect(body).toContain('Jumlah peserta');
+		expect(body).toContain('Nomor WhatsApp');
 		expect(body).toContain('Tanggal rencana (opsional)');
 		expect(body).toContain('Catatan (opsional)');
 	});

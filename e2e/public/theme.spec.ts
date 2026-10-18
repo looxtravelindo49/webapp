@@ -82,7 +82,7 @@ test.describe('[site-shell] Tema warna', () => {
 		await calc(page).pax.fill('40');
 		const results = await contrast(page, [
 			{ name: 'Navbar: tautan', css: 'header nav a' },
-			{ name: 'Navbar: tombol Konsultasi Trip (putih di hijau)', css: 'header a[href="#konsultasi"]:not(nav a)' },
+			{ name: 'Navbar: tombol Konsultasi Trip (putih di hijau)', css: 'header a[href="/#konsultasi"]:not(nav a)' },
 			{ name: 'Hero: judul (putih di hijau)', css: 'main > section h1' },
 			{ name: 'Hero: deskripsi (hijau muda di hijau)', css: 'main > section p' },
 			{ name: 'Hero: tombol emas (hijau di emas)', css: 'main > section a[href="#paket"]' },

@@ -8,6 +8,8 @@ export const DISCLAIMER =
 
 export type EstimateInput = {
 	team: string;
+	/** Nomor WhatsApp ternormalisasi (62…) atau kosong. */
+	whatsapp?: string;
 	/** Jumlah peserta yang sudah valid. */
 	pax: number;
 	estimate: Estimate;
@@ -90,6 +92,7 @@ export function buildWhatsappMessage(input: EstimateInput): string {
 		WA_GREETING,
 		'',
 		`Nama tim: ${input.team.trim()}`,
+		...(input.whatsapp ? [`Nomor WhatsApp: +${input.whatsapp}`] : []),
 		'Paket:',
 		...e.lines.map((l) => `- ${l.title}: ${lineText(l)}`),
 		`Peserta: ${input.pax} orang`,

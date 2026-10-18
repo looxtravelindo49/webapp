@@ -14,10 +14,10 @@ test.describe('[e2e-testing] Penanda hidrasi', () => {
 });
 
 test.describe('[site-shell] Urutan section beranda', () => {
-	test('paket → konsultasi → destinasi → rencanakan → inspirasi, diapit Navbar dan Footer', async ({ page }) => {
+	test('paket → konsultasi → artikel-populer → destinasi → rencanakan, diapit Navbar dan Footer', async ({ page }) => {
 		await gotoReady(page, '/');
 		const ids = await page.$$eval('main > section[id]', (s) => s.map((x) => x.id));
-		expect(ids).toEqual(['paket', 'konsultasi', 'destinasi', 'rencanakan', 'inspirasi']);
+		expect(ids).toEqual(['paket', 'konsultasi', 'artikel-populer', 'destinasi', 'rencanakan']);
 		await expect(page.locator('header').first()).toBeVisible();
 		await expect(page.locator('footer')).toHaveCount(1);
 		await expect(page.getByRole('heading', { level: 1 })).toContainText('Bawa timmu');
@@ -27,13 +27,20 @@ test.describe('[site-shell] Urutan section beranda', () => {
 test.describe('[site-shell] Navbar', () => {
 	test('tautan anchor menggulir tanpa tertutup Navbar sticky', async ({ page }) => {
 		await gotoReady(page, '/');
-		for (const [label, id] of [['Pilihan Paket', 'paket'], ['Destinasi', 'destinasi'], ['Inspirasi Trip', 'inspirasi'], ['Rencanakan Trip', 'rencanakan']] as const) {
+		for (const [label, id] of [['Pilihan Paket', 'paket'], ['Destinasi', 'destinasi'], ['Rencanakan Trip', 'rencanakan']] as const) {
 			await page.locator('header nav').getByRole('link', { name: label }).click();
 			const nh = await navHeight(page);
 			// Tidak tertutup Navbar, dan terlihat di viewport (section di dasar halaman tidak bisa digulir sampai paling atas).
 			await expect.poll(() => top(page, `#${id}`), { message: `#${id} di bawah navbar` }).toBeGreaterThanOrEqual(nh - 2);
 			await expect.poll(() => top(page, `#${id}`)).toBeLessThan((page.viewportSize()?.height ?? 720) - 100);
 		}
+	});
+
+	test('tautan "Artikel" menuju /artikel', async ({ page }) => {
+		await gotoReady(page, '/');
+		await page.locator('header nav').getByRole('link', { name: 'Artikel' }).click();
+		await expect(page).toHaveURL(/\/artikel$/);
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Artikel');
 	});
 
 	test('menu mobile 375px: buka, aria-expanded akurat, menutup setelah memilih tautan', async ({ page }) => {
@@ -108,14 +115,14 @@ test.describe('[site-shell] Aksesibilitas dasar', () => {
 });
 
 test.describe('[site-shell] SEO dasar', () => {
-	test('title, description, canonical, Open Graph, dan JSON-LD Organization', async ({ page }) => {
+	test('title, description, canonical, Open Graph, dan JSON-LD @graph Organization + WebSite', async ({ page }) => {
 		await gotoReady(page, '/');
 		await expect(page).toHaveTitle(/Lembang Adventures/);
 		await expect(page.locator('meta[name=description]')).toHaveAttribute('content', /.{40,}/);
 		await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', /^http:\/\/127\.0\.0\.1:\d+\/$/);
 		await expect(page.locator('meta[property="og:title"]')).toHaveCount(1);
 		const ld = JSON.parse((await page.locator('script[type="application/ld+json"]').textContent())!);
-		expect(ld['@type']).toBe('Organization');
+		expect((ld['@graph'] as { '@type': string }[]).map((n) => n['@type'])).toEqual(['Organization', 'WebSite']);
 	});
 
 	test('robots.txt melarang /admin/ dan menunjuk sitemap; sitemap memuat beranda', async ({ request }) => {

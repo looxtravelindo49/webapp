@@ -10,8 +10,8 @@ export const site = {
 } as const;
 
 export const navLinks = [
-	{ label: 'Pilihan Paket', href: '#paket' },
-	{ label: 'Destinasi', href: '#destinasi' },
-	{ label: 'Inspirasi Trip', href: '#inspirasi' },
-	{ label: 'Rencanakan Trip', href: '#rencanakan' }
+	{ label: 'Pilihan Paket', href: '/#paket' },
+	{ label: 'Artikel', href: '/artikel' },
+	{ label: 'Destinasi', href: '/#destinasi' },
+	{ label: 'Rencanakan Trip', href: '/#rencanakan' }
 ] as const;

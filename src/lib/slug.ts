@@ -1,5 +1,5 @@
-/** "Café & Ñandú 100%!" → "cafe-nandu-100". Hanya a-z, 0-9, dan tanda hubung; fallback "paket". */
-export function slugify(title: string): string {
+/** "Café & Ñandú 100%!" → "cafe-nandu-100". Hanya a-z, 0-9, dan tanda hubung; `fallback` (bawaan "paket") bila kosong. */
+export function slugify(title: string, fallback = 'paket'): string {
 	const slug = title
 		.normalize('NFKD')
 		.replace(/[̀-ͯ]/g, '')
@@ -8,7 +8,7 @@ export function slugify(title: string): string {
 		.replace(/^-+|-+$/g, '')
 		.slice(0, 60)
 		.replace(/-+$/g, '');
-	return slug || 'paket';
+	return slug || fallback;
 }
 
 /** Tambahkan sufiks -2, -3, … bila slug sudah dipakai. */

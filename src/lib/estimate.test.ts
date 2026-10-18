@@ -128,6 +128,12 @@ describe('buildWhatsappMessage', () => {
 		expect(msg).toContain('Tanggal rencana: 20 November 2026');
 		expect(msg).toContain('Catatan: Ada vegetarian');
 	});
+	it('menyertakan nomor WhatsApp bila diisi dan menghilangkannya bila kosong', () => {
+		expect(buildWhatsappMessage(input(['offroad'], 40, { whatsapp: '6281234567890' }))).toContain(
+			'Nama tim: Tim Alfa\nNomor WhatsApp: +6281234567890\nPaket:'
+		);
+		expect(buildWhatsappMessage(input(['offroad']))).not.toContain('Nomor WhatsApp');
+	});
 	it('sebagian tanpa harga: catatan di samping total dan baris "Harga menyusul"', () => {
 		const msg = buildWhatsappMessage(input(['offroad', 'fun-games']));
 		expect(msg).toContain('- Fun Games: Harga menyusul');

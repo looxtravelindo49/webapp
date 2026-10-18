@@ -111,6 +111,11 @@ export function movePackage(db: Db, id: number, direction: 'up' | 'down'): Promi
 	});
 }
 
+/** `updated_at` terbaru dari paket terbit (untuk `lastmod` beranda di sitemap), atau null bila tidak ada. */
+export function latestPackageUpdate(db: Queryable): Promise<string | null> {
+	return scalar<string>(db, 'SELECT MAX(updated_at) FROM package WHERE published = 1');
+}
+
 /** Jumlah paket terbit yang belum berharga (untuk peringatan di beranda admin). */
 export async function countPublishedWithoutPrice(db: Queryable): Promise<number> {
 	return (await scalar<number>(db, 'SELECT COUNT(*) FROM package WHERE published = 1 AND price_per_person IS NULL')) ?? 0;

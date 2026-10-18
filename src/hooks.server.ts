@@ -1,21 +1,29 @@
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
-import { ADMIN_HEADERS, guardAdmin, isAdminPath } from '#lib/server/admin-guard.js';
+import { ADMIN_HEADERS, guardAdmin, isAdminPath, robotsHeaderFor } from '#lib/server/admin-guard.js';
 import { initAdmin } from '#lib/server/admin-init.js';
 import { getDb } from '#lib/server/database.js';
 import { getSessionUser, SESSION_COOKIE } from '#lib/server/sessions.js';
-import { initOrExit } from '#lib/server/startup.js';
+import { initOrExit, warnIfLocalSiteUrl } from '#lib/server/startup.js';
 
 // Migrasi, seed, dan inisialisasi akun admin berjalan sekali saat server start, bukan pada
 // request pertama. Jika gagal, proses berhenti dengan exit code 1.
-export const init: ServerInit = () => initOrExit(async () => initAdmin(await getDb()));
+export const init: ServerInit = () => {
+	warnIfLocalSiteUrl();
+	return initOrExit(async () => initAdmin(await getDb()));
+};
 
 export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = null;
 	event.locals.sessionToken = null;
 	const { pathname } = event.url;
 
-	// Situs publik tidak menyentuh database untuk sesi.
-	if (!isAdminPath(pathname)) return resolve(event);
+	// Situs publik tidak menyentuh database untuk sesi. Respons galat tidak boleh terindeks.
+	if (!isAdminPath(pathname)) {
+		const response = await resolve(event);
+		const robots = robotsHeaderFor(pathname, response.status);
+		if (robots) response.headers.set('X-Robots-Tag', robots);
+		return response;
+	}
 
 	const token = event.cookies.get(SESSION_COOKIE) ?? null;
 	if (token) {

@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { slugify, uniqueSlug } from './slug';
 
 describe('slugify', () => {
+	it('memakai cadangan yang diberikan bila tidak ada karakter valid', () => {
+		expect(slugify('!!!', 'artikel')).toBe('artikel');
+		expect(slugify('Tips', 'artikel')).toBe('tips');
+	});
+
 	it.each([
 		['Flying Fox Lembang', 'flying-fox-lembang'],
 		['Café & Ñandú 100%!', 'cafe-nandu-100'],
