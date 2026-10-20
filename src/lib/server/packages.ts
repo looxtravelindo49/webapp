@@ -89,15 +89,17 @@ export function updatePackage(db: Db, id: number, values: PackageValues, image?:
 	});
 }
 
-export type DeleteResult = { ok: true; image: string | null } | { ok: false };
+export type DeleteResult = { ok: true; image: string | null; photos: string[] } | { ok: false };
 
-/** Hapus paket; mengembalikan path fotonya agar berkas unggahan dapat dihapus. */
+/** Hapus paket beserta baris galerinya. Path dikembalikan agar berkas unggahan dapat dihapus. */
 export function deletePackage(db: Db, id: number): Promise<DeleteResult> {
 	return transaction(db, async (tx): Promise<DeleteResult> => {
 		const current = await getPackage(tx, id);
 		if (!current) return { ok: false };
+		const photos = await column<string>(tx, 'SELECT path FROM package_photo WHERE package_id = ? ORDER BY sort_order, id', [id]);
+		await run(tx, 'DELETE FROM package_photo WHERE package_id = ?', [id]);
 		await run(tx, 'DELETE FROM package WHERE id = ?', [id]);
-		return { ok: true, image: current.image };
+		return { ok: true, image: current.image, photos };
 	});
 }
 

@@ -69,7 +69,13 @@ export const actions: Actions = {
 		const result = await deletePackage(db, id);
 		if (!result.ok) return fail(404, { action: 'hapus' as const, id, error: NOT_FOUND });
 		// Foto bawaan (/media/…) tidak pernah dihapus; kegagalan menghapus berkas tidak membatalkan penghapusan paket.
-		if (isUploadPath(result.image)) await deleteUpload(getStore(), result.image).catch((err) => console.error('[uploads] gagal menghapus', result.image, err));
+		const uploads = [result.image, ...result.photos].filter(isUploadPath);
+		if (uploads.length > 0) {
+			const store = getStore();
+			for (const path of uploads) {
+				await deleteUpload(store, path).catch((err) => console.error('[uploads] gagal menghapus', path, err));
+			}
+		}
 		return { action: 'hapus' as const, ok: true as const, notice: `Paket "${pkg?.title}" dihapus.` };
 	}
 };

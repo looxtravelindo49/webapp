@@ -20,9 +20,9 @@ const pkg = {
 	updated_at: '2026-10-02T00:00:00.000Z'
 };
 
-const html = (over: Partial<typeof pkg> = {}) =>
+const html = (over: Partial<typeof pkg> = {}, gallery?: { src: string; alt: string | null }[]) =>
 	render(Page, {
-		props: { data: { pkg: { ...pkg, ...over }, siteUrl: 'https://contoh.id', waNumber: null }, form: null, params: { slug: 'offroad' } } as never
+		props: { data: { pkg: { ...pkg, ...over }, siteUrl: 'https://contoh.id', waNumber: null, gallery }, form: null, params: { slug: 'offroad' } } as never
 	}).body;
 
 describe('halaman detail paket', () => {
@@ -37,6 +37,21 @@ describe('halaman detail paket', () => {
 		expect(body).toContain('href="/?paket=offroad#konsultasi"');
 		expect(body).toContain('Tambah ke Trip');
 		expect(body).toContain('Jeep di hutan pinus');
+	});
+
+	it('galeri: satu foto besar dan tiga thumbnail, tanpa foto tunggal terpisah', () => {
+		const body = html({}, [
+			{ src: '/media/camp.svg', alt: 'Satu' },
+			{ src: '/media/river.svg', alt: 'Dua' },
+			{ src: '/media/paintball.svg', alt: 'Tiga' },
+			{ src: '/uploads/0b5e1c3a-7d2f-4a8e-9c1b-2f3d4e5a6b7c.jpg', alt: null }
+		]);
+		expect(body).toContain('alt="Satu"');
+		expect(body).toContain('loading="eager"');
+		expect(body.match(/loading="lazy"/g)).toHaveLength(3);
+		expect(body).toContain('data-autoplay-ms="4000"');
+		expect(body).toContain('aria-label="Tampilkan Jeep di hutan pinus"');
+		expect(body).not.toContain('src="/media/forest.svg"');
 	});
 
 	it('menyembunyikan durasi yang kosong', () => {

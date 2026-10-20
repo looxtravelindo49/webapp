@@ -1,11 +1,13 @@
 <script lang="ts">
 	import PackageForm from '#lib/components/admin/PackageForm.svelte';
+	import PackageGalleryManager from '#lib/components/admin/PackageGalleryManager.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
 	const failed = $derived(form && 'values' in form ? form : null);
 	const notice = $derived(form && 'ok' in form ? form.notice : data.created ? 'Paket dibuat sebagai draft. Terbitkan dari daftar paket setelah siap.' : '');
+	const galleryError = $derived(form && 'galleryError' in form ? form.galleryError : '');
 </script>
 
 <svelte:head><title>Ubah {data.title} | Admin Lembang Adventures</title></svelte:head>
@@ -25,5 +27,7 @@
 		photoError={failed?.photoError}
 		image={data.image}
 		submitLabel="Simpan perubahan"
+		action="?/simpan"
 	/>
+	<PackageGalleryManager photos={data.photos} error={galleryError} />
 </div>

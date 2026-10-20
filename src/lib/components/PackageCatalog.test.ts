@@ -50,6 +50,30 @@ describe('PackageCatalog', () => {
 		expect(body.indexOf('Add Paintball')).toBeGreaterThan(body.indexOf('Lihat semua paket'));
 	});
 
+	it('kartu memakai foto galeri pertama bila ada', () => {
+		const body = html([
+			pkg('offroad', 'Offroad', { image: '/media/forest.svg', image_alt: 'Utama', cover_image: '/media/camp.svg', cover_alt: 'Galeri' })
+		]);
+		expect(body).toContain('src="/media/camp.svg"');
+		expect(body).toContain('alt="Galeri"');
+		expect(body).not.toContain('src="/media/forest.svg"');
+	});
+
+	it('alt galeri kosong memakai nama paket, bukan alt foto utama', () => {
+		const body = html([
+			pkg('offroad', 'Offroad', { image: '/media/forest.svg', image_alt: 'Utama', cover_image: '/media/camp.svg', cover_alt: '  ' })
+		]);
+		expect(body).toContain('src="/media/camp.svg"');
+		expect(body).toContain('alt="Offroad"');
+		expect(body).not.toContain('alt="Utama"');
+	});
+
+	it('tanpa galeri tetap memakai foto paket', () => {
+		const body = html([pkg('offroad', 'Offroad', { image: '/media/forest.svg', image_alt: 'Utama' })]);
+		expect(body).toContain('src="/media/forest.svg"');
+		expect(body).toContain('alt="Utama"');
+	});
+
 	it('tanpa sisa tidak menampilkan tombol lihat semua', () => {
 		const body = html([pkg('offroad', 'Offroad', { duration: '' })]);
 		expect(body).not.toContain('Lihat semua paket');

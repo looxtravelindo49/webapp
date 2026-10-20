@@ -70,6 +70,12 @@ describe('readPhoto', () => {
 	it('nilai bukan berkas (string) → none', async () => {
 		expect(await readPhoto({ get: () => 'x' })).toEqual({ kind: 'none' });
 	});
+	it('membaca nama isian yang diminta; bawaan tetap photo', async () => {
+		const png = file(PNG, 'g.png');
+		const custom = { get: (n: string) => (n === 'gallery_photo' ? png : null) };
+		expect((await readPhoto(custom, 'gallery_photo')).kind).toBe('new');
+		expect(await readPhoto(custom)).toEqual({ kind: 'none' });
+	});
 });
 
 describe('createWithPhoto', () => {

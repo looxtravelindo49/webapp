@@ -120,7 +120,7 @@ describe('deletePackage', () => {
 	it('menghapus baris dan mengembalikan path foto', async () => {
 		const db = await fresh();
 		const p = await createPackage(db, values(), '/uploads/a.png');
-		expect(await deletePackage(db, p.id)).toEqual({ ok: true, image: '/uploads/a.png' });
+		expect(await deletePackage(db, p.id)).toEqual({ ok: true, image: '/uploads/a.png', photos: [] });
 		expect(await getPackage(db, p.id)).toBeNull();
 	});
 	it('id tidak ada → ok false', async () => {

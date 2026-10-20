@@ -14,11 +14,12 @@ export type PhotoInput =
 	| { kind: 'error'; message: string };
 
 /**
- * Baca isian berkas `photo`. Tidak menulis apa pun ke penyimpanan: jenis ditentukan dari isi berkas
+ * Baca isian berkas. Bawaan `photo` (foto utama). Galeri memakai nama lain, mis. `gallery_photo`.
+ * Tidak menulis apa pun ke penyimpanan: jenis ditentukan dari isi berkas
  * dan ukuran diperiksa sebelum isi dibaca, sehingga penolakan tidak meninggalkan berkas.
  */
-export async function readPhoto(form: { get(name: string): unknown }): Promise<PhotoInput> {
-	const file = form.get('photo');
+export async function readPhoto(form: { get(name: string): unknown }, field = 'photo'): Promise<PhotoInput> {
+	const file = form.get(field);
 	if (!(file instanceof File)) return { kind: 'none' };
 	// Tanpa pilihan, peramban mengirim berkas kosong tanpa nama.
 	if (file.size === 0) return file.name ? { kind: 'error', message: PHOTO_EMPTY_MESSAGE } : { kind: 'none' };
