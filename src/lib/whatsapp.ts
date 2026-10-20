@@ -13,17 +13,18 @@ export const DEFAULT_WA_MESSAGE = 'Halo Lembang Adventure, saya ingin konsultasi
 /** Nomor tombol chat mengambang. Tidak mengikuti pengaturan admin. */
 export const FLOAT_WA_NUMBER = '6282120209900';
 
-const KEGIATAN_LINE =
-	'Kegiatan yang diminati (Offroad/Rafting/Paintball/Team Building/Fun Games/Gathering): ';
+const ACTIVITY_LINE = 'Pilihan Activity: ';
 
 /** Template untuk pengunjung yang tidak mengisi formulir konsultasi. */
-export const FLOAT_WA_TEMPLATE = `Halo Lembang Adventure! 👋 Saya mau konsultasi trip/outbound di Lembang.
+export const FLOAT_WA_TEMPLATE = `Halooo LembangAdventure.com !
+Saya mau konsultasi trip/outbound di Lembang.
 
 Nama: 
 Instansi/Perusahaan: 
-${KEGIATAN_LINE}
-Perkiraan tanggal: 
+${ACTIVITY_LINE}
+Tanggal: 
 Jumlah peserta: 
+
 Budget per orang (opsional): 
 
 Mohon info paket dan penawarannya ya, terima kasih!`;
@@ -32,7 +33,7 @@ Mohon info paket dan penawarannya ya, terima kasih!`;
 export function floatWaMessage(packageTitle?: string | null): string {
 	const name = packageTitle?.trim();
 	if (!name) return FLOAT_WA_TEMPLATE;
-	return FLOAT_WA_TEMPLATE.replace(KEGIATAN_LINE, `${KEGIATAN_LINE}${name}`);
+	return FLOAT_WA_TEMPLATE.replace(ACTIVITY_LINE, `${ACTIVITY_LINE}${name}`);
 }
 
 export function waLink(number: string, text: string = DEFAULT_WA_MESSAGE): string {

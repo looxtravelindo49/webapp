@@ -35,18 +35,22 @@ describe('waLink', () => {
 	});
 
 	it('template chat mengambang mengajak isi detail, dan halaman paket mengisi kegiatan', () => {
-		expect(FLOAT_WA_TEMPLATE).toContain('Halo Lembang Adventure! 👋');
-		expect(FLOAT_WA_TEMPLATE).toContain('Nama: \n');
-		expect(FLOAT_WA_TEMPLATE).toContain(
-			'Kegiatan yang diminati (Offroad/Rafting/Paintball/Team Building/Fun Games/Gathering): \n'
-		);
-		expect(FLOAT_WA_TEMPLATE).toContain('Mohon info paket dan penawarannya ya, terima kasih!');
+		expect(FLOAT_WA_TEMPLATE).toBe(`Halooo LembangAdventure.com !
+Saya mau konsultasi trip/outbound di Lembang.
+
+Nama: 
+Instansi/Perusahaan: 
+Pilihan Activity: 
+Tanggal: 
+Jumlah peserta: 
+
+Budget per orang (opsional): 
+
+Mohon info paket dan penawarannya ya, terima kasih!`);
 		const filled = floatWaMessage('Offroad');
-		expect(filled).toContain(
-			'Kegiatan yang diminati (Offroad/Rafting/Paintball/Team Building/Fun Games/Gathering): Offroad\n'
-		);
+		expect(filled).toContain('Pilihan Activity: Offroad\n');
 		expect(floatWaMessage('  ')).toBe(FLOAT_WA_TEMPLATE);
-		expect(waLink('6282120209900', floatWaMessage('Team Building'))).toContain(encodeURIComponent('Team Building'));
+		expect(waLink('6282120209900', floatWaMessage('Team Building'))).toContain(encodeURIComponent('Pilihan Activity: Team Building'));
 	});
 });
 

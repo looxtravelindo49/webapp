@@ -7,8 +7,8 @@ test.describe('[site-shell] Tombol chat WhatsApp', () => {
 		await gotoReady(page, '/');
 		const href = await chat(page).getAttribute('href');
 		const text = decodeURIComponent(new URL(href!).searchParams.get('text')!);
-		expect(text).toContain('Halo Lembang Adventure! 👋 Saya mau konsultasi trip/outbound di Lembang.');
-		expect(text).toContain('Kegiatan yang diminati (Offroad/Rafting/Paintball/Team Building/Fun Games/Gathering): \n');
+		expect(text).toContain('Halooo LembangAdventure.com !\nSaya mau konsultasi trip/outbound di Lembang.');
+		expect(text).toContain('Pilihan Activity: \n');
 		expect(text).toContain('Mohon info paket dan penawarannya ya, terima kasih!');
 		await expect(chat(page)).toContainText('Chat kami');
 
@@ -24,8 +24,6 @@ test.describe('[site-shell] Tombol chat WhatsApp', () => {
 		await gotoReady(page, '/paket/offroad');
 		const href = await chat(page).getAttribute('href');
 		const text = decodeURIComponent(new URL(href!).searchParams.get('text')!);
-		expect(text).toContain(
-			'Kegiatan yang diminati (Offroad/Rafting/Paintball/Team Building/Fun Games/Gathering): Offroad\n'
-		);
+		expect(text).toContain('Pilihan Activity: Offroad\n');
 	});
 });
