@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from '#lib/components/Button.svelte';
+	import PackageGallery from '#lib/components/PackageGallery.svelte';
 	import Seo from '#lib/components/Seo.svelte';
 	import { site } from '#lib/content/site.js';
 	import { formatRupiah } from '#lib/format.js';
@@ -11,10 +12,13 @@
 	let { data }: PageProps = $props();
 
 	const p = $derived(data.pkg);
+	const gallery = $derived(data.gallery ?? []);
+	const lead = $derived(gallery[0]);
 	const title = $derived(`${p.title} | ${site.name}`);
 	const description = $derived(packageMetaDescription(p.summary, p.body));
 	const duration = $derived(visibleDuration(p.duration));
-	const share = $derived(shareImage(data.siteUrl, p.image));
+	const share = $derived(shareImage(data.siteUrl, lead?.src ?? p.image));
+	const imageAltText = $derived(lead?.alt?.trim() || p.image_alt || p.title);
 	const body = $derived(paragraphs(p.body));
 </script>
 
@@ -24,21 +28,25 @@
 	{title}
 	{description}
 	image={share}
-	imageAlt={share.isDefault ? undefined : p.image_alt || p.title}
-	nodes={packageNodes(data.siteUrl, site, p)}
+	imageAlt={share.isDefault ? undefined : imageAltText}
+	nodes={packageNodes(data.siteUrl, site, { ...p, image: lead?.src ?? p.image })}
 />
 
 <article class="wrap py-11 sm:py-16">
 	<p class="text-xs"><a href="/#katalog" class="font-bold underline">← Katalog paket</a></p>
 
 	<div class="mt-6 grid items-start gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-		<img
-			src={p.image}
-			alt={p.image_alt || p.title}
-			width="960"
-			height="720"
-			class="aspect-[4/3] w-full rounded-2xl bg-cream object-cover"
-		/>
+		{#if gallery.length > 0}
+			<PackageGallery photos={gallery} fallbackAlt={p.image_alt || p.title} />
+		{:else}
+			<img
+				src={p.image}
+				alt={p.image_alt || p.title}
+				width="960"
+				height="720"
+				class="aspect-[4/3] w-full rounded-2xl bg-cream object-cover"
+			/>
+		{/if}
 		<div>
 			<p class="eyebrow text-signal">Paket aktivitas</p>
 			<h1 class="mt-2 text-[30px] leading-tight font-black tracking-tight sm:text-[38px]">{p.title}</h1>

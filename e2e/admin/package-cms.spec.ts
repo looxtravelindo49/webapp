@@ -203,7 +203,7 @@ test.describe('[package-cms] Ubah paket', () => {
 		await expect(page.getByLabel('Ringkasan', { exact: true })).toHaveValue('Ringkasan tersimpan.');
 		await expect(page.getByLabel(/^Harga per orang/)).toHaveValue('175000');
 		await expect(page.getByLabel('Minimal peserta')).toHaveValue('5');
-		await expect(page.getByLabel(/^Teks alternatif foto/)).toHaveValue('Alt tersimpan');
+		await expect(page.getByLabel('Teks alternatif foto (opsional)', { exact: true })).toHaveValue('Alt tersimpan');
 		await expect(page.getByLabel('Tampilkan di situs')).not.toBeChecked();
 	});
 

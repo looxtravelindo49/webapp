@@ -48,6 +48,10 @@ export function insertPackage(title: string, over: Partial<Pick<PackageRow, 'sum
 export function cleanupPackages(prefix: string): void {
 	for (const p of query<PackageRow>('SELECT * FROM package WHERE title LIKE ?', `${prefix}%`)) {
 		if (p.image?.startsWith('/uploads/')) rmSync(join(UPLOAD_DIR, p.image.slice('/uploads/'.length)), { force: true });
+		for (const photo of query<{ path: string }>('SELECT path FROM package_photo WHERE package_id = ?', p.id)) {
+			if (photo.path.startsWith('/uploads/')) rmSync(join(UPLOAD_DIR, photo.path.slice('/uploads/'.length)), { force: true });
+		}
+		exec('DELETE FROM package_photo WHERE package_id = ?', p.id);
 		exec('DELETE FROM package WHERE id = ?', p.id);
 	}
 }
@@ -73,7 +77,7 @@ const LABELS: Record<keyof FormValues, string | RegExp> = {
 	duration: /^Durasi/,
 	price: /^Harga per orang/,
 	min_pax: 'Minimal peserta',
-	image_alt: /^Teks alternatif foto/
+	image_alt: 'Teks alternatif foto (opsional)'
 };
 
 /** Isi isian form paket yang disebut saja. */

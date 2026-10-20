@@ -11,10 +11,12 @@
 {#snippet card(p: Package)}
 	{@const duration = visibleDuration(p.duration)}
 	{@const price = formatPriceTag(p.price_per_person)}
+	{@const src = p.cover_image || p.image || '/media/forest.svg'}
+	{@const alt = (p.cover_image ? p.cover_alt?.trim() : p.image_alt) || p.title}
 	<li class="flex flex-col overflow-hidden rounded-2xl border border-line bg-white">
 		<img
-			src={p.image ?? '/media/forest.svg'}
-			alt={p.image_alt || p.title}
+			src={src}
+			alt={alt}
 			width="640"
 			height="480"
 			class="aspect-[4/3] w-full bg-cream object-cover"

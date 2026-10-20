@@ -24,6 +24,9 @@ export type Package = {
 	nama_unit?: string | null;
 	published: number;
 	sort_order: number;
+	/** Foto galeri pertama, bila ada. Kartu katalog memakai ini; tab paket tetap memakai `image`. */
+	cover_image?: string | null;
+	cover_alt?: string | null;
 };
 
 /** Artikel lengkap (halaman artikel dan CMS). */
