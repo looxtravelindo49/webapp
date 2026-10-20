@@ -3,9 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { bank, bankLogo } from './content/bank';
 import { hero } from './content/hero';
 import {
+	buildClientInvoiceMessage,
 	buildInvoiceNumber,
 	buildPaymentProofMessage,
 	dpNominal,
+	invoiceChrome,
+	manualQuote,
+	settlement,
 	DP_PERCENT,
 	INVOICE_NUMBER,
 	invoiceStamp,
@@ -38,6 +42,47 @@ describe('DP 20%', () => {
 		expect(dpNominal(10_000_000)).toBe(2_000_000);
 		expect(dpNominal(1)).toBe(0);
 		expect(dpNominal(null)).toBeNull();
+	});
+});
+
+describe('tampilan invoice menurut status', () => {
+	it('Baru tetap estimasi, lunas dapat stempel, DP dan batal tanpa ajakan bayar', () => {
+		expect(invoiceChrome('baru')).toMatchObject({ title: 'Invoice Estimasi', badge: 'Baru', stamp: false, showPayCta: true });
+		expect(invoiceChrome('lunas')).toMatchObject({ title: 'Invoice Lunas', badge: 'LUNAS', stamp: true, showPayCta: false });
+		expect(invoiceChrome('dp_diterima')).toMatchObject({ title: 'Invoice', badge: 'DP diterima', showPayCta: false });
+		expect(invoiceChrome('batal')).toMatchObject({ title: 'Invoice', badge: 'Dibatalkan', showPayCta: false });
+	});
+
+	it('sisa tagihan memakai jumlah yang dicatat, atau DP bila jumlah kosong', () => {
+		expect(settlement(1_000_000, 200_000, 150_000)).toEqual({ paid: 150_000, remaining: 850_000 });
+		expect(settlement(1_000_000, 200_000, null)).toEqual({ paid: 200_000, remaining: 800_000 });
+		expect(settlement(1_000_000, 200_000, 1_500_000).remaining).toBe(0);
+	});
+});
+
+describe('invoice manual', () => {
+	it('menghitung total setelah diskon dan DP 20%', () => {
+		expect(manualQuote([{ qty: 2, harga: 249_000 }, { qty: 1, harga: 100_000 }], 49_000)).toEqual({
+			subtotal: 598_000,
+			diskon: 49_000,
+			total: 549_000,
+			dp: 109_800
+		});
+		expect(manualQuote([{ qty: 1, harga: 1000 }], 1001)).toBeNull();
+	});
+
+	it('pesan ke klien memuat nomor dan tautan', () => {
+		const text = buildClientInvoiceMessage({
+			nama: 'Sari',
+			nomor: 'LA-20261020-ABCDEFGH',
+			total: 'Rp 549.000',
+			dp: 'Rp 109.800',
+			invoiceUrl: 'https://lembangadventure.com/invoice/LA-20261020-ABCDEFGH'
+		});
+		expect(text).toContain('Halo Sari');
+		expect(text).toContain('Nomor invoice: LA-20261020-ABCDEFGH');
+		expect(text).toContain('https://lembangadventure.com/invoice/LA-20261020-ABCDEFGH');
+		expect(text.toLowerCase()).not.toContain('pdf');
 	});
 });
 

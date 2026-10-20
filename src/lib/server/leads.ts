@@ -8,6 +8,8 @@ import {
 	INVOICE_NUMBER,
 	isIsoDate,
 	isLeadStatus,
+	manualQuote,
+	parseReceivedAmount,
 	parseStoredLines,
 	storedLinesFromEstimate,
 	todayInJakarta,
@@ -45,12 +47,14 @@ export type Lead = {
 	catatan_admin: string | null;
 	jumlah_diterima: number | null;
 	diterima_pada: string | null;
+	perusahaan: string | null;
+	diskon: number | null;
 };
 
 const COLUMNS = `id, nomor_invoice, created_at, nama, whatsapp, paket, jumlah_peserta, tanggal_acara, catatan,
 	estimasi_total, dp_persen, dp_nominal, currency, status, invoice_url, wa_opened,
 	xendit_invoice_id, xendit_status, paid_at, user_agent, source, catatan_admin,
-	jumlah_diterima, diterima_pada`;
+	jumlah_diterima, diterima_pada, perusahaan, diskon`;
 
 function num(value: unknown): number | null {
 	if (value === null || value === undefined || value === '') return null;
@@ -83,7 +87,9 @@ function mapLead(row: Record<string, unknown>): Lead {
 		source: row.source == null ? null : String(row.source),
 		catatan_admin: row.catatan_admin == null ? null : String(row.catatan_admin),
 		jumlah_diterima: num(row.jumlah_diterima),
-		diterima_pada: row.diterima_pada == null || row.diterima_pada === '' ? null : String(row.diterima_pada)
+		diterima_pada: row.diterima_pada == null || row.diterima_pada === '' ? null : String(row.diterima_pada),
+		perusahaan: row.perusahaan == null || String(row.perusahaan).trim() === '' ? null : String(row.perusahaan),
+		diskon: num(row.diskon)
 	};
 }
 
@@ -273,4 +279,103 @@ export async function submitLead(db: Db, raw: Record<string, unknown>, ctx: Subm
 
 	const waUrl = waLink(destination, leadMessage(lead));
 	return { ok: true, lead, waUrl };
+}
+
+const MAX_LINES = 30;
+
+/**
+ * Invoice yang diisi admin, bukan kalkulator. Total dan DP dihitung ulang di server.
+ * Sumber lead: `manual`. Status awal Baru, nomor sama dengan invoice kalkulator.
+ */
+export async function createManualLead(db: Db, raw: Record<string, unknown>, ctx: SubmitContext): Promise<SubmitResult> {
+	const nama = typeof raw.nama === 'string' ? raw.nama.trim() : '';
+	if (!nama) return FAIL(400, 'Isi nama klien.');
+	if (nama.length > 100) return FAIL(400, 'Nama klien terlalu panjang.');
+
+	const perusahaanRaw = typeof raw.perusahaan === 'string' ? raw.perusahaan.trim() : '';
+	if (perusahaanRaw.length > 120) return FAIL(400, 'Nama perusahaan terlalu panjang.');
+	const perusahaan = perusahaanRaw === '' ? null : perusahaanRaw;
+
+	const whatsapp = normalizeWhatsapp(typeof raw.whatsapp === 'string' ? raw.whatsapp : '');
+	if (!whatsapp) return FAIL(400, 'Masukkan nomor WhatsApp klien yang valid, misalnya 081234567890.');
+
+	const pax = parsePax(typeof raw.jumlahPeserta === 'string' || typeof raw.jumlahPeserta === 'number' ? raw.jumlahPeserta : '');
+	if (pax === null) return FAIL(400, 'Jumlah peserta perlu bilangan bulat dari 1 sampai 10.000.');
+
+	let tanggal: string | null = null;
+	if (typeof raw.tanggal === 'string' && raw.tanggal.trim() !== '') {
+		tanggal = validPlanDate(raw.tanggal.trim());
+		if (!tanggal) return FAIL(400, 'Tanggal acara belum valid.');
+	}
+
+	const catatan = typeof raw.catatan === 'string' ? raw.catatan.trim() : '';
+	if (catatan.length > 1500) return FAIL(400, 'Catatan terlalu panjang.');
+
+	const deskripsi = Array.isArray(raw.deskripsi) ? raw.deskripsi : [];
+	const qty = Array.isArray(raw.qty) ? raw.qty : [];
+	const harga = Array.isArray(raw.harga) ? raw.harga : [];
+	const count = Math.max(deskripsi.length, qty.length, harga.length);
+	if (count > MAX_LINES) return FAIL(400, `Maksimal ${MAX_LINES} baris.`);
+
+	const priced: { qty: number; harga: number; title: string }[] = [];
+	for (let i = 0; i < count; i++) {
+		const title = typeof deskripsi[i] === 'string' ? deskripsi[i].trim() : '';
+		const qtyRaw = typeof qty[i] === 'string' || typeof qty[i] === 'number' ? String(qty[i]).trim() : '';
+		const hargaRaw = typeof harga[i] === 'string' || typeof harga[i] === 'number' ? String(harga[i]) : '';
+		if (title === '' && qtyRaw === '' && hargaRaw.trim() === '') continue;
+		if (!title || title.length > 200) return FAIL(400, 'Setiap baris perlu deskripsi, paling panjang 200 karakter.');
+		if (!/^\d+$/.test(qtyRaw)) return FAIL(400, 'Qty perlu bilangan bulat, minimal 1.');
+		const q = Number(qtyRaw);
+		const price = parseReceivedAmount(hargaRaw);
+		if (!price.ok || price.value === null) return FAIL(400, 'Harga satuan perlu angka bulat, misalnya 249000 atau 249.000.');
+		priced.push({ qty: q, harga: price.value, title });
+	}
+	if (priced.length === 0) return FAIL(400, 'Tambah minimal satu baris.');
+
+	const diskonParsed = parseReceivedAmount(typeof raw.diskon === 'string' || typeof raw.diskon === 'number' ? String(raw.diskon) : '');
+	if (!diskonParsed.ok) return FAIL(400, 'Diskon perlu angka bulat, atau dikosongkan.');
+	const diskon = diskonParsed.value ?? 0;
+	const quote = manualQuote(priced, diskon);
+	if (!quote) return FAIL(400, 'Diskon tidak boleh lebih besar dari subtotal, dan qty paling banyak 10.000.');
+
+	const lines: StoredLine[] = priced.map((line) => ({
+		slug: '',
+		title: line.title,
+		price: line.harga,
+		minPax: 1,
+		billedPax: line.qty,
+		subtotal: line.qty * line.harga,
+		kind: 'bebas'
+	}));
+
+	const now = ctx.now ?? new Date();
+	const random = ctx.random ?? ((n: number) => randomBytes(n));
+	const origin = ctx.origin.replace(/\/$/, '');
+	const userAgent = ctx.userAgent?.slice(0, 300) || null;
+
+	let lead: Lead | null = null;
+	for (let attempt = 0; attempt < 5 && !lead; attempt++) {
+		const nomor = buildInvoiceNumber(now, random(8));
+		const invoiceUrl = `${origin}/invoice/${nomor}`;
+		try {
+			lead = await transaction(db, async (tx) => {
+				await run(
+					tx,
+					`INSERT INTO lead
+						(nomor_invoice, nama, whatsapp, perusahaan, paket, jumlah_peserta, tanggal_acara, catatan,
+						 estimasi_total, diskon, dp_persen, dp_nominal, currency, status, invoice_url, wa_opened, user_agent, source)
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'IDR', 'baru', ?, 0, ?, 'manual')`,
+					[nomor, nama, whatsapp, perusahaan, JSON.stringify(lines), pax, tanggal, catatan, quote.total, quote.diskon, DP_PERCENT, quote.dp, invoiceUrl, userAgent]
+				);
+				const row = await one(tx, `SELECT ${COLUMNS} FROM lead WHERE nomor_invoice = ?`, [nomor]);
+				if (!row) throw new Error('lead hilang setelah disimpan');
+				return mapLead(row);
+			});
+		} catch (err) {
+			if (isUniqueError(err)) continue;
+			throw err;
+		}
+	}
+	if (!lead) return FAIL(500, 'Invoice belum tersimpan. Coba lagi, ya.');
+	return { ok: true, lead, waUrl: '' };
 }

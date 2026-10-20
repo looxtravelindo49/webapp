@@ -2,10 +2,11 @@ import { error, fail } from '@sveltejs/kit';
 import { formatRupiah } from '#lib/format.js';
 import { formatDateTime } from '#lib/format.js';
 import { formatPlanDate } from '#lib/estimate.js';
-import { DP_PERCENT, isLeadStatus, parseReceivedAmount, parseStoredLines, paymentBadge, statusLabel } from '#lib/invoice.js';
+import { buildClientInvoiceMessage, DP_PERCENT, isLeadStatus, parseReceivedAmount, parseStoredLines, paymentBadge, statusLabel } from '#lib/invoice.js';
 import { getDb } from '#lib/server/database.js';
 import { getLeadByNomor, setLeadStatus, updateAdminNote } from '#lib/server/leads.js';
 import { requireUser } from '#lib/server/require-user.js';
+import { waLink } from '#lib/whatsapp.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const NOTE_LIMIT = 500;
@@ -27,11 +28,26 @@ function view(lead: NonNullable<Awaited<ReturnType<typeof getLeadByNomor>>>) {
 	};
 }
 
-export const load: PageServerLoad = async ({ locals, params }) => {
+export const load: PageServerLoad = async ({ locals, params, url }) => {
 	requireUser(locals);
 	const lead = await getLeadByNomor(await getDb(), params.nomor);
 	if (!lead) error(404, 'Lead tidak ditemukan.');
-	return { lead: view(lead) };
+	const totalLabel = lead.estimasi_total === null ? 'Dibahas via WhatsApp' : formatRupiah(lead.estimasi_total);
+	const dpLabel = lead.dp_nominal === null ? 'Menyusul' : formatRupiah(lead.dp_nominal);
+	return {
+		lead: view(lead),
+		justCreated: url.searchParams.get('baru') === '1',
+		clientWaUrl: waLink(
+			lead.whatsapp,
+			buildClientInvoiceMessage({
+				nama: lead.nama,
+				nomor: lead.nomor_invoice,
+				total: totalLabel,
+				dp: dpLabel,
+				invoiceUrl: lead.invoice_url
+			})
+		)
+	};
 };
 
 export const actions: Actions = {

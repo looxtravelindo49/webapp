@@ -5,6 +5,16 @@
 
 	let { data, form }: PageProps = $props();
 	const lead = $derived(data.lead);
+	let copied = $state(false);
+
+	async function copyLink() {
+		try {
+			await navigator.clipboard.writeText(lead.invoice_url);
+			copied = true;
+		} catch {
+			copied = false;
+		}
+	}
 	const noteFailed = $derived(form && 'error' in form ? form : null);
 	const statusFailed = $derived(form && 'statusError' in form && form.statusError ? form : null);
 	const dateValue = $derived(
@@ -27,8 +37,27 @@
 	<Button href="/invoice/{lead.nomor_invoice}" variant="accent" target="_blank" rel="noopener">Buka invoice ↗</Button>
 </div>
 
+{#if data.justCreated}
+	<p role="status" class="mt-4 rounded-lg bg-cream px-4 py-3 text-xs font-semibold">Invoice tersimpan.</p>
+{/if}
+
+<div class="mt-4 grid max-w-xl gap-3 rounded-xl border border-line bg-white p-5">
+	<label class="grid gap-1 text-[10px] font-bold tracking-wide uppercase" for="tautan-invoice">
+		Tautan invoice
+		<input id="tautan-invoice" readonly value={lead.invoice_url} class="w-full rounded-md border border-line px-3 py-2.5 text-xs font-normal" />
+	</label>
+	<div class="flex flex-wrap gap-2">
+		<Button type="button" variant="outline" onclick={copyLink}>Salin tautan</Button>
+		<Button href={data.clientWaUrl} variant="accent" target="_blank" rel="noopener noreferrer">Kirim ke WA klien ↗</Button>
+	</div>
+	{#if copied}<p role="status" class="text-[11px] font-semibold">Tautan disalin.</p>{/if}
+</div>
+
 <dl class="mt-6 grid gap-4 rounded-xl border border-line bg-white p-5 text-xs sm:grid-cols-2 sm:p-6">
 	<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Nama</dt><dd class="font-semibold">{lead.nama}</dd></div>
+	{#if lead.perusahaan}
+		<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Perusahaan</dt><dd class="font-semibold">{lead.perusahaan}</dd></div>
+	{/if}
 	<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">WhatsApp</dt><dd class="font-semibold">+{lead.whatsapp}</dd></div>
 	<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Peserta</dt><dd>{lead.jumlah_peserta.toLocaleString('id-ID')} orang</dd></div>
 	<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Tanggal acara</dt><dd>{lead.tanggalLabel}</dd></div>

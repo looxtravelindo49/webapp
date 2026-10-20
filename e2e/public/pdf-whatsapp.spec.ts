@@ -31,7 +31,9 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		expect(text.toLowerCase()).not.toContain('lampir');
 
 		const sheet = page.locator('.invoice-sheet');
-		await expect(sheet.getByRole('heading', { level: 1 })).toHaveText('Invoice estimasi');
+		await expect(sheet.getByRole('heading', { level: 1 })).toHaveText('Invoice Estimasi');
+		const fresh = await page.request.get(page.url());
+		expect(fresh.headers()['cache-control'] ?? '').toContain('no-store');
 		await expect(sheet.getByText('Baru', { exact: true })).toBeVisible();
 		await expect(sheet.getByText('Transfer ke rekening PT: CIMB Niaga Syariah 860025788700 a/n Loox Travel Luxury.')).toBeVisible();
 		await expect(sheet.getByRole('link', { name: /Kirim bukti transfer/ })).toHaveAttribute('href', /wa\.me\/6282120209900\?text=/);
@@ -113,9 +115,14 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		await expect(page.getByText('Rp 1.500.000')).toBeVisible();
 
 		await gotoReady(page, `/invoice/${nomor}`);
-		await expect(page.locator('.invoice-sheet').getByText('DP diterima · 20 Oktober 2026')).toBeVisible();
-		await expect(page.getByText('Cara bayar sekarang')).toHaveCount(0);
-		await expect(page.getByRole('button', { name: 'Bayar DP 20% (segera)' })).toBeDisabled();
+		const paid = page.locator('.invoice-sheet');
+		await expect(paid.getByRole('heading', { level: 1 })).toHaveText('Invoice');
+		await expect(paid.locator('.rounded-full', { hasText: 'DP diterima' })).toBeVisible();
+		await expect(paid.getByText('Diterima 20 Oktober 2026')).toBeVisible();
+		await expect(paid.getByText('Rp 1.500.000')).toBeVisible();
+		await expect(paid.getByText('Sisa tagihan', { exact: true })).toBeVisible();
+		await expect(paid.getByText('Cara bayar sekarang')).toHaveCount(0);
+		await expect(paid.getByRole('button', { name: 'Bayar DP 20% (segera)' })).toHaveCount(0);
 
 		await gotoReady(page, '/admin/leads?status=dp_diterima');
 		await expect(page.getByText('Tim Admin Lead')).toBeVisible();
@@ -123,10 +130,22 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		await expect(page.getByText('Tim Admin Lead')).toHaveCount(0);
 
 		await gotoReady(page, `/admin/leads/${nomor}`);
+		await page.getByRole('button', { name: 'Tandai lunas' }).click();
+		await expect(page.getByText('Invoice ditandai lunas.')).toBeVisible();
+		await gotoReady(page, `/invoice/${nomor}`);
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Invoice Lunas');
+		await expect(page.getByText('LUNAS', { exact: true })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Bayar DP 20% (segera)' })).toHaveCount(0);
+		await gotoReady(page, `/admin/leads/${nomor}`);
 		page.once('dialog', (dialog) => dialog.accept());
 		await page.getByRole('button', { name: 'Batalkan' }).click();
 		await expect(page.getByText('Invoice dibatalkan.')).toBeVisible();
 		await expect(page.getByText('Batal', { exact: true })).toBeVisible();
 		await expect(page.getByText('Rp 1.500.000')).toBeVisible();
+		await gotoReady(page, `/invoice/${nomor}`);
+		const cancelled = page.locator('.invoice-sheet');
+		await expect(cancelled.getByRole('heading', { level: 1 })).toHaveText('Invoice');
+		await expect(cancelled.getByText('Dibatalkan', { exact: true })).toBeVisible();
+		await expect(cancelled.getByRole('button', { name: 'Bayar DP 20% (segera)' })).toHaveCount(0);
 	});
 });

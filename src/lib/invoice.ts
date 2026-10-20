@@ -16,6 +16,8 @@ export type StoredLine = {
 	minPax: number;
 	billedPax: number;
 	subtotal: number | null;
+	/** `bebas` = baris invoice manual (qty × harga satuan). Selain itu baris paket kalkulator. */
+	kind?: 'paket' | 'bebas';
 };
 
 /** Tanggal kalender WIB `YYYYMMDD` untuk nomor invoice. */
@@ -54,7 +56,8 @@ export function storedLinesFromEstimate(lines: readonly EstimateLine[]): StoredL
 		price: l.price,
 		minPax: l.minPax,
 		billedPax: l.billedPax,
-		subtotal: l.subtotal
+		subtotal: l.subtotal,
+		kind: 'paket' as const
 	}));
 }
 
@@ -80,7 +83,8 @@ export function parseStoredLines(raw: string): StoredLine[] {
 			price: price === null || Number.isFinite(price) ? price : null,
 			minPax: Number(row.minPax) || 1,
 			billedPax: Number(row.billedPax) || 0,
-			subtotal: subtotal === null || Number.isFinite(subtotal) ? subtotal : null
+			subtotal: subtotal === null || Number.isFinite(subtotal) ? subtotal : null,
+			kind: row.kind === 'bebas' ? 'bebas' : 'paket'
 		});
 	}
 	return lines;
@@ -122,7 +126,67 @@ export function statusLabel(status: string): string {
 	return isLeadStatus(status) ? STATUS_LABEL[status] : status;
 }
 
-/** Lencana publik. Tanggal hanya untuk DP diterima dan Lunas. */
+/** Judul, lencana, dan apakah ajakan bayar DP masih tampil. Status dibaca dari database, bukan dari cache. */
+export function invoiceChrome(status: string): { title: string; badge: string; stamp: boolean; showPayCta: boolean } {
+	if (status === 'lunas') return { title: 'Invoice Lunas', badge: 'LUNAS', stamp: true, showPayCta: false };
+	if (status === 'dp_diterima') return { title: 'Invoice', badge: 'DP diterima', stamp: false, showPayCta: false };
+	if (status === 'batal') return { title: 'Invoice', badge: 'Dibatalkan', stamp: false, showPayCta: false };
+	return { title: 'Invoice Estimasi', badge: 'Baru', stamp: false, showPayCta: true };
+}
+
+/** Nominal DP yang sudah masuk, dan sisa terhadap total. `null` bila angkanya belum ada. */
+export function settlement(
+	total: number | null,
+	dp: number | null,
+	received: number | null
+): { paid: number | null; remaining: number | null } {
+	const paid = received ?? dp;
+	if (paid === null) return { paid: null, remaining: null };
+	if (total === null) return { paid, remaining: null };
+	return { paid, remaining: Math.max(0, total - paid) };
+}
+
+export type ManualQuote = { subtotal: number; diskon: number; total: number; dp: number };
+
+/** Total invoice manual dari qty × harga satuan, dikurangi diskon. `null` bila angkanya tidak sah. */
+export function manualQuote(lines: readonly { qty: number; harga: number }[], diskon: number): ManualQuote | null {
+	if (lines.length === 0) return null;
+	let subtotal = 0;
+	for (const line of lines) {
+		if (!Number.isInteger(line.qty) || line.qty < 1 || line.qty > 10_000) return null;
+		if (!Number.isInteger(line.harga) || line.harga < 0 || line.harga > MAX_RECEIVED) return null;
+		const row = line.qty * line.harga;
+		if (!Number.isSafeInteger(row)) return null;
+		subtotal += row;
+		if (subtotal > MAX_RECEIVED) return null;
+	}
+	if (!Number.isInteger(diskon) || diskon < 0 || diskon > subtotal) return null;
+	const total = subtotal - diskon;
+	return { subtotal, diskon, total, dp: dpNominal(total) ?? 0 };
+}
+
+/** Pesan ke WhatsApp klien, nomor invoice dan tautannya sudah terisi. */
+export function buildClientInvoiceMessage(input: {
+	nama: string;
+	nomor: string;
+	total: string;
+	dp: string;
+	invoiceUrl: string;
+}): string {
+	return [
+		`Halo ${input.nama.trim()}, ini invoice dari Lembang Adventures.`,
+		'',
+		`Nomor invoice: ${input.nomor}`,
+		`Total: ${input.total}`,
+		`DP 20%: ${input.dp}`,
+		'',
+		`Link invoice: ${input.invoiceUrl}`,
+		'',
+		'Kalau sudah transfer, balas chat ini dengan bukti transfernya, ya.'
+	].join('\n');
+}
+
+/** Lencana admin. Tanggal hanya untuk DP diterima dan Lunas. */
 export function paymentBadge(status: string, diterimaPada: string | null): string {
 	const label = statusLabel(status);
 	if ((status === 'dp_diterima' || status === 'lunas') && diterimaPada) {

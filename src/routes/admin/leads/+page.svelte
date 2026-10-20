@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Button from '#lib/components/Button.svelte';
 	import { formatRupiah } from '#lib/format.js';
 	import { formatDateTime } from '#lib/format.js';
 	import { formatPlanDate } from '#lib/estimate.js';
@@ -25,7 +26,10 @@
 
 <svelte:head><title>Leads | Admin Lembang Adventures</title></svelte:head>
 
-<h1 class="text-2xl font-black tracking-tight">Leads</h1>
+<div class="flex flex-wrap items-center justify-between gap-3">
+	<h1 class="text-2xl font-black tracking-tight">Leads</h1>
+	<Button href="/admin/leads/baru" variant="primary">Buat Invoice Manual</Button>
+</div>
 <p class="mt-2 max-w-2xl text-xs leading-[1.8] text-muted">
 	Setiap ketukan "Kirim ke WhatsApp" di kalkulator beranda masuk ke sini, lengkap dengan nomor invoice.
 </p>

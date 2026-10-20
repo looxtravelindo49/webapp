@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { INVOICE_NUMBER } from '#lib/invoice.js';
 import { all, migrate, migrations, openDatabase, run, type Db } from './db';
-import { getLeadByNomor, listLeads, setLeadStatus, submitLead } from './leads';
+import { createManualLead, getLeadByNomor, listLeads, setLeadStatus, submitLead } from './leads';
 import { seed } from './seed';
 
 const dbs: Db[] = [];
@@ -166,6 +166,45 @@ describe('submitLead', () => {
 	});
 });
 
+describe('createManualLead', () => {
+	it('menyimpan baris bebas, diskon, DP, dan sumber manual', async () => {
+		const db = await fresh();
+		const result = await createManualLead(
+			db,
+			{
+				nama: 'Sari',
+				perusahaan: 'PT Contoh',
+				whatsapp: '081234567890',
+				tanggal: '2026-12-01',
+				jumlahPeserta: '12',
+				catatan: 'Termasuk makan',
+				diskon: '50.000',
+				deskripsi: ['Offroad', ''],
+				qty: ['2', ''],
+				harga: ['249000', '']
+			},
+			{
+				origin: 'https://lembangadventure.com',
+				userAgent: null,
+				now: new Date('2026-10-20T02:00:00.000Z'),
+				random: () => Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8])
+			}
+		);
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+		expect(result.lead.source).toBe('manual');
+		expect(result.lead.status).toBe('baru');
+		expect(result.lead.perusahaan).toBe('PT Contoh');
+		expect(result.lead.estimasi_total).toBe(249000 * 2 - 50_000);
+		expect(result.lead.dp_nominal).toBe(Math.round(((249000 * 2 - 50_000) * 20) / 100));
+		expect(result.lead.diskon).toBe(50_000);
+		expect(result.lead.nomor_invoice).toMatch(INVOICE_NUMBER);
+		const lines = JSON.parse(result.lead.paket) as { title: string; kind: string; subtotal: number }[];
+		expect(lines).toEqual([{ slug: '', title: 'Offroad', price: 249000, minPax: 1, billedPax: 2, subtotal: 498000, kind: 'bebas' }]);
+		expect(await createManualLead(db, { nama: 'Sari', whatsapp: '0812', deskripsi: ['A'], qty: ['1'], harga: ['1000'], jumlahPeserta: '1' }, { origin: 'http://localhost', userAgent: null })).toMatchObject({ ok: false });
+	});
+});
+
 describe('migrasi status lama', () => {
 	it('menjadi Baru atau Lunas dan id berikutnya tidak mulai dari 1', async () => {
 		const dir = mkdtempSync(join(tmpdir(), 'lead-mig-'));
@@ -183,7 +222,7 @@ describe('migrasi status lama', () => {
 			`INSERT INTO lead (nomor_invoice, nama, whatsapp, paket, jumlah_peserta, invoice_url, status, paid_at)
 			 VALUES ('LA-20261019-BBBBBBBB', 'Lunas', '628111111112', '[]', 2, 'http://local/b', 'lunas_dp', '2026-10-01T00:00:00.000Z')`
 		);
-		expect(await migrate(db)).toEqual(['0007_lead_payment']);
+		expect(await migrate(db)).toEqual(['0007_lead_payment', '0008_lead_manual']);
 		const rows = await all<{ id: number; status: string; diterima_pada: string | null }>(
 			db,
 			'SELECT id, status, diterima_pada FROM lead ORDER BY id'
