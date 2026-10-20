@@ -3,8 +3,8 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { INVOICE_NUMBER } from '#lib/invoice.js';
-import { openDatabase, run, type Db } from './db';
-import { getLeadByNomor, listLeads, submitLead } from './leads';
+import { all, migrate, migrations, openDatabase, run, type Db } from './db';
+import { getLeadByNomor, listLeads, setLeadStatus, submitLead } from './leads';
 import { seed } from './seed';
 
 const dbs: Db[] = [];
@@ -58,7 +58,10 @@ describe('submitLead', () => {
 		expect(result.lead.jumlah_peserta).toBe(40);
 		expect(result.lead.tanggal_acara).toBe('2026-11-20');
 		expect(result.lead.catatan).toBe('Ada vegetarian');
-		expect(result.lead.status).toBe('menunggu_konfirmasi');
+		expect(result.lead.status).toBe('baru');
+		expect(result.lead.jumlah_diterima).toBeNull();
+		expect(result.lead.diterima_pada).toBeNull();
+		expect(result.lead.nomor_invoice).not.toBe(String(result.lead.id));
 		expect(result.lead.currency).toBe('IDR');
 		expect(result.lead.xendit_invoice_id).toBeNull();
 		expect(result.lead.invoice_url).toBe(`https://www.lembangadventure.com/invoice/${result.lead.nomor_invoice}`);
@@ -131,5 +134,70 @@ describe('submitLead', () => {
 		if (!first.ok || !second.ok) return;
 		expect(first.lead.nomor_invoice).not.toBe(second.lead.nomor_invoice);
 		expect(calls).toBeGreaterThanOrEqual(3);
+	});
+
+	it('mencatat DP dan lunas, batal tidak menghapus nominal', async () => {
+		const db = await fresh();
+		const created = await submitLead(db, body(), {
+			origin: 'http://localhost:3000',
+			userAgent: null,
+			random: () => Uint8Array.from([4, 4, 4, 4, 4, 4, 4, 4])
+		});
+		if (!created.ok) throw new Error('lead gagal');
+		const nomor = created.lead.nomor_invoice;
+		expect(await setLeadStatus(db, nomor, { status: 'dp_diterima', diterimaPada: '', jumlah: 1_500_000, now: new Date('2026-10-19T17:30:00.000Z') })).toBe('ok');
+		const dp = await getLeadByNomor(db, nomor);
+		expect(dp?.status).toBe('dp_diterima');
+		expect(dp?.diterima_pada).toBe('2026-10-20');
+		expect(dp?.jumlah_diterima).toBe(1_500_000);
+		expect(await setLeadStatus(db, nomor, { status: 'lunas', diterimaPada: '2026-10-21', jumlah: null })).toBe('ok');
+		const lunas = await getLeadByNomor(db, nomor);
+		expect(lunas?.status).toBe('lunas');
+		expect(lunas?.diterima_pada).toBe('2026-10-21');
+		expect(lunas?.jumlah_diterima).toBe(1_500_000);
+		expect(await setLeadStatus(db, nomor, { status: 'batal', diterimaPada: '2026-01-01', jumlah: 1 })).toBe('ok');
+		const batal = await getLeadByNomor(db, nomor);
+		expect(batal?.status).toBe('batal');
+		expect(batal?.diterima_pada).toBe('2026-10-21');
+		expect(batal?.jumlah_diterima).toBe(1_500_000);
+		expect(await setLeadStatus(db, nomor, { status: 'dp_diterima', diterimaPada: '2026-02-31', jumlah: null })).toBe('bad-date');
+		expect((await listLeads(db, 20, 'batal')).map((l) => l.nomor_invoice)).toEqual([nomor]);
+		expect(await listLeads(db, 20, 'baru')).toEqual([]);
+	});
+});
+
+describe('migrasi status lama', () => {
+	it('menjadi Baru atau Lunas dan id berikutnya tidak mulai dari 1', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'lead-mig-'));
+		dirs.push(dir);
+		const before = migrations.filter((m) => m.version < '0007_lead_payment');
+		const db = await openDatabase(join(dir, 'app.db'), before);
+		dbs.push(db);
+		await run(
+			db,
+			`INSERT INTO lead (nomor_invoice, nama, whatsapp, paket, jumlah_peserta, invoice_url, status)
+			 VALUES ('LA-20261019-AAAAAAAA', 'Lama', '628111111111', '[]', 2, 'http://local/a', 'menunggu_konfirmasi')`
+		);
+		await run(
+			db,
+			`INSERT INTO lead (nomor_invoice, nama, whatsapp, paket, jumlah_peserta, invoice_url, status, paid_at)
+			 VALUES ('LA-20261019-BBBBBBBB', 'Lunas', '628111111112', '[]', 2, 'http://local/b', 'lunas_dp', '2026-10-01T00:00:00.000Z')`
+		);
+		expect(await migrate(db)).toEqual(['0007_lead_payment']);
+		const rows = await all<{ id: number; status: string; diterima_pada: string | null }>(
+			db,
+			'SELECT id, status, diterima_pada FROM lead ORDER BY id'
+		);
+		expect(rows).toEqual([
+			{ id: 1, status: 'baru', diterima_pada: null },
+			{ id: 2, status: 'lunas', diterima_pada: '2026-10-01' }
+		]);
+		await run(
+			db,
+			`INSERT INTO lead (nomor_invoice, nama, whatsapp, paket, jumlah_peserta, invoice_url)
+			 VALUES ('LA-20261020-CCCCCCCC', 'Baru', '628111111113', '[]', 1, 'http://local/c')`
+		);
+		const next = await all<{ id: number }>(db, "SELECT id FROM lead WHERE nomor_invoice = 'LA-20261020-CCCCCCCC'");
+		expect(next[0].id).toBe(3);
 	});
 });

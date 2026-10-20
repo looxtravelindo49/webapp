@@ -40,7 +40,7 @@
 		</div>
 		<div class="text-left sm:text-right">
 			<p class="text-[11px] text-muted">Dibuat {data.createdLabel}</p>
-			<p class="mt-1 inline-block rounded-full bg-cream px-2.5 py-1 text-[10px] font-bold">{data.statusLabel}</p>
+			<p class="mt-1 inline-block rounded-full bg-cream px-2.5 py-1 text-[10px] font-bold">{data.badge}</p>
 		</div>
 	</header>
 
@@ -103,17 +103,35 @@
 		</div>
 	</div>
 
+	{#if data.status === 'baru'}
+		<div class="mt-6 rounded-lg bg-cream px-4 py-3 text-xs leading-[1.8]">
+			<p class="font-bold">Cara bayar sekarang</p>
+			<p class="mt-1">
+				Transfer ke rekening PT: CIMB Niaga Syariah 860025788700 a/n Loox Travel Luxury. Setelah kamu transfer, kirim bukti lewat WhatsApp dan cantumkan nomor invoice {data.nomor}.
+			</p>
+		</div>
+	{/if}
+
 	<div class="no-print mt-6 flex flex-wrap gap-2.5">
 		<Button type="button" variant="outline" onclick={printInvoice}>Cetak atau simpan</Button>
+		{#if data.proofUrl}
+			<Button href={data.proofUrl} variant="accent" target="_blank" rel="noopener noreferrer">
+				Kirim bukti transfer <span aria-hidden="true">↗</span>
+			</Button>
+		{/if}
 		{#if data.waUrl}
-			<Button href={data.waUrl} variant="accent" target="_blank" rel="noopener noreferrer">
+			<Button href={data.waUrl} variant="outline" target="_blank" rel="noopener noreferrer">
 				Konfirmasi via WhatsApp <span aria-hidden="true">↗</span>
 			</Button>
 		{/if}
 		<Button type="button" variant="outline" disabled>Bayar DP {data.dpPercent}% (segera)</Button>
 	</div>
 	<p class="no-print mt-3 text-[11px] text-muted">
-		Estimasi kamu sudah kami simpan. Kalau chat WhatsApp belum terbuka, ketuk tombol di atas. Pembayaran DP online segera hadir.
+		{#if data.status === 'baru'}
+			Estimasi kamu sudah kami simpan. Pembayaran DP online segera hadir. Untuk sekarang, transfer ke rekening PT lalu kirim buktinya lewat WhatsApp.
+		{:else}
+			Estimasi kamu sudah kami simpan. Kalau chat WhatsApp belum terbuka, ketuk tombol di atas. Pembayaran DP online segera hadir.
+		{/if}
 	</p>
 
 	<div class="mt-8 border-t border-line pt-6">

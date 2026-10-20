@@ -30,7 +30,7 @@ sudah dikunci di CMS tidak diubah oleh alur ini.
 2. Satu baris masuk ke tabel `lead` di database yang sama (SQLite lokal atau Turso). Nomor invoice `LA-YYYYMMDD-XXXXXXXX` (tanggal WIB, 8 karakter acak).
 3. Bila simpan gagal, WhatsApp tidak dibuka dan tidak ada invoice kosong.
 4. Bila berhasil, halaman `/invoice/<nomor>` terbuka dan `wa.me/<nomor pengaturan>` terbuka dengan detail kebutuhan, estimasi, dan tautan invoice. Tidak ada PDF dan tidak ada kalimat "Saya lampirkan PDF".
-5. Invoice bisa dicetak atau disimpan lewat dialog cetak browser. Tombol **Bayar DP 20% (segera)** nonaktif. `dp_nominal` = 20% × estimasi (dibulatkan), atau kosong bila estimasi belum berupa angka. Tidak ada biaya gateway yang dikarang.
+5. Invoice bisa dicetak atau disimpan lewat dialog cetak browser. Status awal **Baru** menampilkan cara transfer ke rekening PT dan tautan WhatsApp bukti transfer (nomor invoice sudah terisi). Tombol **Bayar DP 20% (segera)** tetap nonaktif. `dp_nominal` = 20% × estimasi (dibulatkan), atau kosong bila estimasi belum berupa angka. Tidak ada biaya gateway yang dikarang. Nomor invoice memakai 8 karakter acak, bukan urutan.
 
 Invoice bersifat publik lewat nomor (tidak ditebak), `noindex`, dan tidak masuk sitemap. Nomor WhatsApp tujuan selalu dibaca dari Pengaturan.
 
@@ -71,7 +71,7 @@ bawaan tertulis di repositori ini. Untuk menimpanya sejak awal, setel `ADMIN_SEE
   `/uploads/<nama>`. Dengan `BLOB_READ_WRITE_TOKEN` berkas disimpan di Vercel Blob (store privat) dan tetap disajikan lewat rute yang sama. Foto dari ponsel dapat memuat data lokasi (EXIF); ekspor ulang tanpa lokasi bila perlu, karena
   berkas disimpan apa adanya. Mengganti atau menghapus foto (dan menghapus paket) menghapus berkas unggahan lamanya;
   gambar bawaan di `static/media/` tidak pernah dihapus.
-- **Leads** di `/admin/leads`: setiap kiriman kalkulator (nama, WhatsApp, paket, peserta, tanggal, catatan, total, waktu, nomor invoice). Detail lead membuka invoice publik. Catatan admin bisa disimpan; status bayar Xendit masih kosong.
+- **Leads** di `/admin/leads`: setiap kiriman kalkulator (nama, WhatsApp, paket, peserta, tanggal, catatan, total, waktu, nomor invoice, status). Saring menurut status (Baru, DP diterima, Lunas, Batal). Detail di `/admin/leads/<nomor>` mencatat tanggal dan jumlah diterima (jumlah opsional), plus catatan internal. Tombol: **Konfirmasi DP diterima**, **Tandai lunas**, dan **Batalkan** (minta konfirmasi). Xendit belum menulis status ini.
 - **Pengaturan** di `/admin/pengaturan`: nomor WhatsApp tujuan. Format lokal (`0812-3456-7890`) atau internasional
   (`+62 812 3456 7890`) disimpan sebagai `6281234567890`. Kosong menyembunyikan tombol "Kirim ke WhatsApp" di kalkulator.
 - **Batas ukuran body.** `adapter-node` menolak body di atas `BODY_SIZE_LIMIT` (bawaan 512 KB, yang menolak foto).

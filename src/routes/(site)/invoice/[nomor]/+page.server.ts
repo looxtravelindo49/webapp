@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import { formatRupiah } from '#lib/format.js';
 import { formatDateTime } from '#lib/format.js';
 import { formatPlanDate, totalNote, totalText } from '#lib/estimate.js';
-import { DP_PERCENT, estimateFromStored, statusLabel } from '#lib/invoice.js';
+import { buildPaymentProofMessage, DP_PERCENT, estimateFromStored, paymentBadge } from '#lib/invoice.js';
 import { getDb } from '#lib/server/database.js';
 import { getLeadByNomor, leadLines, leadMessage } from '#lib/server/leads.js';
 import { getSetting } from '#lib/server/settings.js';
@@ -23,10 +23,12 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 	const estimate = estimateFromStored(lines, lead.estimasi_total);
 	const destination = normalizeWhatsapp(await getSetting(db, 'whatsapp'));
 
+	const fresh = lead.status === 'baru';
 	return {
 		nomor: lead.nomor_invoice,
 		createdLabel: formatDateTime(lead.created_at),
-		statusLabel: statusLabel(lead.status),
+		status: lead.status,
+		badge: paymentBadge(lead.status, lead.diterima_pada),
 		nama: lead.nama,
 		whatsapp: `+${lead.whatsapp}`,
 		lines: lines.map((l) => ({
@@ -46,6 +48,7 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 		estimasiNote: totalNote(estimate),
 		dpPercent: DP_PERCENT,
 		dpLabel: lead.dp_nominal === null ? null : formatRupiah(lead.dp_nominal),
-		waUrl: destination ? waLink(destination, leadMessage(lead)) : null
+		waUrl: destination ? waLink(destination, leadMessage(lead)) : null,
+		proofUrl: fresh && destination ? waLink(destination, buildPaymentProofMessage(lead.nomor_invoice)) : null
 	};
 };

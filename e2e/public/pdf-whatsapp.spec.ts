@@ -32,14 +32,20 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 
 		const sheet = page.locator('.invoice-sheet');
 		await expect(sheet.getByRole('heading', { level: 1 })).toHaveText('Invoice estimasi');
+		await expect(sheet.getByText('Baru', { exact: true })).toBeVisible();
+		await expect(sheet.getByText('Transfer ke rekening PT: CIMB Niaga Syariah 860025788700 a/n Loox Travel Luxury.')).toBeVisible();
+		await expect(sheet.getByRole('link', { name: /Kirim bukti transfer/ })).toHaveAttribute('href', /wa\.me\/6282120209900\?text=/);
 		await expect(sheet.getByRole('button', { name: 'Bayar DP 20% (segera)' })).toBeDisabled();
-		await expect(sheet.getByText('860025788700')).toBeVisible();
-		await expect(sheet.getByText('a/n Loox Travel Luxury')).toBeVisible();
+		await expect(sheet.getByText('860025788700', { exact: true })).toBeVisible();
+		await expect(sheet.getByText('a/n Loox Travel Luxury', { exact: true })).toBeVisible();
 		await expect(sheet.getByText('Hati-hati memilih travel. Pastikan travel sudah berbadan hukum PT')).toBeVisible();
 		await expect(sheet.getByText('Rp 3.600.000')).toBeVisible();
 		await expect(sheet.getByText(/biaya layanan|biaya admin/i)).toHaveCount(0);
 
 		const nomor = new URL(page.url()).pathname.split('/').pop()!;
+		const proofHref = await sheet.getByRole('link', { name: /Kirim bukti transfer/ }).getAttribute('href');
+		expect(decodeURIComponent(proofHref ?? '')).toContain(`Nomor invoice: ${nomor}`);
+		expect(decodeURIComponent(proofHref ?? '').toLowerCase()).not.toContain('pdf');
 		const rows = query<{ nama: string; estimasi_total: number; dp_nominal: number }>('SELECT nama, estimasi_total, dp_nominal FROM lead WHERE nomor_invoice = ?', nomor);
 		expect(rows).toHaveLength(1);
 		expect(rows[0].nama).toBe('Tim Alfa');
@@ -47,7 +53,7 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		expect(rows[0].dp_nominal).toBe(3_600_000);
 
 		await page.reload();
-		await expect(page.getByText(nomor)).toBeVisible();
+		await expect(page.getByText(nomor, { exact: true })).toBeVisible();
 		expect(query('SELECT nomor_invoice FROM lead WHERE nama = ?', 'Tim Alfa').length).toBe(1);
 	});
 
@@ -97,5 +103,28 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		await page.getByRole('link', { name: nomor }).click();
 		await expect(page.getByRole('link', { name: /Buka invoice/ })).toBeVisible();
 		await expect(page.getByText('+6281234567890')).toBeVisible();
+		await page.getByLabel('Jumlah diterima (opsional)').fill('1500000');
+		await page.getByLabel('Tanggal diterima').fill('2026-10-20');
+		await page.getByRole('button', { name: 'Konfirmasi DP diterima' }).click();
+		await expect(page.getByText('DP dicatat. Invoice publik sekarang bertanda DP diterima.')).toBeVisible();
+		await expect(page.getByText('DP diterima · 20 Oktober 2026')).toBeVisible();
+		await expect(page.getByText('Rp 1.500.000')).toBeVisible();
+
+		await gotoReady(page, `/invoice/${nomor}`);
+		await expect(page.locator('.invoice-sheet').getByText('DP diterima · 20 Oktober 2026')).toBeVisible();
+		await expect(page.getByText('Cara bayar sekarang')).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Bayar DP 20% (segera)' })).toBeDisabled();
+
+		await gotoReady(page, '/admin/leads?status=dp_diterima');
+		await expect(page.getByText('Tim Admin Lead')).toBeVisible();
+		await gotoReady(page, '/admin/leads?status=batal');
+		await expect(page.getByText('Tim Admin Lead')).toHaveCount(0);
+
+		await gotoReady(page, `/admin/leads/${nomor}`);
+		page.once('dialog', (dialog) => dialog.accept());
+		await page.getByRole('button', { name: 'Batalkan' }).click();
+		await expect(page.getByText('Invoice dibatalkan.')).toBeVisible();
+		await expect(page.getByText('Batal', { exact: true })).toBeVisible();
+		await expect(page.getByText('Rp 1.500.000')).toBeVisible();
 	});
 });

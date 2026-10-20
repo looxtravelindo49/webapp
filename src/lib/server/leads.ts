@@ -6,8 +6,12 @@ import {
 	DP_PERCENT,
 	estimateFromStored,
 	INVOICE_NUMBER,
+	isIsoDate,
+	isLeadStatus,
 	parseStoredLines,
 	storedLinesFromEstimate,
+	todayInJakarta,
+	type LeadStatus,
 	type StoredLine
 } from '#lib/invoice.js';
 import { calculateEstimate, parsePax } from '#lib/pricing.js';
@@ -39,11 +43,14 @@ export type Lead = {
 	user_agent: string | null;
 	source: string | null;
 	catatan_admin: string | null;
+	jumlah_diterima: number | null;
+	diterima_pada: string | null;
 };
 
 const COLUMNS = `id, nomor_invoice, created_at, nama, whatsapp, paket, jumlah_peserta, tanggal_acara, catatan,
 	estimasi_total, dp_persen, dp_nominal, currency, status, invoice_url, wa_opened,
-	xendit_invoice_id, xendit_status, paid_at, user_agent, source, catatan_admin`;
+	xendit_invoice_id, xendit_status, paid_at, user_agent, source, catatan_admin,
+	jumlah_diterima, diterima_pada`;
 
 function num(value: unknown): number | null {
 	if (value === null || value === undefined || value === '') return null;
@@ -74,7 +81,9 @@ function mapLead(row: Record<string, unknown>): Lead {
 		paid_at: row.paid_at == null ? null : String(row.paid_at),
 		user_agent: row.user_agent == null ? null : String(row.user_agent),
 		source: row.source == null ? null : String(row.source),
-		catatan_admin: row.catatan_admin == null ? null : String(row.catatan_admin)
+		catatan_admin: row.catatan_admin == null ? null : String(row.catatan_admin),
+		jumlah_diterima: num(row.jumlah_diterima),
+		diterima_pada: row.diterima_pada == null || row.diterima_pada === '' ? null : String(row.diterima_pada)
 	};
 }
 
@@ -102,23 +111,66 @@ export async function getLeadByNomor(db: Queryable, nomor: string): Promise<Lead
 	return row ? mapLead(row) : null;
 }
 
-export async function listLeads(db: Queryable, limit = 200): Promise<Lead[]> {
+export async function listLeads(db: Queryable, limit = 200, status: LeadStatus | null = null): Promise<Lead[]> {
 	const rows = await all<Record<string, unknown>>(
 		db,
-		`SELECT ${COLUMNS} FROM lead ORDER BY created_at DESC, id DESC LIMIT ?`,
-		[limit]
+		status
+			? `SELECT ${COLUMNS} FROM lead WHERE status = ? ORDER BY created_at DESC, id DESC LIMIT ?`
+			: `SELECT ${COLUMNS} FROM lead ORDER BY created_at DESC, id DESC LIMIT ?`,
+		status ? [status, limit] : [limit]
 	);
 	return rows.map(mapLead);
 }
 
-export async function countLeads(db: Queryable): Promise<number> {
-	return Number((await scalar<number>(db, 'SELECT COUNT(*) FROM lead')) ?? 0);
+export async function countLeads(db: Queryable, status: LeadStatus | null = null): Promise<number> {
+	const value = status
+		? await scalar<number>(db, 'SELECT COUNT(*) FROM lead WHERE status = ?', [status])
+		: await scalar<number>(db, 'SELECT COUNT(*) FROM lead');
+	return Number(value ?? 0);
 }
 
 export async function updateAdminNote(db: Queryable, nomor: string, note: string | null): Promise<boolean> {
 	if (!INVOICE_NUMBER.test(nomor)) return false;
 	const result = await run(db, 'UPDATE lead SET catatan_admin = ? WHERE nomor_invoice = ?', [note, nomor]);
 	return result.rowsAffected > 0;
+}
+
+export type PaymentInput = {
+	status: LeadStatus;
+	/** `YYYY-MM-DD`. Kosong pada DP/lunas memakai hari ini (WIB). Diabaikan saat batal. */
+	diterimaPada: string;
+	/** `null` = kolom tidak diubah. Diabaikan saat batal. */
+	jumlah: number | null;
+	now?: Date;
+};
+
+/**
+ * Catat status bayar manual. Batal tidak mengubah tanggal atau nominal yang sudah tercatat.
+ */
+export async function setLeadStatus(
+	db: Queryable,
+	nomor: string,
+	input: PaymentInput
+): Promise<'ok' | 'missing' | 'bad-date'> {
+	if (!INVOICE_NUMBER.test(nomor) || !isLeadStatus(input.status) || input.status === 'baru') return 'missing';
+	const paying = input.status === 'dp_diterima' || input.status === 'lunas';
+	let date: string | null = null;
+	if (paying) {
+		const raw = input.diterimaPada.trim();
+		date = raw === '' ? todayInJakarta(input.now) : isIsoDate(raw) ? raw : null;
+		if (!date) return 'bad-date';
+	}
+	const setAmount = paying && input.jumlah !== null;
+	const result = await run(
+		db,
+		`UPDATE lead
+		 SET status = ?,
+		     diterima_pada = CASE WHEN ? = 1 THEN ? ELSE diterima_pada END,
+		     jumlah_diterima = CASE WHEN ? = 1 THEN ? ELSE jumlah_diterima END
+		 WHERE nomor_invoice = ?`,
+		[input.status, paying ? 1 : 0, date, setAmount ? 1 : 0, setAmount ? input.jumlah : null, nomor]
+	);
+	return result.rowsAffected > 0 ? 'ok' : 'missing';
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -205,7 +257,7 @@ export async function submitLead(db: Db, raw: Record<string, unknown>, ctx: Subm
 					`INSERT INTO lead
 						(nomor_invoice, nama, whatsapp, paket, jumlah_peserta, tanggal_acara, catatan,
 						 estimasi_total, dp_persen, dp_nominal, currency, status, invoice_url, wa_opened, user_agent, source)
-					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'IDR', 'menunggu_konfirmasi', ?, 1, ?, 'kalkulator')`,
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'IDR', 'baru', ?, 1, ?, 'kalkulator')`,
 					[nomor, nama, whatsapp, JSON.stringify(lines), pax, tanggal, catatan, total, DP_PERCENT, dp, invoiceUrl, userAgent]
 				);
 				const row = await one(tx, `SELECT ${COLUMNS} FROM lead WHERE nomor_invoice = ?`, [nomor]);

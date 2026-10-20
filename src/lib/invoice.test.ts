@@ -4,12 +4,16 @@ import { bank, bankLogo } from './content/bank';
 import { hero } from './content/hero';
 import {
 	buildInvoiceNumber,
+	buildPaymentProofMessage,
 	dpNominal,
 	DP_PERCENT,
 	INVOICE_NUMBER,
 	invoiceStamp,
+	parseReceivedAmount,
 	parseStoredLines,
-	suffixFromBytes
+	paymentBadge,
+	suffixFromBytes,
+	todayInJakarta
 } from './invoice';
 
 describe('nomor invoice', () => {
@@ -34,6 +38,29 @@ describe('DP 20%', () => {
 		expect(dpNominal(10_000_000)).toBe(2_000_000);
 		expect(dpNominal(1)).toBe(0);
 		expect(dpNominal(null)).toBeNull();
+	});
+});
+
+describe('status bayar manual', () => {
+	it('lencana memakai tanggal hanya untuk DP diterima dan lunas', () => {
+		expect(paymentBadge('baru', null)).toBe('Baru');
+		expect(paymentBadge('batal', '2026-10-20')).toBe('Batal');
+		expect(paymentBadge('dp_diterima', '2026-10-20')).toBe('DP diterima · 20 Oktober 2026');
+		expect(paymentBadge('lunas', '2026-10-01')).toBe('Lunas · 1 Oktober 2026');
+	});
+
+	it('pesan bukti transfer hanya memuat nomor invoice', () => {
+		const text = buildPaymentProofMessage('LA-20261020-ABCDEFGH');
+		expect(text).toContain('Nomor invoice: LA-20261020-ABCDEFGH');
+		expect(text.toLowerCase()).not.toContain('pdf');
+		expect(text).not.toContain('628');
+	});
+
+	it('nominal diterima opsional dan menolak pecahan', () => {
+		expect(parseReceivedAmount('')).toEqual({ ok: true, value: null });
+		expect(parseReceivedAmount('Rp 1.500.000')).toEqual({ ok: true, value: 1_500_000 });
+		expect(parseReceivedAmount('1500.5').ok).toBe(false);
+		expect(todayInJakarta(new Date('2026-10-19T17:30:00.000Z'))).toBe('2026-10-20');
 	});
 });
 

@@ -103,15 +103,77 @@ export function estimateFromStored(lines: readonly StoredLine[], total: number |
 	return { state, lines: mapped, total: total ?? 0, pricedCount, unpricedCount };
 }
 
-const STATUS_LABEL: Record<string, string> = {
-	draft: 'Draf',
-	menunggu_konfirmasi: 'Menunggu konfirmasi',
-	menunggu_dp: 'Menunggu DP',
-	lunas_dp: 'DP lunas'
+/** Status konfirmasi manual. Bukan urutan angka, dan bukan status Xendit. */
+export const LEAD_STATUSES = ['baru', 'dp_diterima', 'lunas', 'batal'] as const;
+export type LeadStatus = (typeof LEAD_STATUSES)[number];
+
+const STATUS_LABEL: Record<LeadStatus, string> = {
+	baru: 'Baru',
+	dp_diterima: 'DP diterima',
+	lunas: 'Lunas',
+	batal: 'Batal'
 };
 
+export function isLeadStatus(value: string): value is LeadStatus {
+	return (LEAD_STATUSES as readonly string[]).includes(value);
+}
+
 export function statusLabel(status: string): string {
-	return STATUS_LABEL[status] ?? status;
+	return isLeadStatus(status) ? STATUS_LABEL[status] : status;
+}
+
+/** Lencana publik. Tanggal hanya untuk DP diterima dan Lunas. */
+export function paymentBadge(status: string, diterimaPada: string | null): string {
+	const label = statusLabel(status);
+	if ((status === 'dp_diterima' || status === 'lunas') && diterimaPada) {
+		const pretty = formatPlanDate(diterimaPada);
+		if (pretty) return `${label} · ${pretty}`;
+	}
+	return label;
+}
+
+/** Pesan bukti transfer. Hanya nomor invoice, tanpa data lain. */
+export function buildPaymentProofMessage(nomor: string): string {
+	return [
+		'Halo Lembang Adventures, aku sudah transfer untuk invoice ini.',
+		'',
+		`Nomor invoice: ${nomor}`,
+		'',
+		'Bukti transfernya aku kirim di chat ini, ya.'
+	].join('\n');
+}
+
+/** Tanggal kalender hari ini di WIB, `YYYY-MM-DD`. */
+export function todayInJakarta(now = new Date()): string {
+	return new Intl.DateTimeFormat('en-CA', {
+		timeZone: 'Asia/Jakarta',
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit'
+	}).format(now);
+}
+
+/** `YYYY-MM-DD` yang tidak bergeser (2026-02-31 ditolak). */
+export function isIsoDate(raw: string): boolean {
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return false;
+	const [y, m, d] = raw.split('-').map(Number);
+	const date = new Date(`${raw}T12:00:00`);
+	return date.getFullYear() === y && date.getMonth() + 1 === m && date.getDate() === d;
+}
+
+const MAX_RECEIVED = 10_000_000_000;
+
+/**
+ * Nominal yang dicatat admin. Kosong → null (tidak diubah).
+ * `1500000`, `1.500.000`, atau `Rp 1.500.000`. Bukan pecahan.
+ */
+export function parseReceivedAmount(raw: string): { ok: true; value: number | null } | { ok: false } {
+	const text = raw.trim().replace(/^rp\.?\s*/i, '').replace(/\s/g, '');
+	if (text === '') return { ok: true, value: null };
+	if (!/^\d+$/.test(text) && !/^\d{1,3}(\.\d{3})+$/.test(text)) return { ok: false };
+	const value = Number(text.replaceAll('.', ''));
+	if (!Number.isSafeInteger(value) || value < 0 || value > MAX_RECEIVED) return { ok: false };
+	return { ok: true, value };
 }
 
 export type ConfirmationInput = {

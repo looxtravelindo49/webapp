@@ -2,7 +2,7 @@
 	import { formatRupiah } from '#lib/format.js';
 	import { formatDateTime } from '#lib/format.js';
 	import { formatPlanDate } from '#lib/estimate.js';
-	import { parseStoredLines, statusLabel } from '#lib/invoice.js';
+	import { LEAD_STATUSES, parseStoredLines, paymentBadge, statusLabel } from '#lib/invoice.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -11,6 +11,16 @@
 	const titles = (lead: Row) => parseStoredLines(lead.paket).map((l) => l.title).join(', ') || '—';
 	const total = (lead: Row) => (lead.estimasi_total === null ? 'Dibahas via WhatsApp' : formatRupiah(lead.estimasi_total));
 	const when = (lead: Row) => (lead.tanggal_acara ? formatPlanDate(lead.tanggal_acara) : 'Belum ditentukan');
+	const received = (lead: Row) => (lead.jumlah_diterima === null ? null : formatRupiah(lead.jumlah_diterima));
+
+	const filters = $derived([
+		{ href: '/admin/leads', label: 'Semua', current: data.status === null },
+		...LEAD_STATUSES.map((status) => ({
+			href: `/admin/leads?status=${status}`,
+			label: statusLabel(status),
+			current: data.status === status
+		}))
+	]);
 </script>
 
 <svelte:head><title>Leads | Admin Lembang Adventures</title></svelte:head>
@@ -20,9 +30,21 @@
 	Setiap ketukan "Kirim ke WhatsApp" di kalkulator beranda masuk ke sini, lengkap dengan nomor invoice.
 </p>
 
+<nav class="mt-4 flex flex-wrap gap-2" aria-label="Saring status">
+	{#each filters as filter (filter.href)}
+		<a
+			href={filter.href}
+			aria-current={filter.current ? 'page' : undefined}
+			class="rounded-full border border-line px-3 py-1 text-[11px] font-bold {filter.current
+				? 'bg-green-900 text-white'
+				: 'bg-white text-green-900'}"
+		>{filter.label}</a>
+	{/each}
+</nav>
+
 {#if data.leads.length === 0}
 	<p class="mt-6 rounded-xl border border-line bg-white p-6 text-xs text-muted">
-		Belum ada lead. Daftar ini terisi setelah pengunjung menekan Kirim ke WhatsApp.
+		{data.status ? 'Tidak ada lead dengan status ini.' : 'Belum ada lead. Daftar ini terisi setelah pengunjung menekan Kirim ke WhatsApp.'}
 	</p>
 {:else}
 	{#if data.total > data.leads.length}
@@ -36,15 +58,19 @@
 						<p class="text-[11px] text-muted">{formatDateTime(lead.created_at)}</p>
 						<a href="/admin/leads/{lead.nomor_invoice}" class="text-sm font-black tracking-tight hover:underline">{lead.nomor_invoice}</a>
 					</div>
-					<span class="rounded-full bg-cream px-2.5 py-1 text-[10px] font-bold">{statusLabel(lead.status)}</span>
+					<span class="rounded-full bg-cream px-2.5 py-1 text-[10px] font-bold">{paymentBadge(lead.status, lead.diterima_pada)}</span>
 				</div>
 				<dl class="mt-3 grid gap-x-6 gap-y-2 text-xs sm:grid-cols-2">
+					<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Status</dt><dd class="font-semibold">{statusLabel(lead.status)}</dd></div>
 					<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Nama</dt><dd class="font-semibold">{lead.nama}</dd></div>
 					<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">WhatsApp</dt><dd class="font-semibold">+{lead.whatsapp}</dd></div>
 					<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Paket</dt><dd>{titles(lead)}</dd></div>
 					<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Peserta</dt><dd>{lead.jumlah_peserta.toLocaleString('id-ID')} orang</dd></div>
 					<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Tanggal</dt><dd>{when(lead)}</dd></div>
 					<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Total</dt><dd class="font-semibold">{total(lead)}</dd></div>
+					{#if received(lead)}
+						<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Diterima</dt><dd class="font-semibold">{received(lead)}</dd></div>
+					{/if}
 					{#if lead.catatan}
 						<div class="sm:col-span-2">
 							<dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Catatan</dt>
