@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { DISCLAIMER, totalNote, totalText } from '#lib/estimate.js';
+	import { DISCLAIMER, totalNote, totalText, unitBreakdown } from '#lib/estimate.js';
 	import { formatRupiah } from '#lib/format.js';
 	import { calculateEstimate, MAX_PAX, parsePax } from '#lib/pricing.js';
 	import { getTripContext } from '#lib/trip.svelte.js';
@@ -227,7 +227,9 @@
 							<li class="flex items-start justify-between gap-4 py-3">
 								<div class="min-w-0">
 									<div class="text-xs font-bold">{l.title}</div>
-									{#if l.price !== null}
+									{#if l.unit}
+										<div class="text-[11px] text-muted">{unitBreakdown(l.unit.count, l.unit.price, l.unit.capacity, l.unit.name)}</div>
+									{:else if l.price !== null}
 										<div class="text-[11px] text-muted">{l.billedPax} × {formatRupiah(l.price)}</div>
 									{/if}
 									{#if l.minApplied}

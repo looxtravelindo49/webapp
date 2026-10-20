@@ -14,7 +14,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 			slug: p.slug,
 			published: p.published === 1,
 			price: p.price_per_person,
-			minPax: p.min_pax
+			minPax: p.min_pax,
+			unitLabel:
+				p.pricing_mode === 'per_unit' && p.kapasitas_per_unit
+					? `${(p.nama_unit ?? '').trim() || 'unit'} · maks. ${p.kapasitas_per_unit}`
+					: null
 		}))
 	};
 };

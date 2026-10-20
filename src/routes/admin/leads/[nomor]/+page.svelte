@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from '#lib/components/Button.svelte';
+	import { unitBreakdown } from '#lib/estimate.js';
 	import { formatRupiah } from '#lib/format.js';
 	import type { PageProps } from './$types';
 
@@ -83,7 +84,12 @@
 				<ul class="divide-y divide-line">
 					{#each lead.lines as line (line.slug + line.title)}
 						<li class="flex justify-between gap-3 py-1.5">
-							<span>{line.title}</span>
+							<span>
+								{line.title}
+								{#if line.pricingMode === 'per_unit' && line.units && line.unitPrice !== undefined && line.capacity && line.unitName}
+									<span class="mt-0.5 block text-[11px] font-normal text-muted">{unitBreakdown(line.units, line.unitPrice, line.capacity, line.unitName)}</span>
+								{/if}
+							</span>
 							<span class="font-semibold">{line.subtotal === null ? 'Harga menyusul' : formatRupiah(line.subtotal)}</span>
 						</li>
 					{/each}

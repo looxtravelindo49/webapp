@@ -1,8 +1,8 @@
 import { error } from '@sveltejs/kit';
 import { formatRupiah } from '#lib/format.js';
 import { formatDateTime } from '#lib/format.js';
-import { formatPlanDate, totalNote, totalText } from '#lib/estimate.js';
-import { buildPaymentProofMessage, displayedDp, DP_PERCENT, estimateFromStored, invoiceChrome, settlement } from '#lib/invoice.js';
+import { formatPlanDate, totalNote, totalText, unitBreakdown } from '#lib/estimate.js';
+import { buildPaymentProofMessage, displayedDp, DP_PERCENT, estimateFromStored, invoiceChrome, settlement, type StoredLine } from '#lib/invoice.js';
 import { getDb } from '#lib/server/database.js';
 import { getLeadByNomor, leadLines, leadMessage } from '#lib/server/leads.js';
 import { getSetting } from '#lib/server/settings.js';
@@ -11,11 +11,14 @@ import type { PageServerLoad } from './$types';
 
 export const prerender = false;
 
-const lineDetail = (price: number | null, billed: number, minPax: number, pax: number, kind: string | undefined) => {
-	if (price === null) return 'Harga menyusul';
-	const base = `${billed.toLocaleString('id-ID')} × ${formatRupiah(price)}`;
-	if (kind === 'bebas' || billed <= pax) return base;
-	return `${base} · ditagihkan minimal ${minPax} peserta`;
+const lineDetail = (line: StoredLine, pax: number) => {
+	if (line.price === null) return 'Harga menyusul';
+	if (line.pricingMode === 'per_unit' && line.units && line.unitPrice !== undefined && line.capacity && line.unitName) {
+		return unitBreakdown(line.units, line.unitPrice, line.capacity, line.unitName);
+	}
+	const base = `${line.billedPax.toLocaleString('id-ID')} × ${formatRupiah(line.price)}`;
+	if (line.kind === 'bebas' || line.billedPax <= pax) return base;
+	return `${base} · ditagihkan minimal ${line.minPax} peserta`;
 };
 
 export const load: PageServerLoad = async ({ params, setHeaders }) => {
@@ -54,7 +57,7 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 		lines: lines.map((l, index) => ({
 			key: `${index}-${l.title}`,
 			title: l.title,
-			detail: lineDetail(l.price, l.billedPax, l.minPax, lead.jumlah_peserta, l.kind),
+			detail: lineDetail(l, lead.jumlah_peserta),
 			amount: l.subtotal === null ? 'Harga menyusul' : formatRupiah(l.subtotal)
 		})),
 		pax: lead.jumlah_peserta,

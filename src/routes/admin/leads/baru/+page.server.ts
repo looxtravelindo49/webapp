@@ -12,7 +12,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 		packages: packages.map((p) => ({
 			slug: p.slug,
 			title: p.title,
-			price: p.price_per_person
+			price: p.price_per_person,
+			pricing_mode: p.pricing_mode ?? 'per_person',
+			kapasitas_per_unit: p.kapasitas_per_unit ?? null,
+			nama_unit: p.nama_unit ?? null
 		}))
 	};
 };
@@ -31,7 +34,9 @@ export const actions: Actions = {
 			diskon: String(form.get('diskon') ?? ''),
 			deskripsi: form.getAll('deskripsi').map(String),
 			qty: form.getAll('qty').map(String),
-			harga: form.getAll('harga').map(String)
+			harga: form.getAll('harga').map(String),
+			satuan: form.getAll('satuan').map(String),
+			kapasitas: form.getAll('kapasitas').map(String)
 		};
 		const result = await createManualLead(await getDb(), raw, {
 			origin: url.origin,

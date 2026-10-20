@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatPlanDate, lineText, totalNote, totalText } from './estimate';
+import { formatPlanDate, lineText, totalNote, totalText, unitBreakdown } from './estimate';
 import { buildConfirmationMessage } from './invoice';
 import { calculateEstimate } from './pricing';
 import type { Package } from './types';
@@ -47,6 +47,17 @@ describe('teks total dan baris', () => {
 			'10 x Rp 200.000 = Rp 2.000.000 (minimal 10 peserta)',
 			'Harga menyusul'
 		]);
+	});
+	it('lineText per satuan: mobil penuh', () => {
+		const offroad = {
+			...pkg('offroad', 'Offroad', 249000, 7),
+			pricing_mode: 'per_unit' as const,
+			kapasitas_per_unit: 7,
+			nama_unit: 'mobil'
+		};
+		const e = calculateEstimate([offroad], ['offroad'], 20);
+		expect(lineText(e.lines[0])).toBe(unitBreakdown(3, 7 * 249_000, 7, 'mobil'));
+		expect(lineText(e.lines[0])).toBe('3 mobil × Rp 1.743.000 (maks. 7 orang/mobil)');
 	});
 });
 

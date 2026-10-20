@@ -2,13 +2,16 @@
 	import Button from '#lib/components/Button.svelte';
 	import { formatRupiah } from '#lib/format.js';
 	import { DP_PERCENT, manualQuote, parseReceivedAmount } from '#lib/invoice.js';
+	import { manualPackagePrefill } from '#lib/pricing.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
-	type Row = { id: number; deskripsi: string; qty: string; harga: string };
+	type Row = { id: number; deskripsi: string; qty: string; harga: string; unitName: string; capacity: string };
 	let rowSeq = 1;
-	const blankRow = (partial: Partial<Row> = {}): Row => ({ id: rowSeq++, deskripsi: '', qty: '1', harga: '', ...partial });
+	const blankRow = (partial: Partial<Row> = {}): Row => ({
+		id: rowSeq++, deskripsi: '', qty: '1', harga: '', unitName: '', capacity: '', ...partial
+	});
 
 	const failed = $derived(form && 'message' in form ? form : null);
 
@@ -16,7 +19,13 @@
 		if (!failed || !('deskripsi' in failed)) return [blankRow()];
 		const count = Math.max(failed.deskripsi.length, failed.qty.length, failed.harga.length, 1);
 		return Array.from({ length: count }, (_, i) =>
-			blankRow({ deskripsi: failed.deskripsi[i] ?? '', qty: failed.qty[i] ?? '1', harga: failed.harga[i] ?? '' })
+			blankRow({
+				deskripsi: failed.deskripsi[i] ?? '',
+				qty: failed.qty[i] ?? '1',
+				harga: failed.harga[i] ?? '',
+				unitName: failed.satuan?.[i] ?? '',
+				capacity: failed.kapasitas?.[i] ?? ''
+			})
 		);
 	}
 
@@ -71,10 +80,22 @@
 		paket = '';
 		const picked = data.packages.find((p) => p.slug === slug);
 		if (!picked) return;
+		const filled = manualPackagePrefill(
+			{
+				title: picked.title,
+				price: picked.price,
+				pricing_mode: picked.pricing_mode,
+				kapasitas_per_unit: picked.kapasitas_per_unit,
+				nama_unit: picked.nama_unit
+			},
+			jumlahPeserta
+		);
 		const row = blankRow({
-			deskripsi: picked.title,
-			qty: jumlahPeserta.trim() || '1',
-			harga: picked.price === null ? '' : String(picked.price)
+			deskripsi: filled.deskripsi,
+			qty: filled.qty,
+			harga: filled.harga,
+			unitName: filled.unitName,
+			capacity: filled.capacity
 		});
 		const blank = rows.length === 1 && !rows[0].deskripsi.trim() && !rows[0].harga.trim();
 		rows = blank ? [row] : [...rows, row];
@@ -152,6 +173,8 @@
 					<label class="grid gap-1 text-[11px] font-semibold">
 						Harga satuan
 						<input name="harga" inputmode="numeric" bind:value={row.harga} placeholder="249000" class="rounded-md border border-line px-3 py-2.5 text-xs font-normal" />
+						<input type="hidden" name="satuan" value={row.unitName} />
+						<input type="hidden" name="kapasitas" value={row.capacity} />
 					</label>
 					<Button type="button" variant="outline" class="!px-3 !py-2" onclick={() => removeRow(row.id)}>Hapus</Button>
 				</li>

@@ -75,6 +75,44 @@
 		/>
 	</div>
 
+	<div class="grid gap-5 sm:grid-cols-3">
+		<label class="grid gap-1.5 text-[11px] font-bold tracking-wide" for="{uid}-mode">
+			Cara hitung
+			<select
+				id="{uid}-mode"
+				name="pricing_mode"
+				class="rounded-md border border-line bg-white px-3 py-2.5 text-xs font-normal"
+			>
+				<option value="per_person" selected={values.pricing_mode !== 'per_unit'}>Per orang</option>
+				<option value="per_unit" selected={values.pricing_mode === 'per_unit'}>Per satuan</option>
+			</select>
+			<span class="text-[11px] font-normal tracking-normal text-muted">Per satuan membulatkan peserta ke atas, lalu menagih satuan penuh.</span>
+			{#if errors.pricing_mode}<span role="alert" class="font-semibold text-danger">{errors.pricing_mode}</span>{/if}
+		</label>
+		<Field
+			label="Kapasitas per satuan"
+			name="kapasitas_per_unit"
+			value={values.kapasitas_per_unit}
+			required={false}
+			inputmode="numeric"
+			autocomplete="off"
+			placeholder="7"
+			error={errors.kapasitas_per_unit}
+			hint="Wajib bila per satuan. Offroad: 7 orang per mobil."
+		/>
+		<Field
+			label="Nama satuan"
+			name="nama_unit"
+			value={values.nama_unit}
+			required={false}
+			maxlength={40}
+			autocomplete="off"
+			placeholder="mobil"
+			error={errors.nama_unit}
+			hint="Wajib bila per satuan. Tampil di rincian, misalnya mobil."
+		/>
+	</div>
+
 	<fieldset class="m-0 grid min-w-0 gap-4 rounded-lg border border-line p-4">
 		<legend class="px-1 text-[11px] font-bold tracking-wide">Foto</legend>
 		{#if image}

@@ -19,11 +19,12 @@ describe('kebijakan pembayaran', () => {
 			'Reschedule gratis 1 kali jika diajukan paling lambat H-7, tanggal baru maksimal 3 bulan dari tanggal awal; DP tetap berlaku. Kurang dari H-7 atau reschedule kedua mengikuti aturan pembatalan.'
 		);
 		expect(text).toContain(
-			'Perubahan peserta: tambah sampai H-3 dengan harga per orang yang sama sesuai ketersediaan; kurangi sampai H-7 tanpa potong DP selama tetap di atas minimal peserta; lewat H-7 tagihan dihitung dari jumlah yang dikonfirmasi. Offroad: Rp249rb/orang untuk kelipatan 7; bila bukan kelipatan 7, Rp1.750.000 per mobil dibagi penumpangnya.'
+			'Perubahan peserta: tambah sampai H-3 dengan harga per orang yang sama sesuai ketersediaan; kurangi sampai H-7 tanpa potong DP selama tetap di atas minimal peserta; lewat H-7 tagihan dihitung dari jumlah yang dikonfirmasi. Offroad ditagih per mobil (maks. 7 orang/mobil): jumlah mobil = pembulatan ke atas dari peserta dibagi 7; satu mobil = 7 × harga per orang (saat ini Rp249.000, yaitu Rp1.743.000), termasuk mobil yang tidak penuh.'
 		);
 		expect(text).toContain(
 			'Cuaca ekstrem/force majeure: jika Loox/operator membatalkan demi keselamatan, atau ada bencana/aturan pemerintah, peserta memilih reschedule gratis (maks 3 bulan) atau refund DP penuh dikurangi biaya pihak ketiga yang tidak bisa ditarik. Hujan biasa bukan force majeure; aktivitas tetap jalan atau dialihkan.'
 		);
+		expect(text).not.toContain('1.750.000');
 		expect(text.toLowerCase()).not.toContain('termurah');
 		expect(paymentPolicyPath).toBe('/kebijakan-pembayaran');
 		expect(paymentPolicySummary).toBe(

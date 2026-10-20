@@ -61,7 +61,8 @@ describe('parsePackageForm', () => {
 		if (r.ok) {
 			expect(r.values).toEqual({
 				title: 'Rafting', summary: 'Seru bersama tim.', body: 'isi', includes: 'a\nb', notes: 'n', duration: '3 jam',
-				image_alt: 'alt', price_per_person: 200000, min_pax: 10, published: true
+				image_alt: 'alt', price_per_person: 200000, min_pax: 10,
+				pricing_mode: 'per_person', kapasitas_per_unit: null, nama_unit: null, published: true
 			});
 		}
 	});
@@ -70,7 +71,10 @@ describe('parsePackageForm', () => {
 		const r = parsePackageForm(form(base));
 		expect(r.ok).toBe(true);
 		if (r.ok) {
-			expect(r.values).toMatchObject({ body: '', includes: '', notes: '', duration: null, image_alt: null, price_per_person: null, min_pax: 1, published: false });
+			expect(r.values).toMatchObject({
+				body: '', includes: '', notes: '', duration: null, image_alt: null, price_per_person: null, min_pax: 1,
+				pricing_mode: 'per_person', kapasitas_per_unit: null, nama_unit: null, published: false
+			});
 		}
 	});
 
@@ -132,6 +136,21 @@ describe('parsePackageForm', () => {
 		expect(r.ok).toBe(false);
 		if (!r.ok) expect(r.errors.title).toBe('Nama paket wajib diisi.');
 	});
+
+	it('mode per satuan menyimpan kapasitas dan nama satuan', () => {
+		const r = parsePackageForm(form({ ...base, pricing_mode: 'per_unit', kapasitas_per_unit: '7', nama_unit: ' mobil ' }));
+		expect(r.ok).toBe(true);
+		if (r.ok) expect(r.values).toMatchObject({ pricing_mode: 'per_unit', kapasitas_per_unit: 7, nama_unit: 'mobil' });
+	});
+
+	it('mode per satuan menolak kapasitas atau nama kosong', () => {
+		const r = parsePackageForm(form({ ...base, pricing_mode: 'per_unit' }));
+		expect(r.ok).toBe(false);
+		if (!r.ok) {
+			expect(r.errors.kapasitas_per_unit).toBeTruthy();
+			expect(r.errors.nama_unit).toBeTruthy();
+		}
+	});
 });
 
 describe('rawFromPackage / emptyRaw', () => {
@@ -142,7 +161,7 @@ describe('rawFromPackage / emptyRaw', () => {
 	it('mengubah paket tersimpan menjadi isian teks', () => {
 		expect(rawFromPackage(base)).toEqual({
 			title: 'Offroad', summary: 's', body: 'b', includes: 'a\nb', notes: 'n', duration: '3 jam', image_alt: 'alt',
-			price: '250000', min_pax: '4', published: true
+			price: '250000', min_pax: '4', pricing_mode: 'per_person', kapasitas_per_unit: '', nama_unit: '', published: true
 		});
 	});
 	it('NULL menjadi teks kosong; harga 0 tetap "0"; draft', () => {
@@ -155,7 +174,8 @@ describe('rawFromPackage / emptyRaw', () => {
 		const parsed = parsePackageForm(new Map(Object.entries({ ...raw, published: '1' })));
 		expect(parsed.ok && parsed.values).toMatchObject({ price_per_person: 250000, min_pax: 4, includes: 'a\nb' });
 	});
-	it('emptyRaw: semua kosong', () => {
-		expect(Object.values(emptyRaw()).filter((v) => v !== '' && v !== false)).toEqual([]);
+	it('emptyRaw: semua kosong kecuali cara hitung bawaan', () => {
+		expect(emptyRaw().pricing_mode).toBe('per_person');
+		expect(Object.values(emptyRaw()).filter((v) => v !== '' && v !== false && v !== 'per_person')).toEqual([]);
 	});
 });

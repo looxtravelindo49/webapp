@@ -192,6 +192,9 @@ describe('seed', () => {
 		expect(rows.map((r) => r.title)).toEqual(['Offroad', 'Team Building', 'Rafting', 'Paintball', 'Fun Games']);
 		expect(rows.every((r) => r.price_per_person === null)).toBe(true);
 		expect(rows.map((r) => r.min_pax)).toEqual([7, 20, 5, 10, 20]);
+		expect(rows.map((r) => r.pricing_mode)).toEqual(['per_unit', 'per_person', 'per_person', 'per_person', 'per_person']);
+		expect(rows[0]).toMatchObject({ kapasitas_per_unit: 7, nama_unit: 'mobil' });
+		expect(rows[1].kapasitas_per_unit).toBeNull();
 		expect(rows.map((r) => r.duration)).toEqual(['2-3 Jam', null, null, null, null]);
 		expect(rows.map((r) => r.sort_order)).toEqual([1, 2, 3, 4, 5]);
 	});

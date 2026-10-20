@@ -314,10 +314,12 @@ export async function createManualLead(db: Db, raw: Record<string, unknown>, ctx
 	const deskripsi = Array.isArray(raw.deskripsi) ? raw.deskripsi : [];
 	const qty = Array.isArray(raw.qty) ? raw.qty : [];
 	const harga = Array.isArray(raw.harga) ? raw.harga : [];
+	const satuan = Array.isArray(raw.satuan) ? raw.satuan : [];
+	const kapasitas = Array.isArray(raw.kapasitas) ? raw.kapasitas : [];
 	const count = Math.max(deskripsi.length, qty.length, harga.length);
 	if (count > MAX_LINES) return FAIL(400, `Maksimal ${MAX_LINES} baris.`);
 
-	const priced: { qty: number; harga: number; title: string }[] = [];
+	const priced: { qty: number; harga: number; title: string; unitName: string; capacity: number | null }[] = [];
 	for (let i = 0; i < count; i++) {
 		const title = typeof deskripsi[i] === 'string' ? deskripsi[i].trim() : '';
 		const qtyRaw = typeof qty[i] === 'string' || typeof qty[i] === 'number' ? String(qty[i]).trim() : '';
@@ -328,7 +330,16 @@ export async function createManualLead(db: Db, raw: Record<string, unknown>, ctx
 		const q = Number(qtyRaw);
 		const price = parseReceivedAmount(hargaRaw);
 		if (!price.ok || price.value === null) return FAIL(400, 'Harga satuan perlu angka bulat, misalnya 249000 atau 249.000.');
-		priced.push({ qty: q, harga: price.value, title });
+		const unitName = typeof satuan[i] === 'string' ? satuan[i].trim().replace(/\s+/g, ' ') : '';
+		const capRaw = typeof kapasitas[i] === 'string' || typeof kapasitas[i] === 'number' ? String(kapasitas[i]).trim() : '';
+		const capacity = /^\d+$/.test(capRaw) ? Number(capRaw) : null;
+		priced.push({
+			qty: q,
+			harga: price.value,
+			title,
+			unitName: unitName.length > 0 && unitName.length <= 40 ? unitName : '',
+			capacity: capacity !== null && capacity >= 1 && capacity <= 10_000 ? capacity : null
+		});
 	}
 	if (priced.length === 0) return FAIL(400, 'Tambah minimal satu baris.');
 
@@ -338,15 +349,25 @@ export async function createManualLead(db: Db, raw: Record<string, unknown>, ctx
 	const quote = manualQuote(priced, diskon);
 	if (!quote) return FAIL(400, 'Diskon tidak boleh lebih besar dari subtotal, dan qty paling banyak 10.000.');
 
-	const lines: StoredLine[] = priced.map((line) => ({
-		slug: '',
-		title: line.title,
-		price: line.harga,
-		minPax: 1,
-		billedPax: line.qty,
-		subtotal: line.qty * line.harga,
-		kind: 'bebas'
-	}));
+	const lines: StoredLine[] = priced.map((line) => {
+		const row: StoredLine = {
+			slug: '',
+			title: line.title,
+			price: line.harga,
+			minPax: 1,
+			billedPax: line.qty,
+			subtotal: line.qty * line.harga,
+			kind: 'bebas'
+		};
+		if (line.unitName && line.capacity) {
+			row.pricingMode = 'per_unit';
+			row.units = line.qty;
+			row.unitPrice = line.harga;
+			row.capacity = line.capacity;
+			row.unitName = line.unitName;
+		}
+		return row;
+	});
 
 	const now = ctx.now ?? new Date();
 	const random = ctx.random ?? ((n: number) => randomBytes(n));

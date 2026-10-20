@@ -10,18 +10,30 @@ export function parsePax(raw: string | number | null | undefined): number | null
 	return n >= 1 && n <= MAX_PAX ? n : null;
 }
 
+export type UnitCharge = {
+	/** Nama satuan, misalnya "mobil". */
+	name: string;
+	capacity: number;
+	/** ceil(peserta / kapasitas). */
+	count: number;
+	/** kapasitas × harga per orang. */
+	price: number;
+};
+
 export type EstimateLine = {
 	slug: string;
 	title: string;
 	/** Rupiah per orang; null = harga menyusul. */
 	price: number | null;
 	minPax: number;
-	/** max(peserta, min_pax) */
+	/** Orang yang ditagih: max(peserta, min_pax), atau kelipatan kapasitas pada mode per satuan. */
 	billedPax: number;
 	/** true bila min_pax lebih besar dari jumlah peserta yang diisi. */
 	minApplied: boolean;
 	/** null bila paket belum berharga. */
 	subtotal: number | null;
+	/** Terisi hanya pada mode per satuan yang berharga. */
+	unit?: UnitCharge;
 };
 
 export type EstimateState =
@@ -44,8 +56,82 @@ export type Estimate = {
 	unpricedCount: number;
 };
 
+export function isUnitCapacity(value: number | null | undefined): value is number {
+	return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= MAX_PAX;
+}
+
+/** Nama satuan untuk rincian. Kosong menjadi "unit". */
+export function unitLabel(name: string | null | undefined): string {
+	const text = (name ?? '').trim().replace(/\s+/g, ' ');
+	return text || 'unit';
+}
+
+export function usesUnitPricing(pkg: Pick<Package, 'pricing_mode' | 'kapasitas_per_unit'>): boolean {
+	return pkg.pricing_mode === 'per_unit' && isUnitCapacity(pkg.kapasitas_per_unit);
+}
+
 /**
- * Estimasi trip: untuk tiap paket terpilih, `subtotal = harga × max(peserta, min_pax)`.
+ * Tagihan per satuan: jumlah = ceil(peserta / kapasitas),
+ * harga satuan = kapasitas × harga per orang, total = jumlah × harga satuan.
+ * Mobil yang tidak penuh tetap ditagih penuh.
+ */
+export function perUnitQuote(pax: number, pricePerPerson: number, capacity: number): {
+	units: number;
+	unitPrice: number;
+	billedPax: number;
+	subtotal: number;
+} {
+	const units = Math.ceil(pax / capacity);
+	const unitPrice = capacity * pricePerPerson;
+	const billedPax = units * capacity;
+	return { units, unitPrice, billedPax, subtotal: units * unitPrice };
+}
+
+export type ManualPrefill = {
+	deskripsi: string;
+	qty: string;
+	harga: string;
+	unitName: string;
+	capacity: string;
+};
+
+/**
+ * Isi baris invoice manual dari paket. Mode per satuan mengisi qty = jumlah satuan
+ * dan harga = harga satu satuan penuh, plus nama satuan agar rinciannya tersimpan.
+ */
+export function manualPackagePrefill(
+	pkg: {
+		title: string;
+		price: number | null;
+		pricing_mode?: Package['pricing_mode'];
+		kapasitas_per_unit?: number | null;
+		nama_unit?: string | null;
+	},
+	paxText: string
+): ManualPrefill {
+	const parsed = parsePax(paxText);
+	if (usesUnitPricing(pkg) && pkg.price !== null && isUnitCapacity(pkg.kapasitas_per_unit)) {
+		const quote = perUnitQuote(parsed ?? 1, pkg.price, pkg.kapasitas_per_unit);
+		return {
+			deskripsi: pkg.title,
+			qty: String(quote.units),
+			harga: String(quote.unitPrice),
+			unitName: unitLabel(pkg.nama_unit),
+			capacity: String(pkg.kapasitas_per_unit)
+		};
+	}
+	return {
+		deskripsi: pkg.title,
+		qty: paxText.trim() || '1',
+		harga: pkg.price === null ? '' : String(pkg.price),
+		unitName: '',
+		capacity: ''
+	};
+}
+
+/**
+ * Estimasi trip. Mode per orang: `subtotal = harga × max(peserta, min_pax)`.
+ * Mode per satuan: `subtotal = ceil(peserta / kapasitas) × (kapasitas × harga)`.
  * Urutan baris mengikuti urutan `packages`; slug yang tidak ada di `packages` diabaikan.
  */
 export function calculateEstimate(
@@ -63,6 +149,23 @@ export function calculateEstimate(
 	}
 
 	const lines: EstimateLine[] = picked.map((p) => {
+		const capacity = p.kapasitas_per_unit;
+		if (p.pricing_mode === 'per_unit' && isUnitCapacity(capacity)) {
+			const price = p.price_per_person;
+			const quote = price === null ? null : perUnitQuote(pax, price, capacity);
+			return {
+				slug: p.slug,
+				title: p.title,
+				price,
+				minPax: p.min_pax,
+				billedPax: quote?.billedPax ?? pax,
+				minApplied: false,
+				subtotal: quote?.subtotal ?? null,
+				...(quote
+					? { unit: { name: unitLabel(p.nama_unit), capacity, count: quote.units, price: quote.unitPrice } }
+					: {})
+			};
+		}
 		const billedPax = Math.max(pax, p.min_pax);
 		return {
 			slug: p.slug,

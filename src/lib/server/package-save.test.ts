@@ -37,7 +37,7 @@ const files = () => (existsSync(dir) ? readdirSync(dir) : []);
 
 const values = (over: Partial<PackageValues> = {}): PackageValues => ({
 	title: 'Flying Fox', summary: 'ringkas', body: '', includes: '', notes: '', duration: null, image_alt: null,
-	price_per_person: null, min_pax: 1, published: false, ...over
+	price_per_person: null, min_pax: 1, pricing_mode: 'per_person', kapasitas_per_unit: null, nama_unit: null, published: false, ...over
 });
 const png: PhotoInput = { kind: 'new', bytes: PNG, type: { ext: 'png', mime: 'image/png' } };
 const jpg: PhotoInput = { kind: 'new', bytes: JPG, type: { ext: 'jpg', mime: 'image/jpeg' } };

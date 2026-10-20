@@ -22,9 +22,16 @@ export function totalNote(e: Estimate): string {
 	return e.state === 'partial' ? 'belum termasuk paket tanpa harga' : '';
 }
 
-/** Rincian satu baris: "40 x Rp 250.000 = Rp 10.000.000" atau "Harga menyusul". */
+/** "3 mobil × Rp 1.743.000 (maks. 7 orang/mobil)". */
+export function unitBreakdown(count: number, unitPrice: number, capacity: number, unitName: string): string {
+	const n = (value: number) => value.toLocaleString('id-ID');
+	return `${n(count)} ${unitName} × ${formatRupiah(unitPrice)} (maks. ${n(capacity)} orang/${unitName})`;
+}
+
+/** Rincian satu baris: "40 x Rp 250.000 = Rp 10.000.000", rincian per satuan, atau "Harga menyusul". */
 export function lineText(l: EstimateLine): string {
 	if (l.price === null || l.subtotal === null) return 'Harga menyusul';
+	if (l.unit) return unitBreakdown(l.unit.count, l.unit.price, l.unit.capacity, l.unit.name);
 	const base = `${l.billedPax} x ${formatRupiah(l.price)} = ${formatRupiah(l.subtotal)}`;
 	return l.minApplied ? `${base} (minimal ${l.minPax} peserta)` : base;
 }

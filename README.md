@@ -21,10 +21,13 @@ membaca `min_pax` dari admin, jadi angka itu tidak berubah sendiri.
 
 ## Kalkulator trip → invoice → WhatsApp
 
-Section "Konsultasikan Tripmu" (`#konsultasi`) menghitung estimasi di browser: `harga per orang × max(peserta, min_pax)`
-untuk setiap paket terpilih. Paket tanpa harga tampil "Harga menyusul" dan tidak masuk total; bila semua paket
-terpilih tanpa harga, totalnya "Dibahas via WhatsApp". Harga dan `min_pax` dibaca dari tabel `package`. Harga yang
-sudah dikunci di CMS tidak diubah oleh alur ini.
+Section "Konsultasikan Tripmu" (`#konsultasi`) menghitung estimasi di browser. Paket **per orang** (bawaan):
+`harga per orang × max(peserta, min_pax)`. Paket **per satuan** (Offroad: kapasitas 7, nama satuan mobil):
+jumlah satuan = pembulatan ke atas dari peserta ÷ kapasitas, total = jumlah satuan × (kapasitas × harga per orang).
+Satu mobil Offroad pada harga Rp249.000 = Rp1.743.000. Rinciannya, misalnya `3 mobil × Rp 1.743.000 (maks. 7 orang/mobil)`,
+ikut ke invoice dan pesan WhatsApp. Paket tanpa harga tampil "Harga menyusul" dan tidak masuk total; bila semua paket
+terpilih tanpa harga, totalnya "Dibahas via WhatsApp". Harga, `min_pax`, dan cara hitung dibaca dari tabel `package`
+(bisa diubah di admin). Harga per orang yang sudah dikunci di CMS tidak diubah oleh alur ini.
 
 **Kirim ke WhatsApp** (hanya bila pengaturan `whatsapp` valid):
 
@@ -69,9 +72,10 @@ bawaan tertulis di repositori ini. Untuk menimpanya sejak awal, setel `ADMIN_SEE
     setelah siap. Slug dibuat otomatis dari nama dan **tidak berubah** walau nama diganti, supaya tautan
     `/#paket-<slug>` dan halaman `/paket/<slug>` tetap berlaku.
   - *Ubah paket*: nama, ringkasan, penjelasan, fasilitas (satu per baris), catatan, durasi, foto dan teks alternatif,
-    **harga per orang**, dan **minimal peserta**. Harga berupa rupiah bulat: `250000`, `250.000`, `Rp 250.000`, atau
+    **harga per orang**, **minimal peserta**, dan **cara hitung**. Harga berupa rupiah bulat: `250000`, `250.000`, `Rp 250.000`, atau
     `Rp250000` (titik hanya sebagai pemisah ribuan, jadi `250.5` ditolak; maksimal 100.000.000). Kosongkan harga =
-    "Harga menyusul"; kosongkan minimal peserta = 1.
+    "Harga menyusul"; kosongkan minimal peserta = 1. Cara hitung bawaan **per orang**. **Per satuan** memakai kapasitas
+    dan nama satuan (Offroad: 7, mobil).
   - *Terbitkan/Sembunyikan*, *Naik/Turun* (mengubah urutan tab dan kalkulator), dan *Hapus* (selalu minta konfirmasi,
     juga ditegakkan di server; tidak bisa dibatalkan). Perubahan langsung tampil di situs tanpa build atau restart.
   - Beranda admin memperingatkan bila ada paket terbit yang belum berharga.

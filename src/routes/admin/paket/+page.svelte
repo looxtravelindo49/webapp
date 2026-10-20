@@ -37,7 +37,7 @@
 						<span class="rounded-full px-2 py-0.5 text-[10px] font-bold {p.published ? 'bg-green-100' : 'bg-accent'}">{p.published ? 'Terbit' : 'Draft'}</span>
 					</div>
 					<span class="text-[11px] text-muted">
-						{p.price === null ? 'Harga menyusul' : `${formatRupiah(p.price)} / orang`} · min. {p.minPax} peserta
+						{p.price === null ? 'Harga menyusul' : `${formatRupiah(p.price)} / orang`} · min. {p.minPax} peserta{p.unitLabel ? ` · ${p.unitLabel}` : ''}
 					</span>
 				</div>
 

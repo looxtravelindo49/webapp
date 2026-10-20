@@ -6,7 +6,7 @@ import { all, column, one, run, scalar, transaction, type Db, type Queryable } f
 export type { Package };
 
 const columns = `id, slug, title, summary, body, includes, notes, image, image_alt, duration,
-	price_per_person, min_pax, published, sort_order`;
+	price_per_person, min_pax, pricing_mode, kapasitas_per_unit, nama_unit, published, sort_order`;
 
 /** Paket terbit, urut menurut sort_order lalu id. */
 export function listPublishedPackages(db: Queryable): Promise<Package[]> {
@@ -54,9 +54,9 @@ export function createPackage(db: Db, values: PackageValues, image: string | nul
 		const info = await run(
 			tx,
 			`INSERT INTO package (slug, title, summary, body, includes, notes, image, image_alt, duration,
-			                      price_per_person, min_pax, published, sort_order)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
-			[slug, values.title, values.summary, values.body, values.includes, values.notes, image, values.image_alt, values.duration, values.price_per_person, values.min_pax, order]
+			                      price_per_person, min_pax, pricing_mode, kapasitas_per_unit, nama_unit, published, sort_order)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+			[slug, values.title, values.summary, values.body, values.includes, values.notes, image, values.image_alt, values.duration, values.price_per_person, values.min_pax, values.pricing_mode, values.kapasitas_per_unit, values.nama_unit, order]
 		);
 		return (await getPackage(tx, Number(info.lastInsertRowid)))!;
 	});
@@ -75,12 +75,14 @@ export function updatePackage(db: Db, id: number, values: PackageValues, image?:
 		await run(
 			tx,
 			`UPDATE package SET title = ?, summary = ?, body = ?, includes = ?, notes = ?, image = ?, image_alt = ?,
-			        duration = ?, price_per_person = ?, min_pax = ?, published = ?, updated_at = ${NOW}
+			        duration = ?, price_per_person = ?, min_pax = ?, pricing_mode = ?, kapasitas_per_unit = ?, nama_unit = ?,
+			        published = ?, updated_at = ${NOW}
 			 WHERE id = ?`,
 			[
 				values.title, values.summary, values.body, values.includes, values.notes,
 				image === undefined ? current.image : image,
-				values.image_alt, values.duration, values.price_per_person, values.min_pax, values.published ? 1 : 0, id
+				values.image_alt, values.duration, values.price_per_person, values.min_pax,
+				values.pricing_mode, values.kapasitas_per_unit, values.nama_unit, values.published ? 1 : 0, id
 			]
 		);
 		return { ok: true, previousImage: current.image };

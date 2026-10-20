@@ -50,8 +50,13 @@ describe('submitLead', () => {
 		expect(result.ok).toBe(true);
 		if (!result.ok) return;
 		expect(result.lead.nomor_invoice).toMatch(INVOICE_NUMBER);
-		expect(result.lead.estimasi_total).toBe(249000 * 40);
-		expect(result.lead.dp_nominal).toBe(Math.round((249000 * 40 * DP_PERCENT) / 100));
+		const offroad = 6 * 7 * 249000;
+		expect(result.lead.estimasi_total).toBe(offroad);
+		expect(result.lead.dp_nominal).toBe(Math.round((offroad * DP_PERCENT) / 100));
+		expect(JSON.parse(result.lead.paket)).toMatchObject([
+			{ slug: 'offroad', pricingMode: 'per_unit', units: 6, unitPrice: 7 * 249000, capacity: 7, unitName: 'mobil', subtotal: offroad }
+		]);
+		expect(decodeURIComponent(result.waUrl)).toContain('6 mobil × Rp 1.743.000 (maks. 7 orang/mobil)');
 		expect(result.lead.dp_persen).toBe(DP_PERCENT);
 		expect(result.lead.whatsapp).toBe('6281234567890');
 		expect(result.lead.nama).toBe('Tim Alfa');
@@ -114,7 +119,7 @@ describe('submitLead', () => {
 		});
 		expect(result.ok).toBe(true);
 		if (!result.ok) return;
-		expect(result.lead.estimasi_total).toBe(249000 * 10 + 125000 * 10);
+		expect(result.lead.estimasi_total).toBe(2 * 7 * 249000 + 125000 * 10);
 	});
 
 	it('nomor bentrok dicoba lagi', async () => {
@@ -222,7 +227,7 @@ describe('migrasi status lama', () => {
 			`INSERT INTO lead (nomor_invoice, nama, whatsapp, paket, jumlah_peserta, invoice_url, status, paid_at)
 			 VALUES ('LA-20261019-BBBBBBBB', 'Lunas', '628111111112', '[]', 2, 'http://local/b', 'lunas_dp', '2026-10-01T00:00:00.000Z')`
 		);
-		expect(await migrate(db)).toEqual(['0007_lead_payment', '0008_lead_manual']);
+		expect(await migrate(db)).toEqual(['0007_lead_payment', '0008_lead_manual', '0009_package_pricing']);
 		const rows = await all<{ id: number; status: string; diterima_pada: string | null }>(
 			db,
 			'SELECT id, status, diterima_pada FROM lead ORDER BY id'
