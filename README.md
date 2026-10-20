@@ -47,7 +47,7 @@ Foto utama beranda adalah `static/media/hero-2.jpg` (foto natural, 1280×720, di
 
 ## Katalog paket
 
-Section **Katalog paket** (`#katalog`) ada di beranda, tepat sebelum "Satu tim, banyak cerita.". Kartu memakai foto, nama, durasi, harga, dan minimal peserta dari tabel `package`. Tiga kartu pertama tampil; **Lihat semua paket** membuka sisanya tanpa pindah halaman. Tiap kartu menaut ke `/paket/<slug>`.
+Section **Katalog paket** (`#katalog`) ada di beranda, tepat sebelum "Satu tim, banyak cerita.". Kartu memakai foto, nama, durasi, harga, dan minimal peserta dari tabel `package`. Di layar di bawah 768px semua kartu digeser menyamping. Dari 768px, tiga kartu tampil; **Lihat semua paket** berada di bawah baris terakhir, membuka sisanya, dan berubah menjadi **Sembunyikan**. Tiap kartu menaut ke `/paket/<slug>`.
 
 Halaman detail memuat foto, nama, durasi (disembunyikan bila kosong), harga, minimal peserta, dan deskripsi. **Tambah ke Trip** membuka kalkulator dengan paket itu sudah terpilih (`/?paket=<slug>#konsultasi`).
 
