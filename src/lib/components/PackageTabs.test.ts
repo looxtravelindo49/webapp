@@ -45,6 +45,35 @@ describe('PackageTabs (render server)', () => {
 		expect(body).toContain('Harga menyusul');
 	});
 
+	it('galeri paket terpilih; paket tanpa galeri tetap satu foto', () => {
+		const { body } = render(PackageTabs, {
+			props: {
+				packages: [
+					pkg('offroad', 'Offroad', {
+						image: '/media/forest.svg',
+						image_alt: 'Utama',
+						gallery: [
+							{ src: '/media/camp.svg', alt: 'Satu' },
+							{ src: '/media/river.svg', alt: 'Dua' },
+							{ src: '/media/paintball.svg', alt: 'Tiga' },
+							{ src: '/media/forest.svg', alt: null }
+						]
+					}),
+					pkg('rafting', 'Rafting', { image: '/media/river.svg', image_alt: 'Sungai' })
+				]
+			}
+		});
+		expect(body).toContain('alt="Satu"');
+		expect(body).toContain('alt="Dua"');
+		expect(body).toContain('alt="Tiga"');
+		expect(body).toContain('alt="Utama"');
+		expect(body).toContain('data-autoplay-ms="4000"');
+		expect(body).toContain('src="/media/river.svg"');
+		expect(body).toContain('alt="Sungai"');
+		expect(body).not.toContain('alt=""');
+		expect(body.match(/data-autoplay-ms="4000"/g)).toHaveLength(1);
+	});
+
 	it('menampilkan 3 butir fasilitas', () => {
 		const { body } = render(PackageTabs, { props: { packages: [pkg('a', 'Alfa')] } });
 		expect(body.match(/<li class="flex gap-2.5"/g)).toHaveLength(3);

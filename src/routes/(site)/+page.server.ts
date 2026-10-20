@@ -1,7 +1,7 @@
 import { safeImage } from '#lib/images.js';
 import { listPopularArticles } from '#lib/server/articles.js';
 import { getDb } from '#lib/server/database.js';
-import { galleryCovers } from '#lib/server/package-photos.js';
+import { packageGalleries } from '#lib/server/package-photos.js';
 import { listPublishedPackages } from '#lib/server/packages.js';
 import type { PageServerLoad } from './$types';
 
@@ -10,14 +10,16 @@ const PACKAGE_QUERY = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const load: PageServerLoad = async ({ url }) => {
 	const db = await getDb();
 	const rows = await listPublishedPackages(db);
-	const covers = await galleryCovers(db, rows.map((p) => p.id));
+	const galleries = await packageGalleries(db, rows.map((p) => p.id));
 	const packages = rows.map((p) => {
-		const cover = covers.get(p.id);
+		const photos = galleries.get(p.id) ?? [];
+		const cover = photos[0];
 		return {
 			...p,
 			image: safeImage(p.image),
 			cover_image: cover ? safeImage(cover.path) : null,
-			cover_alt: cover?.alt ?? null
+			cover_alt: cover?.alt ?? null,
+			gallery: photos.map((photo) => ({ src: safeImage(photo.path), alt: photo.alt }))
 		};
 	});
 	const requested = url.searchParams.get('paket') ?? '';

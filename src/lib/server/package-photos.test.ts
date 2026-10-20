@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { PackageValues } from '#lib/package-form.js';
 import { openDatabase, type Db } from './db';
 import {
-	addPackagePhoto, attachGalleryPhoto, galleryCovers, GALLERY_ALT_MESSAGE, GALLERY_FULL_MESSAGE, GALLERY_LIMIT,
+	addPackagePhoto, attachGalleryPhoto, galleryCovers, packageGalleries, GALLERY_ALT_MESSAGE, GALLERY_FULL_MESSAGE, GALLERY_LIMIT,
 	listPackagePhotos, movePackagePhoto, normalizeGalleryAlt, removePackagePhoto, setPackagePhotoAlt
 } from './package-photos';
 import { createPackage, deletePackage } from './packages';
@@ -88,6 +88,19 @@ describe('galeri paket', () => {
 		expect(await setPackagePhotoAlt(db, p.id, 99999, 'x')).toBe(false);
 		expect(await movePackagePhoto(db, p.id, 99999, 'up')).toBe('notfound');
 		expect(await removePackagePhoto(db, p.id, 99999)).toEqual({ ok: false });
+	});
+
+	it('daftar galeri mengelompokkan semua foto dan mengosongkan paket tanpa foto', async () => {
+		const db = await fresh();
+		const a = await createPackage(db, values('A'), null);
+		const b = await createPackage(db, values('B'), null);
+		await addPackagePhoto(db, a.id, '/media/camp.svg', 'Camp');
+		await addPackagePhoto(db, a.id, '/media/river.svg', null);
+		const grouped = await packageGalleries(db, [a.id, b.id]);
+		expect(grouped.get(a.id)?.map((p) => p.path)).toEqual(['/media/camp.svg', '/media/river.svg']);
+		expect(grouped.get(a.id)?.map((p) => p.alt)).toEqual(['Camp', null]);
+		expect(grouped.has(b.id)).toBe(false);
+		expect((await packageGalleries(db, [])).size).toBe(0);
 	});
 
 	it('sampul katalog adalah foto pertama tiap paket', async () => {

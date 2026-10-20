@@ -41,6 +41,24 @@ export function listPackagePhotos(db: Queryable, packageId: number): Promise<Pac
 
 export type GalleryCover = { path: string; alt: string | null };
 
+/** Semua foto galeri tiap paket, urut tampil. Paket tanpa galeri tidak masuk peta. */
+export async function packageGalleries(db: Queryable, packageIds: number[]): Promise<Map<number, PackagePhoto[]>> {
+	const map = new Map<number, PackagePhoto[]>();
+	const ids = packageIds.filter((id) => Number.isInteger(id));
+	if (ids.length === 0) return map;
+	const rows = await all<PackagePhoto>(
+		db,
+		`SELECT ${PHOTO_COLUMNS} FROM package_photo WHERE package_id IN (${ids.map(() => '?').join(',')}) ORDER BY package_id, sort_order, id`,
+		ids
+	);
+	for (const row of rows) {
+		const list = map.get(row.package_id);
+		if (list) list.push(row);
+		else map.set(row.package_id, [row]);
+	}
+	return map;
+}
+
 /** Foto pertama (sort_order, lalu id) tiap paket. Paket tanpa galeri tidak masuk peta. */
 export async function galleryCovers(db: Queryable, packageIds: number[]): Promise<Map<number, GalleryCover>> {
 	const map = new Map<number, GalleryCover>();

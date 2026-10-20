@@ -24,9 +24,11 @@ export type Package = {
 	nama_unit?: string | null;
 	published: number;
 	sort_order: number;
-	/** Foto galeri pertama, bila ada. Kartu katalog memakai ini; tab paket tetap memakai `image`. */
+	/** Foto galeri pertama, bila ada. Kartu katalog memakai ini. */
 	cover_image?: string | null;
 	cover_alt?: string | null;
+	/** Foto galeri berurutan. Tab kegiatan memakai ini; kosong berarti foto utama. */
+	gallery?: { src: string; alt: string | null }[];
 };
 
 /** Artikel lengkap (halaman artikel dan CMS). */
