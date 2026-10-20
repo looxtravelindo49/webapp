@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import { formatRupiah } from '#lib/format.js';
 import { formatDateTime } from '#lib/format.js';
 import { formatPlanDate, totalNote, totalText } from '#lib/estimate.js';
-import { buildPaymentProofMessage, DP_PERCENT, estimateFromStored, invoiceChrome, settlement } from '#lib/invoice.js';
+import { buildPaymentProofMessage, displayedDp, DP_PERCENT, estimateFromStored, invoiceChrome, settlement } from '#lib/invoice.js';
 import { getDb } from '#lib/server/database.js';
 import { getLeadByNomor, leadLines, leadMessage } from '#lib/server/leads.js';
 import { getSetting } from '#lib/server/settings.js';
@@ -36,6 +36,7 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 	const destination = normalizeWhatsapp(await getSetting(db, 'whatsapp'));
 	const chrome = invoiceChrome(lead.status);
 	const money = settlement(lead.estimasi_total, lead.dp_nominal, lead.jumlah_diterima);
+	const dpShown = displayedDp(lead.estimasi_total, lead.dp_nominal, lead.dp_persen);
 	const diskon = lead.diskon ?? 0;
 	const lineSum = lines.every((l) => l.subtotal !== null) ? lines.reduce((sum, l) => sum + (l.subtotal ?? 0), 0) : null;
 
@@ -65,7 +66,7 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 		subtotalLabel: diskon > 0 && lineSum !== null ? formatRupiah(lineSum) : null,
 		diskonLabel: diskon > 0 ? formatRupiah(diskon) : null,
 		dpPercent: DP_PERCENT,
-		dpLabel: lead.dp_nominal === null ? null : formatRupiah(lead.dp_nominal),
+		dpLabel: dpShown === null ? null : formatRupiah(dpShown),
 		paidLabel: money.paid === null ? null : formatRupiah(money.paid),
 		remainingLabel: money.remaining === null ? null : formatRupiah(money.remaining),
 		paidDateLabel: lead.diterima_pada ? formatPlanDate(lead.diterima_pada) : null,

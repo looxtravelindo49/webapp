@@ -1,8 +1,8 @@
 import { formatPlanDate, totalNote, totalText } from './estimate';
 import type { Estimate, EstimateLine } from './pricing';
 
-/** Persen uang muka. Nominal dihitung di server dari estimasi; bukan biaya gateway. */
-export const DP_PERCENT = 20;
+/** Persen uang muka. Satu sumber untuk hitungan, label, dan teks. Bukan biaya gateway. */
+export const DP_PERCENT = 30;
 
 /** Huruf tanpa 0/O/1/I supaya nomor mudah dibacakan. Panjang 32, habis membagi 256. */
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -43,10 +43,25 @@ export function buildInvoiceNumber(date: Date, bytes: Uint8Array): string {
 	return `LA-${invoiceStamp(date)}-${suffixFromBytes(bytes)}`;
 }
 
-/** 20% dari estimasi, dibulatkan ke rupiah. `null` bila estimasi belum berupa angka. */
+/** DP_PERCENT dari estimasi, dibulatkan ke rupiah. `null` bila estimasi belum berupa angka. */
 export function dpNominal(total: number | null): number | null {
 	if (total === null) return null;
 	return Math.round((total * DP_PERCENT) / 100);
+}
+
+/**
+ * Nominal DP yang ditampilkan. Lead lama boleh masih menyimpan hasil persen sebelumnya;
+ * kalau angka itu persis turunan `storedPercent` × total, hitung ulang dengan DP_PERCENT.
+ * Nominal yang bukan turunan, dan semua jumlah yang sudah dibayar, tidak diubah di sini.
+ */
+export function displayedDp(total: number | null, storedDp: number | null, storedPercent: number | null): number | null {
+	if (total === null) return storedDp;
+	const current = dpNominal(total);
+	if (storedDp === null || storedDp === current) return current;
+	if (storedPercent !== null && Number.isInteger(storedPercent) && storedDp === Math.round((total * storedPercent) / 100)) {
+		return current;
+	}
+	return storedDp;
 }
 
 export function storedLinesFromEstimate(lines: readonly EstimateLine[]): StoredLine[] {
@@ -178,7 +193,7 @@ export function buildClientInvoiceMessage(input: {
 		'',
 		`Nomor invoice: ${input.nomor}`,
 		`Total: ${input.total}`,
-		`DP 20%: ${input.dp}`,
+		`DP ${DP_PERCENT}%: ${input.dp}`,
 		'',
 		`Link invoice: ${input.invoiceUrl}`,
 		'',

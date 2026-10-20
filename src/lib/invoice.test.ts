@@ -6,6 +6,7 @@ import {
 	buildClientInvoiceMessage,
 	buildInvoiceNumber,
 	buildPaymentProofMessage,
+	displayedDp,
 	dpNominal,
 	invoiceChrome,
 	manualQuote,
@@ -36,12 +37,20 @@ describe('nomor invoice', () => {
 	});
 });
 
-describe('DP 20%', () => {
+describe('DP 30%', () => {
 	it('dihitung dari estimasi dan kosong bila belum ada angka', () => {
-		expect(DP_PERCENT).toBe(20);
-		expect(dpNominal(10_000_000)).toBe(2_000_000);
+		expect(DP_PERCENT).toBe(30);
+		expect(dpNominal(10_000_000)).toBe(3_000_000);
 		expect(dpNominal(1)).toBe(0);
 		expect(dpNominal(null)).toBeNull();
+	});
+
+	it('lead lama yang DP-nya turunan persen ditampilkan ulang, nominal lain tidak', () => {
+		expect(displayedDp(1_000_000, 200_000, 20)).toBe(300_000);
+		expect(displayedDp(1_000_000, 300_000, 30)).toBe(300_000);
+		expect(displayedDp(1_000_000, 250_000, 20)).toBe(250_000);
+		expect(displayedDp(null, null, 20)).toBeNull();
+		expect(displayedDp(null, 200_000, 20)).toBe(200_000);
 	});
 });
 
@@ -61,12 +70,12 @@ describe('tampilan invoice menurut status', () => {
 });
 
 describe('invoice manual', () => {
-	it('menghitung total setelah diskon dan DP 20%', () => {
+	it('menghitung total setelah diskon dan DP dari konstanta', () => {
 		expect(manualQuote([{ qty: 2, harga: 249_000 }, { qty: 1, harga: 100_000 }], 49_000)).toEqual({
 			subtotal: 598_000,
 			diskon: 49_000,
 			total: 549_000,
-			dp: 109_800
+			dp: Math.round((549_000 * DP_PERCENT) / 100)
 		});
 		expect(manualQuote([{ qty: 1, harga: 1000 }], 1001)).toBeNull();
 	});
@@ -82,6 +91,7 @@ describe('invoice manual', () => {
 		expect(text).toContain('Halo Sari');
 		expect(text).toContain('Nomor invoice: LA-20261020-ABCDEFGH');
 		expect(text).toContain('https://lembangadventure.com/invoice/LA-20261020-ABCDEFGH');
+		expect(text).toContain(`DP ${DP_PERCENT}%:`);
 		expect(text.toLowerCase()).not.toContain('pdf');
 	});
 });

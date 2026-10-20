@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DP_PERCENT } from '../invoice';
 import { paymentPolicy, paymentPolicyPath, paymentPolicySummary } from './payment-policy';
 
 describe('kebijakan pembayaran', () => {
@@ -6,7 +7,7 @@ describe('kebijakan pembayaran', () => {
 		const text = paymentPolicy.sections.map((s) => s.body).join('\n');
 		expect(paymentPolicy.sections).toHaveLength(6);
 		expect(text).toContain(
-			'DP 20% dibayar maksimal 2x24 jam setelah invoice terbit; tanggal baru terkunci setelah DP masuk. Untuk acara kurang dari 7 hari lagi, DP dibayar di hari yang sama.'
+			`DP ${DP_PERCENT}% dibayar maksimal 2x24 jam setelah invoice terbit; tanggal baru terkunci setelah DP masuk. Untuk acara kurang dari 7 hari lagi, DP dibayar di hari yang sama.`
 		);
 		expect(text).toContain(
 			'Pelunasan maksimal H-3 sebelum acara. Untuk korporat/instansi dengan surat konfirmasi/PO, pelunasan bisa di hari acara.'
@@ -26,7 +27,8 @@ describe('kebijakan pembayaran', () => {
 		expect(text.toLowerCase()).not.toContain('termurah');
 		expect(paymentPolicyPath).toBe('/kebijakan-pembayaran');
 		expect(paymentPolicySummary).toBe(
-			'DP 20% dibayar maksimal 2x24 jam setelah invoice terbit. Pelunasan maksimal H-3 sebelum acara.'
+			`DP ${DP_PERCENT}% dibayar maksimal 2x24 jam setelah invoice terbit. Pelunasan maksimal H-3 sebelum acara.`
 		);
+		expect(DP_PERCENT).toBe(30);
 	});
 });

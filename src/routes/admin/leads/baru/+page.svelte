@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Button from '#lib/components/Button.svelte';
 	import { formatRupiah } from '#lib/format.js';
-	import { manualQuote, parseReceivedAmount } from '#lib/invoice.js';
+	import { DP_PERCENT, manualQuote, parseReceivedAmount } from '#lib/invoice.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -86,7 +86,7 @@
 <p class="text-[11px] font-bold"><a href="/admin/leads" class="underline">Kembali ke Leads</a></p>
 <h1 class="mt-3 text-2xl font-black tracking-tight">Buat Invoice Manual</h1>
 <p class="mt-2 max-w-2xl text-xs leading-[1.8] text-muted">
-	Invoice ini masuk ke daftar Leads dengan nomor yang sama seperti kalkulator. Total dan DP 20% dihitung di server.
+	Invoice ini masuk ke daftar Leads dengan nomor yang sama seperti kalkulator. Total dan DP {DP_PERCENT}% dihitung di server.
 </p>
 
 <form method="POST" class="mt-6 grid max-w-3xl gap-4">
@@ -169,7 +169,7 @@
 				<p>Subtotal <strong>{formatRupiah(quote.subtotal)}</strong></p>
 				{#if quote.diskon > 0}<p>Diskon <strong>− {formatRupiah(quote.diskon)}</strong></p>{/if}
 				<p class="mt-1 text-base font-black">Total {formatRupiah(quote.total)}</p>
-				<p class="font-bold">DP 20% {formatRupiah(quote.dp)}</p>
+				<p class="font-bold">DP {DP_PERCENT}% {formatRupiah(quote.dp)}</p>
 			{:else}
 				<p class="text-muted">Lengkapi baris untuk melihat total. Angka akhir tetap dihitung saat disimpan.</p>
 			{/if}

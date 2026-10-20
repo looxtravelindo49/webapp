@@ -37,13 +37,13 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		await expect(sheet.getByText('Baru', { exact: true })).toBeVisible();
 		await expect(sheet.getByText('Transfer ke rekening PT: CIMB Niaga Syariah 860025788700 a/n Loox Travel Luxury.')).toBeVisible();
 		await expect(sheet.getByRole('link', { name: /Kirim bukti transfer/ })).toHaveAttribute('href', /wa\.me\/6282120209900\?text=/);
-		await expect(sheet.getByText('DP 20% dibayar maksimal 2x24 jam setelah invoice terbit. Pelunasan maksimal H-3 sebelum acara.')).toBeVisible();
+		await expect(sheet.getByText('DP 30% dibayar maksimal 2x24 jam setelah invoice terbit. Pelunasan maksimal H-3 sebelum acara.')).toBeVisible();
 		await expect(sheet.getByRole('link', { name: 'Kebijakan pembayaran' })).toHaveAttribute('href', '/kebijakan-pembayaran');
-		await expect(sheet.getByRole('button', { name: 'Bayar DP 20% (segera)' })).toBeDisabled();
+		await expect(sheet.getByRole('button', { name: 'Bayar DP 30% (segera)' })).toBeDisabled();
 		await expect(sheet.getByText('860025788700', { exact: true })).toBeVisible();
 		await expect(sheet.getByText('a/n Loox Travel Luxury', { exact: true })).toBeVisible();
 		await expect(sheet.getByText('Hati-hati memilih travel. Pastikan travel sudah berbadan hukum PT')).toBeVisible();
-		await expect(sheet.getByText('Rp 3.600.000')).toBeVisible();
+		await expect(sheet.getByText('Rp 5.400.000')).toBeVisible();
 		await expect(sheet.getByText(/biaya layanan|biaya admin/i)).toHaveCount(0);
 
 		const nomor = new URL(page.url()).pathname.split('/').pop()!;
@@ -54,7 +54,7 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		expect(rows).toHaveLength(1);
 		expect(rows[0].nama).toBe('Tim Alfa');
 		expect(rows[0].estimasi_total).toBe(18_000_000);
-		expect(rows[0].dp_nominal).toBe(3_600_000);
+		expect(rows[0].dp_nominal).toBe(5_400_000);
 
 		await page.reload();
 		await expect(page.getByText(nomor, { exact: true })).toBeVisible();
@@ -82,8 +82,8 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		await c.send.click();
 		await expect(page).toHaveURL(/\/invoice\/LA-/);
 		await expect(page.getByText('Dibahas via WhatsApp')).toBeVisible();
-		await expect(page.getByText('Nominal DP 20% muncul setelah estimasinya berupa angka.')).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Bayar DP 20% (segera)' })).toBeDisabled();
+		await expect(page.getByText('Nominal DP 30% muncul setelah estimasinya berupa angka.')).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Bayar DP 30% (segera)' })).toBeDisabled();
 		const nomor = new URL(page.url()).pathname.split('/').pop()!;
 		const rows = query<{ estimasi_total: number | null; dp_nominal: number | null }>('SELECT estimasi_total, dp_nominal FROM lead WHERE nomor_invoice = ?', nomor);
 		expect(rows[0].estimasi_total).toBeNull();
@@ -122,7 +122,7 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		await expect(paid.getByText('Rp 1.500.000')).toBeVisible();
 		await expect(paid.getByText('Sisa tagihan', { exact: true })).toBeVisible();
 		await expect(paid.getByText('Cara bayar sekarang')).toHaveCount(0);
-		await expect(paid.getByRole('button', { name: 'Bayar DP 20% (segera)' })).toHaveCount(0);
+		await expect(paid.getByRole('button', { name: 'Bayar DP 30% (segera)' })).toHaveCount(0);
 
 		await gotoReady(page, '/admin/leads?status=dp_diterima');
 		await expect(page.getByText('Tim Admin Lead')).toBeVisible();
@@ -135,7 +135,7 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		await gotoReady(page, `/invoice/${nomor}`);
 		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Invoice Lunas');
 		await expect(page.getByText('LUNAS', { exact: true })).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Bayar DP 20% (segera)' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Bayar DP 30% (segera)' })).toHaveCount(0);
 		await gotoReady(page, `/admin/leads/${nomor}`);
 		page.once('dialog', (dialog) => dialog.accept());
 		await page.getByRole('button', { name: 'Batalkan' }).click();
@@ -146,6 +146,6 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		const cancelled = page.locator('.invoice-sheet');
 		await expect(cancelled.getByRole('heading', { level: 1 })).toHaveText('Invoice');
 		await expect(cancelled.getByText('Dibatalkan', { exact: true })).toBeVisible();
-		await expect(cancelled.getByRole('button', { name: 'Bayar DP 20% (segera)' })).toHaveCount(0);
+		await expect(cancelled.getByRole('button', { name: 'Bayar DP 30% (segera)' })).toHaveCount(0);
 	});
 });

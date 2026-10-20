@@ -21,7 +21,7 @@ test.describe('[manual-invoice] Buat invoice dari admin', () => {
 		await page.getByLabel('Harga satuan').fill('249000');
 		await page.getByLabel('Diskon (opsional)').fill('49000');
 		await expect(page.getByText('Total Rp 449.000')).toBeVisible();
-		await expect(page.getByText('DP 20% Rp 89.800')).toBeVisible();
+		await expect(page.getByText('DP 30% Rp 134.700')).toBeVisible();
 		await page.getByRole('button', { name: 'Simpan invoice' }).click();
 
 		await expect(page).toHaveURL(/\/admin\/leads\/LA-\d{8}-[A-Z2-9]{8}\?baru=1$/);

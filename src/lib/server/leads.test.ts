@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { INVOICE_NUMBER } from '#lib/invoice.js';
+import { DP_PERCENT, INVOICE_NUMBER } from '#lib/invoice.js';
 import { all, migrate, migrations, openDatabase, run, type Db } from './db';
 import { createManualLead, getLeadByNomor, listLeads, setLeadStatus, submitLead } from './leads';
 import { seed } from './seed';
@@ -51,8 +51,8 @@ describe('submitLead', () => {
 		if (!result.ok) return;
 		expect(result.lead.nomor_invoice).toMatch(INVOICE_NUMBER);
 		expect(result.lead.estimasi_total).toBe(249000 * 40);
-		expect(result.lead.dp_nominal).toBe(Math.round((249000 * 40 * 20) / 100));
-		expect(result.lead.dp_persen).toBe(20);
+		expect(result.lead.dp_nominal).toBe(Math.round((249000 * 40 * DP_PERCENT) / 100));
+		expect(result.lead.dp_persen).toBe(DP_PERCENT);
 		expect(result.lead.whatsapp).toBe('6281234567890');
 		expect(result.lead.nama).toBe('Tim Alfa');
 		expect(result.lead.jumlah_peserta).toBe(40);
@@ -196,7 +196,7 @@ describe('createManualLead', () => {
 		expect(result.lead.status).toBe('baru');
 		expect(result.lead.perusahaan).toBe('PT Contoh');
 		expect(result.lead.estimasi_total).toBe(249000 * 2 - 50_000);
-		expect(result.lead.dp_nominal).toBe(Math.round(((249000 * 2 - 50_000) * 20) / 100));
+		expect(result.lead.dp_nominal).toBe(Math.round(((249000 * 2 - 50_000) * DP_PERCENT) / 100));
 		expect(result.lead.diskon).toBe(50_000);
 		expect(result.lead.nomor_invoice).toMatch(INVOICE_NUMBER);
 		const lines = JSON.parse(result.lead.paket) as { title: string; kind: string; subtotal: number }[];

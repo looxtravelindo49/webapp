@@ -2,7 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { formatRupiah } from '#lib/format.js';
 import { formatDateTime } from '#lib/format.js';
 import { formatPlanDate } from '#lib/estimate.js';
-import { buildClientInvoiceMessage, DP_PERCENT, isLeadStatus, parseReceivedAmount, parseStoredLines, paymentBadge, statusLabel } from '#lib/invoice.js';
+import { buildClientInvoiceMessage, displayedDp, DP_PERCENT, isLeadStatus, parseReceivedAmount, parseStoredLines, paymentBadge, statusLabel } from '#lib/invoice.js';
 import { getDb } from '#lib/server/database.js';
 import { getLeadByNomor, setLeadStatus, updateAdminNote } from '#lib/server/leads.js';
 import { requireUser } from '#lib/server/require-user.js';
@@ -10,6 +10,11 @@ import { waLink } from '#lib/whatsapp.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const NOTE_LIMIT = 500;
+
+function formatDp(lead: NonNullable<Awaited<ReturnType<typeof getLeadByNomor>>>): string | null {
+	const amount = displayedDp(lead.estimasi_total, lead.dp_nominal, lead.dp_persen);
+	return amount === null ? null : formatRupiah(amount);
+}
 
 function view(lead: NonNullable<Awaited<ReturnType<typeof getLeadByNomor>>>) {
 	return {
@@ -20,8 +25,8 @@ function view(lead: NonNullable<Awaited<ReturnType<typeof getLeadByNomor>>>) {
 		badge: paymentBadge(lead.status, lead.diterima_pada),
 		tanggalLabel: lead.tanggal_acara ? formatPlanDate(lead.tanggal_acara) : 'Belum ditentukan',
 		estimasiLabel: lead.estimasi_total === null ? 'Dibahas via WhatsApp' : formatRupiah(lead.estimasi_total),
-		dpLabel: lead.dp_nominal === null ? null : formatRupiah(lead.dp_nominal),
-		dpPercent: lead.dp_persen || DP_PERCENT,
+		dpLabel: formatDp(lead),
+		dpPercent: DP_PERCENT,
 		diterimaLabel: lead.diterima_pada ? formatPlanDate(lead.diterima_pada) : null,
 		jumlahLabel: lead.jumlah_diterima === null ? null : formatRupiah(lead.jumlah_diterima),
 		jumlahInput: lead.jumlah_diterima === null ? '' : new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(lead.jumlah_diterima)
@@ -33,7 +38,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const lead = await getLeadByNomor(await getDb(), params.nomor);
 	if (!lead) error(404, 'Lead tidak ditemukan.');
 	const totalLabel = lead.estimasi_total === null ? 'Dibahas via WhatsApp' : formatRupiah(lead.estimasi_total);
-	const dpLabel = lead.dp_nominal === null ? 'Menyusul' : formatRupiah(lead.dp_nominal);
+	const dpLabel = formatDp(lead) ?? 'Menyusul';
 	return {
 		lead: view(lead),
 		justCreated: url.searchParams.get('baru') === '1',

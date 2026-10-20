@@ -1,19 +1,21 @@
-/** Kebijakan DP dan refund yang disetujui Rahmat. Teks aturan dipakai apa adanya. */
+import { DP_PERCENT } from '../invoice.js';
+
+/** Kebijakan DP dan refund. Persen uang muka mengikuti DP_PERCENT; angka lain tetap. */
 export const paymentPolicyPath = '/kebijakan-pembayaran';
 
 export const paymentPolicySummary =
-	'DP 20% dibayar maksimal 2x24 jam setelah invoice terbit. Pelunasan maksimal H-3 sebelum acara.';
+	`DP ${DP_PERCENT}% dibayar maksimal 2x24 jam setelah invoice terbit. Pelunasan maksimal H-3 sebelum acara.`;
 
 export const paymentPolicy = {
 	title: 'Kebijakan pembayaran',
 	description:
-		'Aturan DP 20%, pelunasan H-3, refund, reschedule, perubahan peserta, dan cuaca ekstrem untuk trip yang kamu pesan lewat kami.',
+		`Aturan DP ${DP_PERCENT}%, pelunasan H-3, refund, reschedule, perubahan peserta, dan cuaca ekstrem untuk trip yang kamu pesan lewat kami.`,
 	intro:
 		'Ini aturan DP, pelunasan, refund, dan perubahan peserta untuk invoice yang kamu terima dari kami. Bacanya sampai habis sebelum kamu transfer, ya.',
 	sections: [
 		{
 			title: 'Uang muka (DP)',
-			body: 'DP 20% dibayar maksimal 2x24 jam setelah invoice terbit; tanggal baru terkunci setelah DP masuk. Untuk acara kurang dari 7 hari lagi, DP dibayar di hari yang sama.'
+			body: `DP ${DP_PERCENT}% dibayar maksimal 2x24 jam setelah invoice terbit; tanggal baru terkunci setelah DP masuk. Untuk acara kurang dari 7 hari lagi, DP dibayar di hari yang sama.`
 		},
 		{
 			title: 'Pelunasan',
