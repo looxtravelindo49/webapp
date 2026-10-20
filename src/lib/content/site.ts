@@ -12,6 +12,5 @@ export const site = {
 export const navLinks = [
 	{ label: 'Pilihan Paket', href: '/#paket' },
 	{ label: 'Artikel', href: '/artikel' },
-	{ label: 'Destinasi', href: '/#destinasi' },
 	{ label: 'Rencanakan Trip', href: '/#rencanakan' }
 ] as const;

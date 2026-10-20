@@ -14,10 +14,12 @@ test.describe('[e2e-testing] Penanda hidrasi', () => {
 });
 
 test.describe('[site-shell] Urutan section beranda', () => {
-	test('paket → konsultasi → artikel-populer → destinasi → rencanakan, diapit Navbar dan Footer', async ({ page }) => {
+	test('paket → konsultasi → artikel-populer → rencanakan, diapit Navbar dan Footer', async ({ page }) => {
 		await gotoReady(page, '/');
 		const ids = await page.$$eval('main > section[id]', (s) => s.map((x) => x.id));
-		expect(ids).toEqual(['katalog', 'paket', 'konsultasi', 'artikel-populer', 'destinasi', 'rencanakan']);
+		expect(ids).toEqual(['katalog', 'paket', 'konsultasi', 'artikel-populer', 'rencanakan']);
+		await expect(page.locator('#destinasi')).toHaveCount(0);
+		await expect(page.getByRole('heading', { name: 'Mau suasana yang mana?' })).toHaveCount(0);
 		await expect(page.locator('header').first()).toBeVisible();
 		await expect(page.locator('footer')).toHaveCount(1);
 		await expect(page.getByRole('heading', { level: 1 })).toContainText('Bawa timmu');
@@ -27,7 +29,7 @@ test.describe('[site-shell] Urutan section beranda', () => {
 test.describe('[site-shell] Navbar', () => {
 	test('tautan anchor menggulir tanpa tertutup Navbar sticky', async ({ page }) => {
 		await gotoReady(page, '/');
-		for (const [label, id] of [['Pilihan Paket', 'paket'], ['Destinasi', 'destinasi'], ['Rencanakan Trip', 'rencanakan']] as const) {
+		for (const [label, id] of [['Pilihan Paket', 'paket'], ['Rencanakan Trip', 'rencanakan']] as const) {
 			await page.locator('header nav').getByRole('link', { name: label }).click();
 			const nh = await navHeight(page);
 			// Tidak tertutup Navbar, dan terlihat di viewport (section di dasar halaman tidak bisa digulir sampai paling atas).
@@ -48,12 +50,12 @@ test.describe('[site-shell] Navbar', () => {
 		await gotoReady(page, '/');
 		const toggle = page.locator('header button[aria-controls]');
 		await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-		await expect(page.locator('header nav').getByRole('link', { name: 'Destinasi' })).toBeHidden();
+		await expect(page.locator('header nav').getByRole('link', { name: 'Rencanakan Trip' })).toBeHidden();
 		await toggle.click();
 		await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 		const controls = await toggle.getAttribute('aria-controls');
 		await expect(page.locator(`#${controls}`)).toBeVisible();
-		await page.locator('header nav').getByRole('link', { name: 'Destinasi' }).click();
+		await page.locator('header nav').getByRole('link', { name: 'Rencanakan Trip' }).click();
 		await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 	});
 

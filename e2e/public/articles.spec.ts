@@ -92,8 +92,8 @@ test.describe('[site-shell] Navigasi dari halaman selain beranda', () => {
 		const toggle = page.locator('header button[aria-controls]');
 		await toggle.click();
 		await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-		await page.locator('header nav').getByRole('link', { name: 'Destinasi' }).click();
-		await expect(page).toHaveURL(/\/#destinasi$/);
+		await page.locator('header nav').getByRole('link', { name: 'Rencanakan Trip' }).click();
+		await expect(page).toHaveURL(/\/#rencanakan$/);
 		await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 	});
 });

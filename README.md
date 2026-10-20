@@ -261,7 +261,7 @@ folder `uploads` tetap berjalan, tetapi foto yang diunggah akan tampil rusak.
 - `src/lib/server/` — database, migrasi, seed, akses data, autentikasi (password, sesi, akun, pembatas login), pengelolaan paket, unggahan; hanya server
 - `src/lib/package-form.ts`, `slug.ts` — validasi form paket (harga, minimal peserta, batas teks) dan pembuat slug (murni, dites unit)
 - `src/lib/components/` — komponen Svelte per section
-- `src/lib/content/` — teks statis Hero, Destinasi, Planner, dan section Artikel populer (artikel sendiri ada di database)
+- `src/lib/content/` — teks statis Hero, Planner, dan section Artikel populer (artikel sendiri ada di database)
 - `src/lib/pricing.ts`, `estimate.ts`, `invoice.ts` — hitungan estimasi, teks WhatsApp, nomor invoice, dan DP 30% (`DP_PERCENT`)
 - `src/lib/server/leads.ts` — simpan dan baca lead di database yang sama dengan paket (`DATABASE_URL` / berkas SQLite). Tidak ada database baru.
 - `migrations/` — SQL bernomor

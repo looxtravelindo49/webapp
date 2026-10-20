@@ -131,7 +131,7 @@ test.describe('[article-cms] Artikel populer', () => {
 		try {
 			await gotoReady(page, '/');
 			await expect(page.locator('#artikel-populer')).toHaveCount(0);
-			expect(await page.$$eval('main > section[id]', (s) => s.map((x) => x.id))).toEqual(['katalog', 'paket', 'konsultasi', 'destinasi', 'rencanakan']);
+			expect(await page.$$eval('main > section[id]', (s) => s.map((x) => x.id))).toEqual(['katalog', 'paket', 'konsultasi', 'rencanakan']);
 			const res = await page.goto('/artikel');
 			expect(res?.status()).toBe(200);
 			await expect(page.getByText('Artikel segera hadir')).toBeVisible();
