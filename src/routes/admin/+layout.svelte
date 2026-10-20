@@ -15,7 +15,7 @@
 			<div class="wrap flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-3.5">
 				<div class="flex flex-wrap items-center gap-x-6 gap-y-2">
 					<a href="/admin" class="flex items-center gap-2.5 leading-none">
-						<span class="text-lg font-black tracking-[-0.05em]">Lembang <span class="font-medium">Adventures</span></span>
+						<span class="text-lg font-black tracking-[-0.05em]">Lembang <span class="font-medium">Adventure</span></span>
 						<span class="rounded-sm bg-accent px-1.5 py-1 text-[9px] font-extrabold tracking-wider text-green-900">ADMIN</span>
 					</a>
 					{#if !data.user.must_change_password}

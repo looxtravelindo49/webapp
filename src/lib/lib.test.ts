@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_WA_MESSAGE, normalizeWhatsapp, waLink } from './whatsapp';
+import { DEFAULT_WA_MESSAGE, FLOAT_WA_TEMPLATE, floatWaMessage, normalizeWhatsapp, waLink } from './whatsapp';
 import { formatRupiah } from './format';
 
 describe('normalizeWhatsapp', () => {
@@ -25,13 +25,32 @@ describe('normalizeWhatsapp', () => {
 describe('waLink', () => {
 	it('memakai pesan default yang ter-encode', () => {
 		expect(waLink('6282120209900')).toBe(
-			'https://wa.me/6282120209900?text=Halo%20Lembang%20Adventures%2C%20saya%20ingin%20konsultasi%20trip.'
+			'https://wa.me/6282120209900?text=Halo%20Lembang%20Adventure%2C%20saya%20ingin%20konsultasi%20trip.'
 		);
-		expect(DEFAULT_WA_MESSAGE).toContain('Lembang Adventures');
+		expect(DEFAULT_WA_MESSAGE).toContain('Lembang Adventure');
 	});
 
 	it('meng-encode pesan kustom', () => {
 		expect(waLink('6281', 'a b&c\nd')).toBe('https://wa.me/6281?text=a%20b%26c%0Ad');
+	});
+
+	it('template chat mengambang mengajak isi detail, dan halaman paket mengisi kegiatan', () => {
+		expect(FLOAT_WA_TEMPLATE).toBe(`Halooo LembangAdventure.com !
+Saya mau konsultasi trip/outbound di Lembang.
+
+Nama: 
+Instansi/Perusahaan: 
+Pilihan Activity: 
+Tanggal: 
+Jumlah peserta: 
+
+Budget per orang (opsional): 
+
+Mohon info paket dan penawarannya ya, terima kasih!`);
+		const filled = floatWaMessage('Offroad');
+		expect(filled).toContain('Pilihan Activity: Offroad\n');
+		expect(floatWaMessage('  ')).toBe(FLOAT_WA_TEMPLATE);
+		expect(waLink('6282120209900', floatWaMessage('Team Building'))).toContain(encodeURIComponent('Pilihan Activity: Team Building'));
 	});
 });
 

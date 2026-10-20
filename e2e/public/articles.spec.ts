@@ -40,7 +40,7 @@ test.describe('[article-pages] Halaman artikel', () => {
 			await expect(page.locator('article')).toContainText(a.category);
 			await expect(page.locator('article time')).toHaveAttribute('datetime', /^2026-09-/);
 			expect(await page.locator('.article-body p').count()).toBeGreaterThanOrEqual(2);
-			await expect(page).toHaveTitle(/ \| Lembang Adventures$/);
+			await expect(page).toHaveTitle(/ \| Lembang Adventure$/);
 			await expect(page.locator('meta[name=description]')).toHaveAttribute('content', /.{40,}/);
 			await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', new RegExp(`^http://127\\.0\\.0\\.1:\\d+/artikel/${a.slug}$`));
 			await expect(page.locator('meta[property="og:type"]')).toHaveAttribute('content', 'article');

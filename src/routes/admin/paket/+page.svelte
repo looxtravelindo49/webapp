@@ -9,7 +9,7 @@
 	const last = $derived(data.packages.length - 1);
 </script>
 
-<svelte:head><title>Kelola paket | Admin Lembang Adventures</title></svelte:head>
+<svelte:head><title>Kelola paket | Admin Lembang Adventure</title></svelte:head>
 
 <div class="flex flex-wrap items-start justify-between gap-4">
 	<div>

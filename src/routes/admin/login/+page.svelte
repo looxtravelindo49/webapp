@@ -6,11 +6,11 @@
 	let { form }: PageProps = $props();
 </script>
 
-<svelte:head><title>Masuk | Admin Lembang Adventures</title></svelte:head>
+<svelte:head><title>Masuk | Admin Lembang Adventure</title></svelte:head>
 
 <div class="mx-auto max-w-sm pt-6 sm:pt-14">
 	<div class="mb-6 text-center">
-		<div class="text-[26px] font-black tracking-[-0.05em]">Lembang <span class="font-medium">Adventures</span></div>
+		<div class="text-[26px] font-black tracking-[-0.05em]">Lembang <span class="font-medium">Adventure</span></div>
 		<div class="eyebrow mt-2 text-muted">AREA ADMIN</div>
 	</div>
 

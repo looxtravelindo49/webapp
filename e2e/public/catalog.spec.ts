@@ -31,7 +31,7 @@ test.describe('[katalog] Katalog paket dan halaman detail', () => {
 		await expect(page.getByText('2-3 Jam')).toBeVisible();
 		await expect(page.getByText('Rp 250.000 / orang')).toBeVisible();
 		await expect(page.getByText('Min. 1 orang')).toBeVisible();
-		await expect(page).toHaveTitle(/Offroad \| Lembang Adventures/);
+		await expect(page).toHaveTitle(/Offroad \| Lembang Adventure/);
 		const canonical = await page.locator('link[rel="canonical"]').getAttribute('href');
 		expect(canonical).toMatch(/\/paket\/offroad$/);
 

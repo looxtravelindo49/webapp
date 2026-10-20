@@ -14,7 +14,7 @@
 		form && 'error' in form && (form.action === 'reset' || form.action === 'hapus') && form.id === id ? form.error : '';
 </script>
 
-<svelte:head><title>Kelola akun | Admin Lembang Adventures</title></svelte:head>
+<svelte:head><title>Kelola akun | Admin Lembang Adventure</title></svelte:head>
 
 <h1 class="text-2xl font-black tracking-tight">Kelola akun</h1>
 <p class="mt-2 max-w-2xl text-xs leading-[1.8] text-muted">

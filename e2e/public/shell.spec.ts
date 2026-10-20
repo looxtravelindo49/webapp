@@ -119,7 +119,7 @@ test.describe('[site-shell] Aksesibilitas dasar', () => {
 test.describe('[site-shell] SEO dasar', () => {
 	test('title, description, canonical, Open Graph, dan JSON-LD @graph Organization + WebSite', async ({ page }) => {
 		await gotoReady(page, '/');
-		await expect(page).toHaveTitle(/Lembang Adventures/);
+		await expect(page).toHaveTitle(/Lembang Adventure/);
 		await expect(page.locator('meta[name=description]')).toHaveAttribute('content', /.{40,}/);
 		await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', /^http:\/\/127\.0\.0\.1:\d+\/$/);
 		await expect(page.locator('meta[property="og:title"]')).toHaveCount(1);

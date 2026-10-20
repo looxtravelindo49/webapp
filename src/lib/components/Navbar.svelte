@@ -12,7 +12,7 @@
 	<div class="wrap flex h-17.5 items-center justify-between gap-4 sm:h-21 sm:gap-7">
 		<a href="/" class="leading-none whitespace-nowrap" aria-label="{site.name} beranda">
 			<span class="block text-[22px] font-black tracking-[-0.06em] sm:text-[26px]"
-				>Lembang <span class="font-medium">Adventures</span></span
+				>Lembang <span class="font-medium">Adventure</span></span
 			>
 			<small class="mt-2 block text-[8px] font-bold tracking-[0.18em] uppercase">{site.byline}</small>
 		</a>

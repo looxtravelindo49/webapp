@@ -250,7 +250,7 @@ test.describe('[article-pages] Render markdown yang aman', () => {
 		await submit(page, () => page.getByRole('button', { name: 'Simpan perubahan' }).click());
 		await gotoReady(page, `/artikel/${slugOf(title)}`);
 		await expect(page.locator('.article-body h2')).toHaveText('Bagian Satu');
-		await expect(page).toHaveTitle(`${title} | Lembang Adventures`);
+		await expect(page).toHaveTitle(`${title} | Lembang Adventure`);
 	});
 });
 

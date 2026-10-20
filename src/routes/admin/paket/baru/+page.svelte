@@ -5,7 +5,7 @@
 	let { data, form }: PageProps = $props();
 </script>
 
-<svelte:head><title>Tambah paket | Admin Lembang Adventures</title></svelte:head>
+<svelte:head><title>Tambah paket | Admin Lembang Adventure</title></svelte:head>
 
 <p class="text-xs"><a href="/admin/paket" class="font-bold underline">← Semua paket</a></p>
 <h1 class="mt-3 text-2xl font-black tracking-tight">Tambah paket</h1>

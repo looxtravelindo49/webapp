@@ -10,7 +10,7 @@
 	const galleryError = $derived(form && 'galleryError' in form ? form.galleryError : '');
 </script>
 
-<svelte:head><title>Ubah {data.title} | Admin Lembang Adventures</title></svelte:head>
+<svelte:head><title>Ubah {data.title} | Admin Lembang Adventure</title></svelte:head>
 
 <p class="text-xs"><a href="/admin/paket" class="font-bold underline">← Semua paket</a></p>
 <h1 class="mt-3 text-2xl font-black tracking-tight">Ubah paket</h1>

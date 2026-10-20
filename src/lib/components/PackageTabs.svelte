@@ -184,7 +184,7 @@
 				tabindex="-1"
 				onscroll={syncTabFade}
 				onkeydown={onTabKey}
-				class="relative flex flex-nowrap gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+				class="relative flex flex-nowrap gap-2 overflow-x-auto pr-16 [scrollbar-width:none] md:pr-36 [&::-webkit-scrollbar]:hidden"
 			>
 				{#each packages as p, i (p.slug)}
 					<button

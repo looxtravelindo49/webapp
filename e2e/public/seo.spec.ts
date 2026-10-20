@@ -50,7 +50,7 @@ test.describe('[seo-metadata] Beranda', () => {
 		const nodes = await graph(page);
 		expect(nodes.map((n) => n['@type'])).toEqual(['Organization', 'WebSite']);
 		expect((node(nodes, 'Organization').contactPoint as { telephone: string }).telephone).toBe(`+${WA_NUMBER}`);
-		expect(node(nodes, 'WebSite')).toMatchObject({ inLanguage: 'id', name: 'Lembang Adventures' });
+		expect(node(nodes, 'WebSite')).toMatchObject({ inLanguage: 'id', name: 'Lembang Adventure' });
 	});
 
 	test('/og-default.png berupa PNG 1200x630', async ({ request }) => {
@@ -80,7 +80,7 @@ test.describe('[seo-metadata] Daftar dan halaman artikel', () => {
 		await expect(page.locator('meta[property="article:published_time"]')).toHaveAttribute('content', '2026-09-15T00:00:00.000Z');
 		await expect(page.locator('meta[property="article:modified_time"]')).toHaveCount(1);
 		await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', new RegExp(`${ORIGIN.source}/og-default\\.png$`));
-		await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', /Sepakati 5 hal.* \| Lembang Adventures$/);
+		await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', /Sepakati 5 hal.* \| Lembang Adventure$/);
 
 		const nodes = await graph(page);
 		expect(nodes.map((n) => n['@type'])).toEqual(['BlogPosting', 'BreadcrumbList']);
