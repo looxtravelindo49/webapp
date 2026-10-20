@@ -53,22 +53,21 @@ test.describe('[site-settings] Pengaturan dibaca saat request', () => {
 		for (const p of original) exec('UPDATE package SET published = ?, sort_order = ? WHERE slug = ?', p.published, p.sort_order, p.slug);
 	});
 
-	test('nomor tidak valid: aksi WhatsApp hilang; Simpan PDF dan Konsultasi Trip tetap ada', async ({ page }) => {
+	test('nomor tidak valid: aksi WhatsApp hilang; Konsultasi Trip tetap ada', async ({ page }) => {
 		setSetting('whatsapp', 'abc');
 		await gotoReady(page, '/');
 		const c = await fillValid(page);
 		await expect(c.send).toHaveCount(0);
-		await expect(c.save).toBeEnabled();
+		await expect(c.root).toContainText('Pengiriman lewat WhatsApp sedang tidak aktif.');
+		await expect(c.root.getByRole('button', { name: 'Simpan PDF' })).toHaveCount(0);
 		await expect(page.locator('header').getByRole('link', { name: 'Konsultasi Trip' }).first()).toBeAttached();
-		const [download] = await Promise.all([page.waitForEvent('download'), c.save.click()]);
-		expect(download.suggestedFilename()).toMatch(/\.pdf$/);
 	});
 
 	test('nomor kosong juga menyembunyikan aksi WhatsApp', async ({ page }) => {
 		setSetting('whatsapp', '');
 		await gotoReady(page, '/');
 		await expect(calc(page).send).toHaveCount(0);
-		await expect(calc(page).save).toBeVisible();
+		await expect(calc(page).root).toContainText('Pengiriman lewat WhatsApp sedang tidak aktif.');
 	});
 
 	test('mengubah nomor langsung tampil (format lokal dinormalisasi) tanpa restart', async ({ page, context }) => {

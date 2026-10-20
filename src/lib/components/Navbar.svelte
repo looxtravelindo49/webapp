@@ -8,7 +8,7 @@
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && (open = false)} />
 
-<header class="sticky top-0 z-10 border-b border-line bg-white/98">
+<header class="print-hide sticky top-0 z-10 border-b border-line bg-white/98">
 	<div class="wrap flex h-17.5 items-center justify-between gap-4 sm:h-21 sm:gap-7">
 		<a href="/" class="leading-none whitespace-nowrap" aria-label="{site.name} beranda">
 			<span class="block text-[22px] font-black tracking-[-0.06em] sm:text-[26px]"

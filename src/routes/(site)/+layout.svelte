@@ -13,10 +13,10 @@
 
 <a
 	href="#main"
-	class="absolute -top-25 left-5 z-20 bg-white p-2.5 text-green-900 focus:top-3"
+	class="print-hide absolute -top-25 left-5 z-20 bg-white p-2.5 text-green-900 focus:top-3"
 	>Langsung ke isi</a
 >
-<div class="on-dark bg-green-900 px-4 py-2 text-center text-[9px] tracking-wide text-green-100 sm:text-[11px]">
+<div class="print-hide on-dark bg-green-900 px-4 py-2 text-center text-[9px] tracking-wide text-green-100 sm:text-[11px]">
 	{site.topline}
 </div>
 <Navbar />

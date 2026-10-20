@@ -89,7 +89,7 @@ test.describe('[site-shell] Tema warna', () => {
 			{ name: 'Hero: eyebrow (emas di hijau)', css: 'main > section .eyebrow' },
 			{ name: 'Paket: teks sekunder (abu-hijau di putih)', css: '#paket p.text-muted' },
 			{ name: 'Kalkulator: tombol Kirim ke WhatsApp (hijau di emas)', tag: 'button', text: 'Kirim ke WhatsApp' },
-			{ name: 'Kalkulator: tombol Simpan PDF (hijau di putih)', tag: 'button', text: 'Simpan PDF' },
+			{ name: 'Kalkulator: label isian (hijau di putih)', css: '#konsultasi label' },
 			{ name: 'Footer: merek (putih di hijau)', css: 'footer a' },
 			{ name: 'Footer: keterangan (hijau muda di hijau)', css: 'footer p' }
 		]);

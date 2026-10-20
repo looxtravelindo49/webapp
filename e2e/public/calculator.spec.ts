@@ -198,23 +198,23 @@ test.describe('[trip-calculator] Ringkasan estimasi', () => {
 });
 
 test.describe('[trip-calculator] Aksi hanya tersedia bila masukan valid', () => {
-	test('petunjuk menyebut semua yang kurang dan kedua tombol dinonaktifkan', async ({ page }) => {
+	test('petunjuk menyebut semua yang kurang dan tombol kirim dinonaktifkan', async ({ page }) => {
 		await gotoReady(page, '/');
 		const c = calc(page);
-		await expect(c.save).toBeDisabled();
 		await expect(c.send).toBeDisabled();
-		await expect(c.hint).toHaveText('Lengkapi dulu: nama tim, minimal satu paket, jumlah peserta yang valid.');
+		await expect(c.root.getByRole('button', { name: 'Simpan PDF' })).toHaveCount(0);
+		await expect(c.hint).toHaveText('Lengkapi dulu: nama tim, minimal satu paket, jumlah peserta yang valid, nomor WhatsApp yang valid.');
 	});
 
-	test('tanpa nama tim: petunjuk menyebut nama tim; setelah diisi tombol aktif', async ({ page }) => {
+	test('tanpa nama tim: petunjuk menyebut nama tim; setelah data lengkap tombol aktif', async ({ page }) => {
 		await gotoReady(page, '/');
 		const c = calc(page);
 		await c.box('Offroad').check();
 		await c.pax.fill('40');
+		await c.whatsapp.fill('081234567890');
 		await expect(c.hint).toHaveText('Lengkapi dulu: nama tim.');
-		await expect(c.save).toBeDisabled();
+		await expect(c.send).toBeDisabled();
 		await c.team.fill('Tim Alfa');
-		await expect(c.save).toBeEnabled();
 		await expect(c.send).toBeEnabled();
 		await expect(c.hint).toContainText('bukan penawaran final');
 	});
@@ -224,7 +224,8 @@ test.describe('[trip-calculator] Aksi hanya tersedia bila masukan valid', () => 
 		const c = calc(page);
 		await c.box('Offroad').check();
 		await c.pax.fill('40');
+		await c.whatsapp.fill('081234567890');
 		await c.team.fill('   ');
-		await expect(c.save).toBeDisabled();
+		await expect(c.send).toBeDisabled();
 	});
 });

@@ -4,6 +4,7 @@
 	let { data }: PageProps = $props();
 
 	const cards = [
+		{ href: '/admin/leads', title: 'Leads', text: 'Estimasi yang dikirim pengunjung lewat kalkulator: nama, WhatsApp, paket, dan nomor invoice.' },
 		{ href: '/admin/paket', title: 'Paket', text: 'Tambah, ubah, urutkan, terbitkan atau sembunyikan paket, harga, dan foto.' },
 		{ href: '/admin/artikel', title: 'Artikel', text: 'Tulis, terbitkan, dan tandai artikel populer yang tampil di beranda dan halaman artikel.' },
 		{ href: '/admin/pengaturan', title: 'Pengaturan', text: 'Nomor WhatsApp tujuan konsultasi dan hasil kalkulator.' },

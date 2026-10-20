@@ -14,7 +14,8 @@
 		team = '',
 		pax = '',
 		date = '',
-		notes = ''
+		notes = '',
+		whatsapp = ''
 	}: {
 		packages: Package[];
 		waNumber?: string | null;
@@ -23,6 +24,7 @@
 		pax?: string;
 		date?: string;
 		notes?: string;
+		whatsapp?: string;
 	} = $props();
 
 	const trip = setTripContext();
@@ -32,6 +34,7 @@
 		trip.pax = pax;
 		trip.date = date;
 		trip.notes = notes;
+		trip.whatsapp = whatsapp;
 	});
 </script>
 
