@@ -4,7 +4,7 @@ import {
 } from './seo';
 
 const BASE = 'https://contoh.id';
-const site = { name: 'Lembang Adventures', description: 'Deskripsi situs.' };
+const site = { name: 'Lembang Adventure', description: 'Deskripsi situs.' };
 const UUID = '0b5e1c3a-7d2f-4a8e-9c1b-2f3d4e5a6b7c';
 
 describe('absoluteUrl', () => {

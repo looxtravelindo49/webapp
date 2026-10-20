@@ -133,7 +133,7 @@
 			{/each}
 		</ul>
 		{#if packages.length > 1}
-			<div class="mt-3 flex flex-wrap justify-center gap-1 md:hidden">
+			<div class="mt-3 flex flex-wrap justify-center gap-1 pr-16 md:hidden">
 				{#each packages as p, i (p.slug)}
 					<button
 						type="button"

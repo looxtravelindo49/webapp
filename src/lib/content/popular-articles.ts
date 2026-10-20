@@ -6,9 +6,9 @@ export const popularArticlesSection = {
 } as const;
 
 export const articlesPage = {
-	title: 'Artikel & Tips Trip Tim | Lembang Adventures',
+	title: 'Artikel & Tips Trip Tim | Lembang Adventure',
 	description:
-		'Tips merencanakan gathering, team building, dan trip tim: memilih kegiatan, menyusun itinerary, dan menyiapkan perjalanan bersama Lembang Adventures.',
+		'Tips merencanakan gathering, team building, dan trip tim: memilih kegiatan, menyusun itinerary, dan menyiapkan perjalanan bersama Lembang Adventure.',
 	eyebrow: 'BEKAL SEBELUM BERANGKAT',
 	heading: 'Artikel',
 	intro: 'Tips dan ide untuk merencanakan gathering, team building, dan trip tim.',

@@ -2,6 +2,7 @@
 	import { site } from '#lib/content/site.js';
 	import Footer from '#lib/components/Footer.svelte';
 	import Navbar from '#lib/components/Navbar.svelte';
+	import WhatsAppFloat from '#lib/components/WhatsAppFloat.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -24,3 +25,4 @@
 	{@render children()}
 </main>
 <Footer />
+<WhatsAppFloat packageTitle={data.chatPackage} />

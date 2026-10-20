@@ -80,7 +80,7 @@ describe('buildConfirmationMessage', () => {
 
 	it('memuat detail, estimasi, dan tautan invoice tanpa menyebut PDF', () => {
 		const text = msg(['offroad', 'rafting']);
-		expect(text).toContain('Halo Lembang Adventures, aku barusan hitung di kalkulator website.');
+		expect(text).toContain('Halo Lembang Adventure, aku barusan hitung di kalkulator website.');
 		expect(text).toContain('Nama: Tim Alfa');
 		expect(text).toContain('Nomor WhatsApp: +6281234567890');
 		expect(text).toContain('Paket: Offroad, Rafting');

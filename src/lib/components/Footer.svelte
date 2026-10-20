@@ -5,12 +5,12 @@
 	const year = new Date().getFullYear();
 </script>
 
-<footer class="print-hide on-dark bg-green-900 py-9 text-white">
+<footer class="print-hide on-dark bg-green-900 pt-9 pb-[max(4.5rem,calc(env(safe-area-inset-bottom)+3.5rem))] text-white">
 	<div class="wrap">
 		<div class="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center sm:gap-8">
 			<div>
 				<a href="/" class="block text-[23px] leading-none font-black tracking-[-0.06em]"
-					>Lembang <span class="font-medium">Adventures</span></a
+					>Lembang <span class="font-medium">Adventure</span></a
 				>
 				<p class="mt-3 text-[11px] text-green-100">{site.byline}</p>
 			</div>

@@ -226,7 +226,7 @@ export function buildClientInvoiceMessage(input: {
 	invoiceUrl: string;
 }): string {
 	return [
-		`Halo ${input.nama.trim()}, ini invoice dari Lembang Adventures.`,
+		`Halo ${input.nama.trim()}, ini invoice dari Lembang Adventure.`,
 		'',
 		`Nomor invoice: ${input.nomor}`,
 		`Total: ${input.total}`,
@@ -251,7 +251,7 @@ export function paymentBadge(status: string, diterimaPada: string | null): strin
 /** Pesan bukti transfer. Hanya nomor invoice, tanpa data lain. */
 export function buildPaymentProofMessage(nomor: string): string {
 	return [
-		'Halo Lembang Adventures, aku sudah transfer untuk invoice ini.',
+		'Halo Lembang Adventure, aku sudah transfer untuk invoice ini.',
 		'',
 		`Nomor invoice: ${nomor}`,
 		'',
@@ -309,7 +309,7 @@ export function buildConfirmationMessage(input: ConfirmationInput): string {
 	const estimasi = `${totalText(input.estimate)}${note ? ` (${note})` : ''}`;
 	const date = formatPlanDate(input.planDate) || 'Belum ditentukan';
 	const lines = [
-		'Halo Lembang Adventures, aku barusan hitung di kalkulator website.',
+		'Halo Lembang Adventure, aku barusan hitung di kalkulator website.',
 		'',
 		`Nama: ${input.nama.trim()}`,
 		`Nomor WhatsApp: +${input.whatsapp}`,

@@ -6,7 +6,7 @@
 	let { data, form }: PageProps = $props();
 </script>
 
-<svelte:head><title>Ganti password | Admin Lembang Adventures</title></svelte:head>
+<svelte:head><title>Ganti password | Admin Lembang Adventure</title></svelte:head>
 
 <div class="mx-auto max-w-md">
 	<h1 class="text-2xl font-black tracking-tight">Ganti password</h1>

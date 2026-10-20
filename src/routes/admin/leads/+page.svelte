@@ -24,7 +24,7 @@
 	]);
 </script>
 
-<svelte:head><title>Leads | Admin Lembang Adventures</title></svelte:head>
+<svelte:head><title>Leads | Admin Lembang Adventure</title></svelte:head>
 
 <div class="flex flex-wrap items-center justify-between gap-3">
 	<h1 class="text-2xl font-black tracking-tight">Leads</h1>

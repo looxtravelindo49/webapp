@@ -1,4 +1,4 @@
-# Lembang Adventures
+# Lembang Adventure
 
 Situs SvelteKit + Tailwind dengan SQLite (libSQL). Paket dan nomor WhatsApp dibaca dari database pada setiap request.
 Berjalan di Vercel (database Turso + foto di Vercel Blob) atau di server/kontainer (berkas SQLite + folder foto); kodenya sama.

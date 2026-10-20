@@ -212,7 +212,7 @@
 				</div>
 			</form>
 
-			<div class="on-light h-fit rounded-xl bg-cream p-5 text-green-900 sm:p-7 lg:sticky lg:top-24">
+			<div class="on-light h-fit rounded-xl bg-cream p-5 pr-16 text-green-900 sm:p-7 lg:sticky lg:top-24 lg:mr-36 lg:pr-7">
 				<div class="eyebrow text-muted">ESTIMASI TRIP</div>
 
 				{#if estimate.state === 'empty'}

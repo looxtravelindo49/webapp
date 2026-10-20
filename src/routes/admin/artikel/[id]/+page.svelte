@@ -8,7 +8,7 @@
 	const notice = $derived(form && 'ok' in form ? form.notice : data.created ? 'Artikel dibuat sebagai draf. Centang "Tampilkan di situs" lalu simpan, atau terbitkan dari daftar artikel, setelah siap.' : '');
 </script>
 
-<svelte:head><title>Ubah {data.title} | Admin Lembang Adventures</title></svelte:head>
+<svelte:head><title>Ubah {data.title} | Admin Lembang Adventure</title></svelte:head>
 
 <p class="text-xs"><a href="/admin/artikel" class="font-bold underline">← Semua artikel</a></p>
 <h1 class="mt-3 text-2xl font-black tracking-tight">Ubah artikel</h1>

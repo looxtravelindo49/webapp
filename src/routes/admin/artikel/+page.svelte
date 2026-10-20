@@ -8,7 +8,7 @@
 	const rowError = (id: number) => (form && 'error' in form && form.id === id ? form.error : '');
 </script>
 
-<svelte:head><title>Kelola artikel | Admin Lembang Adventures</title></svelte:head>
+<svelte:head><title>Kelola artikel | Admin Lembang Adventure</title></svelte:head>
 
 <div class="flex flex-wrap items-start justify-between gap-4">
 	<div>

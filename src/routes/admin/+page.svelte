@@ -13,7 +13,7 @@
 	];
 </script>
 
-<svelte:head><title>Admin | Lembang Adventures</title></svelte:head>
+<svelte:head><title>Admin | Lembang Adventure</title></svelte:head>
 
 <h1 class="text-2xl font-black tracking-tight">Admin</h1>
 <p class="mt-2 max-w-xl text-xs leading-[1.8] text-muted">Selamat datang. Pilih bagian yang ingin dikelola.</p>
