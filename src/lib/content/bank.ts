@@ -1,4 +1,11 @@
-/** Rekening resmi PT. Logo file resmi belum ada: UI memakai wordmark teks. */
+/** Rekening resmi PT. Logo: berkas resmi yang sudah dipotong pinggiran putihnya. */
+export const bankLogo = {
+	src: '/media/cimb-niaga-syariah.png',
+	alt: 'CIMB Niaga Syariah',
+	width: 935,
+	height: 253
+} as const;
+
 export const bank = {
 	bank: 'CIMB Niaga Syariah',
 	account: '860025788700',

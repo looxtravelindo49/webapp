@@ -19,9 +19,6 @@
 <p class="mt-2 max-w-2xl text-xs leading-[1.8] text-muted">
 	Setiap ketukan "Kirim ke WhatsApp" di kalkulator beranda masuk ke sini, lengkap dengan nomor invoice.
 </p>
-<p class="mt-3 max-w-2xl text-[11px] leading-[1.7] text-muted">
-	Logo bank di invoice dan footer masih teks CIMB Niaga Syariah. File logo resmi belum ada; jangan ambil dari internet. Kirim file resminya bila sudah siap.
-</p>
 
 {#if data.leads.length === 0}
 	<p class="mt-6 rounded-xl border border-line bg-white p-6 text-xs text-muted">

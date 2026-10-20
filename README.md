@@ -36,7 +36,7 @@ Invoice bersifat publik lewat nomor (tidak ditebak), `noindex`, dan tidak masuk 
 
 ## Rekening
 
-Invoice dan footer menampilkan rekening **CIMB Niaga Syariah**, **860025788700**, a/n **Loox Travel Luxury**, plus peringatan penipuan. Logo resmi bank **belum ada di repo**: yang tampil wordmark teks. Jangan mengunduh logo dari internet. Ganti wordmark di `src/lib/components/BankAccount.svelte` setelah file resmi disediakan.
+Invoice dan footer menampilkan rekening **CIMB Niaga Syariah**, **860025788700**, a/n **Loox Travel Luxury**, plus peringatan penipuan. Logonya berkas resmi di `static/media/cimb-niaga-syariah.png`, sudah dipotong dari pinggiran putih, proporsi asli, ditampilkan kecil supaya tetap tajam.
 
 Foto utama beranda adalah `static/media/hero-2.jpg` (foto natural, 1280×720, di bawah 400 KB, pelat nomor kabur, tanpa teks). Berkas aslinya memang 1280×720, jadi tidak diperbesar ke 1920×1080.
 

@@ -1,5 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { bank } from './content/bank';
+import { bank, bankLogo } from './content/bank';
 import { hero } from './content/hero';
 import {
 	buildInvoiceNumber,
@@ -56,5 +57,9 @@ describe('aset fase 1', () => {
 		expect(bank.warning).toBe(
 			'Hati-hati memilih travel. Pastikan travel sudah berbadan hukum PT dan hanya transfer ke rekening atas nama PT untuk menghindari penipuan.'
 		);
+		expect(bankLogo.alt).toBe('CIMB Niaga Syariah');
+		const png = readFileSync(new URL(`../../static${bankLogo.src}`, import.meta.url));
+		expect(png.readUInt32BE(16)).toBe(bankLogo.width);
+		expect(png.readUInt32BE(20)).toBe(bankLogo.height);
 	});
 });
