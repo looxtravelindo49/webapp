@@ -89,6 +89,7 @@ bawaan tertulis di repositori ini. Untuk menimpanya sejak awal, setel `ADMIN_SEE
   Isian berkas **Tambah foto galeri**, teks **Teks alternatif foto galeri**, tombol **Unggah ke galeri**. Tiap foto bisa
   diubah teks alternatifnya, dinaikkan, diturunkan, atau dihapus. Halaman `/paket/<slug>` menampilkan satu foto besar
   dan sisanya sebagai thumbnail; bila galeri kosong, foto utama yang dipakai. Kartu katalog memakai foto galeri pertama bila ada.
+  Section "Satu tim, banyak cerita" memakai galeri yang sama untuk tab yang sedang dipilih, dan kembali ke foto pertama saat tab diganti.
 - **Leads** di `/admin/leads`: setiap kiriman kalkulator (nama, WhatsApp, paket, peserta, tanggal, catatan, total, waktu, nomor invoice, status). Saring menurut status (Baru, DP diterima, Lunas, Batal). Detail di `/admin/leads/<nomor>` mencatat tanggal dan jumlah diterima (jumlah opsional), plus catatan internal. Tombol: **Konfirmasi DP diterima**, **Tandai lunas**, dan **Batalkan** (minta konfirmasi). Xendit belum menulis status ini. **Buat Invoice Manual** di `/admin/leads/baru` menyimpan lead `source = manual` dengan baris bebas (qty × harga satuan), diskon opsional, dan DP 30%. Halaman invoice publik membaca status langsung dari database (`cache-control: no-store`).
 - **Pengaturan** di `/admin/pengaturan`: nomor WhatsApp tujuan. Format lokal (`0812-3456-7890`) atau internasional
   (`+62 812 3456 7890`) disimpan sebagai `6281234567890`. Kosong menyembunyikan tombol "Kirim ke WhatsApp" di kalkulator.

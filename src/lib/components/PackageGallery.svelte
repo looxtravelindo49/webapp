@@ -3,7 +3,16 @@
 
 	export type GallerySlide = { src: string; alt: string | null };
 
-	let { photos, fallbackAlt }: { photos: GallerySlide[]; fallbackAlt: string } = $props();
+	let {
+		photos,
+		fallbackAlt,
+		running = true
+	}: {
+		photos: GallerySlide[];
+		fallbackAlt: string;
+		/** False saat panel tab disembunyikan: indeks kembali ke foto pertama dan geser otomatis berhenti. */
+		running?: boolean;
+	} = $props();
 
 	let index = $state(0);
 	let hover = $state(false);
@@ -19,6 +28,13 @@
 	let originY = 0;
 
 	$effect(() => {
+		if (!running) {
+			index = 0;
+			hover = false;
+			touching = false;
+			track = false;
+			return;
+		}
 		if (reduce || hover || touching || photos.length < 2) return;
 		const n = photos.length;
 		const timer = setInterval(() => {
@@ -74,7 +90,7 @@
 	<section
 		class="grid touch-pan-y gap-3"
 		aria-label="Galeri foto"
-		data-autoplay-ms={photos.length > 1 ? GALLERY_INTERVAL_MS : undefined}
+		data-autoplay-ms={running && photos.length > 1 ? GALLERY_INTERVAL_MS : undefined}
 		onpointerenter={onEnter}
 		onpointerleave={onLeave}
 		onpointerdown={onDown}
@@ -102,7 +118,7 @@
 						>
 							<img
 								src={photos[i].src}
-								alt=""
+								alt={slideAlt(photos[i].alt, fallbackAlt)}
 								width="320"
 								height="240"
 								loading="lazy"

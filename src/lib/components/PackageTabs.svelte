@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
 	import { goto } from '$app/navigation';
+	import PackageGallery from '#lib/components/PackageGallery.svelte';
 	import { formatRupiah } from '#lib/format.js';
 	import { lines, paragraphs } from '#lib/text.js';
 	import type { Package } from '#lib/types.js';
@@ -108,14 +109,20 @@
 				tabindex="-1"
 				class="grid gap-6 outline-none md:grid-cols-[1fr_1.1fr] md:gap-12"
 			>
-				<img
-					src={p.image}
-					alt={p.image_alt ?? p.title}
-					width="600"
-					height="440"
-					loading="lazy"
-					class="aspect-[1.27] w-full rounded-xl bg-cream object-cover md:self-start"
-				/>
+				{#if (p.gallery?.length ?? 0) > 0}
+					<div class="md:self-start">
+						<PackageGallery photos={p.gallery ?? []} fallbackAlt={p.image_alt || p.title} running={p.slug === active} />
+					</div>
+				{:else}
+					<img
+						src={p.image}
+						alt={p.image_alt ?? p.title}
+						width="600"
+						height="440"
+						loading="lazy"
+						class="aspect-[1.27] w-full rounded-xl bg-cream object-cover md:self-start"
+					/>
+				{/if}
 				<div>
 					{#if p.duration}<div class="eyebrow text-muted">{p.duration}</div>{/if}
 					<h3 class="my-2 text-[26px] leading-tight font-black tracking-tight">{p.title}</h3>

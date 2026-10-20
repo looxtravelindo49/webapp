@@ -24,9 +24,18 @@ describe('PackageGallery', () => {
 		expect(body).toContain('aria-label="Tampilkan Dua"');
 		expect(body).toContain('aria-label="Tampilkan Tiga"');
 		expect(body).toContain('aria-label="Tampilkan Jeep di hutan pinus"');
-		expect(body).toContain('alt=""');
+		expect(body).toContain('alt="Dua"');
+		expect(body).toContain('alt="Tiga"');
+		expect(body).toContain('alt="Jeep di hutan pinus"');
+		expect(body).not.toContain('alt=""');
 		expect(body).toContain('data-autoplay-ms="4000"');
-		expect(body).not.toContain('src="/media/forest.svg" alt=""');
+	});
+
+	it('panel tidak aktif kembali ke foto pertama dan tidak menggeser', () => {
+		const body = render(PackageGallery, { props: { photos: slides, fallbackAlt: 'Jeep di hutan pinus', running: false } }).body;
+		expect(body).toContain('alt="Satu"');
+		expect(body).toContain('alt="Dua"');
+		expect(body).not.toContain('data-autoplay-ms');
 	});
 
 	it('satu foto: tanpa thumbnail dan tanpa geser otomatis', () => {

@@ -51,6 +51,10 @@ describe('halaman detail paket', () => {
 		expect(body.match(/loading="lazy"/g)).toHaveLength(3);
 		expect(body).toContain('data-autoplay-ms="4000"');
 		expect(body).toContain('aria-label="Tampilkan Jeep di hutan pinus"');
+		expect(body).toContain('alt="Dua"');
+		expect(body).toContain('alt="Tiga"');
+		expect(body).toContain('alt="Jeep di hutan pinus"');
+		expect(body).not.toContain('alt=""');
 		expect(body).not.toContain('src="/media/forest.svg"');
 	});
 
