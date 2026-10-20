@@ -23,14 +23,21 @@ const pkg = (slug: string, title: string, extra: Partial<Package> = {}): Package
 });
 
 describe('PackageTabs (render server)', () => {
-	it('merender semua panel di HTML awal dengan hanya tab pertama terpilih', () => {
+	it('merender semua slide di HTML awal, slide pertama aktif', () => {
 		const { body } = render(PackageTabs, {
 			props: { packages: [pkg('a', 'Alfa'), pkg('b', 'Beta')] }
 		});
 		expect(body).toContain('ringkasan Alfa');
 		expect(body).toContain('ringkasan Beta');
-		expect(body.match(/aria-selected="true"/g)).toHaveLength(1);
-		expect(body.match(/role="tabpanel"/g)).toHaveLength(2);
+		expect(body).toContain('aria-roledescription="carousel"');
+		expect(body.match(/aria-roledescription="slide"/g)).toHaveLength(2);
+		expect(body).toContain('1/2 · Alfa');
+		expect(body).toContain('aria-label="Geser ke Alfa"');
+		expect(body).toContain('aria-label="Geser ke Beta"');
+		expect(body).toContain('aria-label="Paket sebelumnya"');
+		expect(body).toContain('aria-label="Paket berikutnya"');
+		expect(body).not.toContain('role="tab"');
+		expect(body.match(/\sinert(?:=|>|\s)/g)).toHaveLength(1);
 	});
 
 	it('menampilkan harga, "/ orang", dan minimal peserta', () => {
@@ -71,12 +78,20 @@ describe('PackageTabs (render server)', () => {
 		expect(body).toContain('src="/media/river.svg"');
 		expect(body).toContain('alt="Sungai"');
 		expect(body).not.toContain('alt=""');
+		expect(body).not.toContain('touch-pan-y');
 		expect(body.match(/data-autoplay-ms="4000"/g)).toHaveLength(1);
 	});
 
 	it('menampilkan 3 butir fasilitas', () => {
 		const { body } = render(PackageTabs, { props: { packages: [pkg('a', 'Alfa')] } });
 		expect(body.match(/<li class="flex gap-2.5"/g)).toHaveLength(3);
+	});
+
+	it('satu paket: label saja, tanpa panah dan tanpa titik', () => {
+		const { body } = render(PackageTabs, { props: { packages: [pkg('a', 'Alfa')] } });
+		expect(body).toContain('1/1 · Alfa');
+		expect(body).not.toContain('Paket sebelumnya');
+		expect(body).not.toContain('Geser ke');
 	});
 
 	it('men-escape HTML pada data', () => {
@@ -87,10 +102,10 @@ describe('PackageTabs (render server)', () => {
 		expect(body).toContain('&lt;script');
 	});
 
-	it('tanpa paket: pesan kosong dan tanpa tablist', () => {
+	it('tanpa paket: pesan kosong dan tanpa carousel', () => {
 		const { body } = render(PackageTabs, { props: { packages: [] } });
 		expect(body).toContain('Paket sedang disiapkan');
-		expect(body).not.toContain('role="tablist"');
+		expect(body).not.toContain('aria-roledescription="carousel"');
 	});
 
 	it('merender slot aksi per paket', () => {

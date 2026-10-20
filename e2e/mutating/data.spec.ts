@@ -23,7 +23,7 @@ test.describe('[package-catalog] Hanya paket terbit yang tampil', () => {
 	test('paket draft hilang dari tab dan dari kalkulator; paket lain tetap berurutan', async ({ page }) => {
 		setPublished('rafting', false);
 		await gotoReady(page, '/');
-		const labels = (await page.getByRole('tab').allInnerTexts()).map((t) => t.trim());
+		const labels = (await page.locator('#paket h3').allInnerTexts()).map((t) => t.trim());
 		expect(labels).toEqual(['Offroad', 'Team Building', 'Paintball', 'Fun Games']);
 		await expect(calc(page).root.getByRole('checkbox')).toHaveCount(4);
 		await expect(calc(page).root.getByRole('checkbox', { name: /^Rafting/ })).toHaveCount(0);
@@ -33,15 +33,16 @@ test.describe('[package-catalog] Hanya paket terbit yang tampil', () => {
 	test('urutan mengikuti sort_order', async ({ page }) => {
 		exec("UPDATE package SET sort_order = 0 WHERE slug = 'paintball'");
 		await gotoReady(page, '/');
-		const labels = (await page.getByRole('tab').allInnerTexts()).map((t) => t.trim());
+		const labels = (await page.locator('#paket h3').allInnerTexts()).map((t) => t.trim());
 		expect(labels[0]).toBe('Paintball');
 		expect(labels).toHaveLength(5);
 	});
 
-	test('semua paket draft: pesan "Paket sedang disiapkan" dan tanpa tablist', async ({ page }) => {
+	test('semua paket draft: pesan "Paket sedang disiapkan" dan tanpa carousel', async ({ page }) => {
 		exec('UPDATE package SET published = 0');
 		await gotoReady(page, '/');
 		await expect(page.locator('#paket')).toContainText('Paket sedang disiapkan');
+		await expect(page.locator('#paket [aria-roledescription="carousel"]')).toHaveCount(0);
 		await expect(page.getByRole('tablist')).toHaveCount(0);
 		await expect(calc(page).root).toContainText('Paket sedang disiapkan');
 	});

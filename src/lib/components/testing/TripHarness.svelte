@@ -1,5 +1,5 @@
 <script lang="ts">
-	// Hanya untuk tes: memasang context trip dan merangkai tab Paket + kalkulator seperti di beranda.
+	// Hanya untuk tes: memasang context trip dan merangkai slider paket + kalkulator seperti di beranda.
 	import { untrack } from 'svelte';
 	import { setTripContext } from '#lib/trip.svelte.js';
 	import type { Package } from '#lib/types.js';
@@ -38,7 +38,7 @@
 	});
 </script>
 
-<PackageTabs {packages} selected={trip.selected}>
+<PackageTabs {packages}>
 	{#snippet action(p)}<TripToggle pkg={p} />{/snippet}
 </PackageTabs>
 <TripCalculator {packages} {waNumber} />

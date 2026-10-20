@@ -33,11 +33,12 @@ test.describe('[trip-calculator] Daftar paket di kalkulator', () => {
 	});
 });
 
-test.describe('[trip-calculator] Pilihan paket dibagi antara tab Paket dan kalkulator', () => {
-	test('tambah dari tab: tombol, checkbox, penanda tab, tab tetap aktif, tanpa gulir', async ({ page }) => {
+test.describe('[trip-calculator] Pilihan paket dibagi antara slider paket dan kalkulator', () => {
+	test('tambah dari slide: tombol, checkbox, slide tetap, tanpa gulir', async ({ page }) => {
 		await gotoReady(page, '/');
 		const c = calc(page);
-		await c.tab('Rafting').click();
+		await c.show('Rafting');
+		await c.panelToggle.scrollIntoViewIfNeeded();
 		const y0 = await page.evaluate(() => scrollY);
 		await expect(c.panelToggle).toHaveText('Tambah ke trip');
 		await expect(c.panelToggle).toHaveAttribute('aria-pressed', 'false');
@@ -45,46 +46,45 @@ test.describe('[trip-calculator] Pilihan paket dibagi antara tab Paket dan kalku
 		await expect(c.panelToggle).toHaveText('Hapus dari trip');
 		await expect(c.panelToggle).toHaveAttribute('aria-pressed', 'true');
 		await expect(c.box('Rafting')).toBeChecked();
-		await expect(c.tab('Rafting')).toHaveAttribute('aria-selected', 'true');
-		await expect(c.tab('Rafting')).toContainText('(dipilih)');
-		await expect(c.tab('Rafting')).toContainText('✓');
-		await expect(c.tab('Offroad')).not.toContainText('(dipilih)');
+		await expect(page.locator('#paket [aria-live="polite"]')).toHaveText('3/5 · Rafting');
 		expect(await page.evaluate(() => scrollY)).toBe(y0);
 	});
 
-	test('tambah dari kalkulator: tombol di panel ikut berubah', async ({ page }) => {
+	test('tambah dari kalkulator: tombol di slide ikut berubah', async ({ page }) => {
 		await gotoReady(page, '/');
 		const c = calc(page);
 		await c.box('Paintball').check();
-		await c.tab('Paintball').click();
+		await c.show('Paintball');
 		await expect(c.panelToggle).toHaveAttribute('aria-pressed', 'true');
 		await expect(c.panelToggle).toHaveText('Hapus dari trip');
-		await expect(c.tab('Paintball')).toContainText('(dipilih)');
 	});
 
-	test('hapus pilihan dari kalkulator dan dari panel', async ({ page }) => {
+	test('hapus pilihan dari kalkulator dan dari slide', async ({ page }) => {
 		await gotoReady(page, '/');
 		const c = calc(page);
-		await c.tab('Rafting').click();
+		await c.show('Rafting');
 		await c.panelToggle.click();
 		await expect(c.box('Rafting')).toBeChecked();
 		await c.box('Rafting').uncheck();
 		await expect(c.panelToggle).toHaveText('Tambah ke trip');
-		await expect(c.tab('Rafting')).not.toContainText('(dipilih)');
 		await c.panelToggle.click();
 		await c.panelToggle.click();
 		await expect(c.box('Rafting')).not.toBeChecked();
 		await expect(c.root).toContainText('Pilih minimal satu paket');
 	});
 
-	test('beberapa paket terpilih ditandai di tabnya masing-masing', async ({ page }) => {
+	test('beberapa paket terpilih terbaca dari tombol slide masing-masing', async ({ page }) => {
 		await gotoReady(page, '/');
 		const c = calc(page);
 		await c.box('Offroad').check();
 		await c.box('Rafting').check();
-		await expect(c.tab('Offroad')).toContainText('(dipilih)');
-		await expect(c.tab('Rafting')).toContainText('(dipilih)');
-		for (const n of ['Team Building', 'Paintball', 'Fun Games']) await expect(c.tab(n)).not.toContainText('(dipilih)');
+		await expect(c.panelToggle).toHaveText('Hapus dari trip');
+		await c.show('Rafting');
+		await expect(c.panelToggle).toHaveText('Hapus dari trip');
+		for (const n of ['Team Building', 'Paintball', 'Fun Games']) {
+			await c.show(n);
+			await expect(c.panelToggle).toHaveText('Tambah ke trip');
+		}
 	});
 });
 
