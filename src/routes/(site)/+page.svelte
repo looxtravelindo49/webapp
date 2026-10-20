@@ -1,5 +1,4 @@
 <script lang="ts">
-	import Destinations from '#lib/components/Destinations.svelte';
 	import Hero from '#lib/components/Hero.svelte';
 	import PackageCatalog from '#lib/components/PackageCatalog.svelte';
 	import PackageTabs from '#lib/components/PackageTabs.svelte';
@@ -46,5 +45,4 @@
 </PackageTabs>
 <TripCalculator packages={data.packages} waNumber={data.waNumber} />
 <PopularArticles articles={data.popularArticles} />
-<Destinations />
 <Planner />
