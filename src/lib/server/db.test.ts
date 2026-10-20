@@ -192,6 +192,7 @@ describe('seed', () => {
 		expect(rows.map((r) => r.title)).toEqual(['Offroad', 'Team Building', 'Rafting', 'Paintball', 'Fun Games']);
 		expect(rows.every((r) => r.price_per_person === null)).toBe(true);
 		expect(rows.map((r) => r.min_pax)).toEqual([7, 20, 5, 10, 20]);
+		expect(rows.map((r) => r.duration)).toEqual(['2-3 Jam', null, null, null, null]);
 		expect(rows.map((r) => r.sort_order)).toEqual([1, 2, 3, 4, 5]);
 	});
 
@@ -205,10 +206,11 @@ describe('seed', () => {
 	it('tidak menimpa data yang sudah diedit saat dijalankan ulang', async () => {
 		const db = await open(':memory:');
 		await seed(db);
-		await run(db, "UPDATE package SET price_per_person = 250000 WHERE slug = 'offroad'");
+		await run(db, "UPDATE package SET price_per_person = 250000, duration = 'Sehari' WHERE slug = 'offroad'");
 		await run(db, "UPDATE setting SET value = '6281234567890' WHERE key = 'whatsapp'");
 		await seed(db);
 		expect((await scalar(db, "SELECT price_per_person FROM package WHERE slug = 'offroad'"))).toBe(250000);
+		expect((await scalar(db, "SELECT duration FROM package WHERE slug = 'offroad'"))).toBe('Sehari');
 		expect((await scalar(db, 'SELECT COUNT(*) FROM package'))).toBe(seedPackages.length);
 		expect(await getSetting(db, 'whatsapp')).toBe('6281234567890');
 	});

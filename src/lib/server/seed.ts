@@ -9,7 +9,8 @@ type SeedPackage = {
 	notes: string;
 	image: string;
 	image_alt: string;
-	duration: string;
+	/** `null` = admin yang mengisi. Hanya dipakai saat tabel package masih kosong. */
+	duration: string | null;
 	/** Hanya untuk database kosong. Situs yang sudah terisi memakai min_pax di admin. */
 	min_pax: number;
 };
@@ -28,7 +29,7 @@ export const seedPackages: SeedPackage[] = [
 			'Rute, kapasitas kendaraan, fasilitas, dan biaya mengikuti penawaran operator yang dikonfirmasi. Ikuti briefing dan arahan pemandu.',
 		image: '/media/forest.svg',
 		image_alt: 'Ilustrasi jeep di hutan pinus; ganti dengan dokumentasi asli.',
-		duration: 'Sesuai program',
+		duration: '2-3 Jam',
 		min_pax: 7
 	},
 	{
@@ -41,7 +42,7 @@ export const seedPackages: SeedPackage[] = [
 			'Permainan, fasilitas, fasilitator, lokasi, dan durasi ditentukan dalam penawaran. Siapkan alternatif kegiatan saat cuaca berubah.',
 		image: '/media/camp.svg',
 		image_alt: 'Ilustrasi tenda di perbukitan; ganti dengan dokumentasi asli.',
-		duration: 'Sesuai program',
+		duration: null,
 		min_pax: 20
 	},
 	{
@@ -54,7 +55,7 @@ export const seedPackages: SeedPackage[] = [
 			'Kegiatan mengikuti kondisi debit air dan cuaca. Peserta wajib mengikuti briefing dan memakai perlengkapan keselamatan.',
 		image: '/media/river.svg',
 		image_alt: 'Ilustrasi sungai di antara tebing hijau; ganti dengan dokumentasi asli.',
-		duration: 'Sesuai program',
+		duration: null,
 		min_pax: 5
 	},
 	{
@@ -67,7 +68,7 @@ export const seedPackages: SeedPackage[] = [
 			'Persyaratan peserta, perlengkapan keselamatan, jumlah peluru, dan aturan permainan mengikuti ketentuan operator.',
 		image: '/media/paintball.svg',
 		image_alt: 'Ilustrasi arena paintball di perbukitan; ganti dengan dokumentasi asli.',
-		duration: 'Sesuai program',
+		duration: null,
 		min_pax: 10
 	},
 	{
@@ -80,7 +81,7 @@ export const seedPackages: SeedPackage[] = [
 			'Jenis permainan, perlengkapan, pemandu, lokasi, dan konsumsi mengikuti penawaran yang disepakati.',
 		image: '/media/camp.svg',
 		image_alt: 'Ilustrasi area berkumpul di alam terbuka; ganti dengan dokumentasi asli.',
-		duration: 'Sesuai program',
+		duration: null,
 		min_pax: 20
 	}
 ];

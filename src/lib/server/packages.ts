@@ -13,6 +13,19 @@ export function listPublishedPackages(db: Queryable): Promise<Package[]> {
 	return all<Package>(db, `SELECT ${columns} FROM package WHERE published = 1 ORDER BY sort_order, id`);
 }
 
+const PACKAGE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/** Paket terbit untuk halaman `/paket/[slug]`. Slug lain dan draft dianggap tidak ada. */
+export async function getPublishedPackageBySlug(db: Queryable, slug: string): Promise<(Package & { updated_at: string }) | null> {
+	if (!PACKAGE_SLUG.test(slug)) return null;
+	return one<Package & { updated_at: string }>(db, `SELECT ${columns}, updated_at FROM package WHERE published = 1 AND slug = ?`, [slug]);
+}
+
+/** Entri sitemap halaman detail paket terbit. */
+export function listSitemapPackages(db: Queryable): Promise<{ slug: string; updated_at: string }[]> {
+	return all(db, 'SELECT slug, updated_at FROM package WHERE published = 1 ORDER BY sort_order, id');
+}
+
 // ---------------------------------------------------------------------------
 // Pengelolaan paket (CMS admin)
 // ---------------------------------------------------------------------------

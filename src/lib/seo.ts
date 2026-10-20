@@ -107,6 +107,42 @@ export function articleNodes(base: string, site: Site, a: ArticleMeta): Node[] {
 	];
 }
 
+export type PackageMeta = {
+	slug: string;
+	title: string;
+	summary: string;
+	image: string | null;
+	price_per_person: number | null;
+	updated_at: string;
+};
+
+/** `Service` + remah roti untuk halaman detail paket. */
+export function packageNodes(base: string, site: Site, p: PackageMeta): Node[] {
+	const url = absoluteUrl(base, `/paket/${p.slug}`);
+	const service: Node = {
+		'@type': 'Service',
+		name: p.title,
+		description: p.summary,
+		serviceType: 'Paket aktivitas',
+		url,
+		image: [shareImage(base, p.image).url],
+		provider: { '@type': 'Organization', name: site.name, url: `${base}/` },
+		areaServed: 'Lembang, Bandung, Jawa Barat',
+		dateModified: p.updated_at
+	};
+	if (p.price_per_person !== null) {
+		service.offers = { '@type': 'Offer', priceCurrency: 'IDR', price: p.price_per_person, url };
+	}
+	return [
+		service,
+		breadcrumbNode(base, [
+			{ name: 'Beranda', path: '/' },
+			{ name: 'Katalog paket', path: '/#katalog' },
+			{ name: p.title, path: `/paket/${p.slug}` }
+		])
+	];
+}
+
 /** `CollectionPage` + `BreadcrumbList` untuk daftar artikel. */
 export function collectionNodes(base: string, name: string, description: string): Node[] {
 	return [

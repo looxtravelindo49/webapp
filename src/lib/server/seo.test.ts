@@ -64,6 +64,14 @@ describe('sitemapEntries', () => {
 		expect(xml).toContain('<loc>https://contoh.id/artikel</loc>');
 		expect(xml).not.toContain('<lastmod>');
 	});
+	it('menambahkan halaman detail paket terbit', () => {
+		expect(sitemapEntries([], null, [{ slug: 'offroad', updated_at: '2026-10-02T00:00:00.000Z' }])).toEqual([
+			{ path: '/', lastmod: null },
+			{ path: '/artikel', lastmod: null },
+			{ path: '/kebijakan-pembayaran', lastmod: null },
+			{ path: '/paket/offroad', lastmod: '2026-10-02T00:00:00.000Z' }
+		]);
+	});
 });
 
 const art = (i: number, over: Partial<FeedArticle> = {}): FeedArticle => ({
