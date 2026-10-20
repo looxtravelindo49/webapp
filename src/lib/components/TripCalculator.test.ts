@@ -57,30 +57,34 @@ describe('section Konsultasikan Tripmu (render server)', () => {
 		expect(html({ waNumber: '6282120209900' })).not.toContain('wa.me');
 	});
 
-	it('tombol "Kirim ke WhatsApp" hanya ada bila nomor valid; "Simpan PDF" selalu ada', () => {
+	it('tombol "Kirim ke WhatsApp" hanya ada bila nomor tujuan valid; tidak ada Simpan PDF', () => {
 		const tanpa = html({ waNumber: null });
 		expect(tanpa).not.toContain('Kirim ke WhatsApp');
-		expect(tanpa).toContain('Simpan PDF');
+		expect(tanpa).toContain('Pengiriman lewat WhatsApp sedang tidak aktif.');
+		expect(tanpa).not.toContain('Simpan PDF');
 		expect(html({ waNumber: '6282120209900' })).toContain('Kirim ke WhatsApp');
+		expect(html({ waNumber: '6282120209900' })).not.toContain('Simpan PDF');
+		expect(html({ waNumber: '6282120209900' })).not.toContain('PDF');
 	});
 
 	it('aksi disabled dan petunjuk menyebut yang kurang', () => {
-		const body = html({ waNumber: '6282120209900', selected: ['offroad'], pax: '40', team: '' });
+		const body = html({ waNumber: '6282120209900', selected: ['offroad'], pax: '40', team: '', whatsapp: '081234567890' });
 		expect(body).toContain('Lengkapi dulu: nama tim.');
-		expect(count(body, /disabled/g)).toBeGreaterThanOrEqual(2);
+		expect(body).toMatch(/<button[^>]*\sdisabled=""/);
 	});
 
 	it('petunjuk menyebut semua yang kurang', () => {
 		const body = html();
-		expect(body).toContain('Lengkapi dulu: nama tim, minimal satu paket, jumlah peserta yang valid.');
+		expect(body).toContain('Lengkapi dulu: nama tim, minimal satu paket, jumlah peserta yang valid, nomor WhatsApp yang valid.');
 	});
 
 	it('aksi aktif dan total tampil bila masukan lengkap', () => {
-		const body = html({ waNumber: '6282120209900', selected: ['offroad'], pax: '40', team: 'Tim Alfa' });
+		const body = html({ waNumber: '6282120209900', selected: ['offroad'], pax: '40', team: 'Tim Alfa', whatsapp: '081234567890' });
 		expect(body).toContain('Rp 10.000.000');
 		expect(body).toContain('40 × Rp 250.000');
 		expect(body).not.toContain('Lengkapi dulu');
-		expect(body).not.toMatch(/<button[^>]*disabled[^>]*>\s*Simpan PDF/);
+		const button = body.match(/<button[^>]*>[\s\S]*?Kirim ke WhatsApp/)?.[0] ?? '';
+		expect(button).not.toMatch(/\sdisabled(=|"|\s|>)/);
 	});
 
 	it('beberapa paket: subtotal dan total dijumlahkan', () => {

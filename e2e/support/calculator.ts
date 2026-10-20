@@ -12,7 +12,6 @@ export function calc(page: Page) {
 		notes: root.getByLabel(/Catatan/),
 		box: (name: string) => root.getByRole('checkbox', { name: new RegExp(`^${name}`) }),
 		summary: root.locator('[aria-live="polite"][aria-atomic="true"]'),
-		save: root.getByRole('button', { name: 'Simpan PDF' }),
 		send: root.getByRole('button', { name: /Kirim ke WhatsApp/ }),
 		hint: root.locator('p[id$="-hint"]'),
 		status: root.locator('[role=status]'),
@@ -22,10 +21,11 @@ export function calc(page: Page) {
 }
 
 /** Isi masukan yang valid: tim, paket yang dipilih, dan jumlah peserta. */
-export async function fillValid(page: Page, opts: { packages?: string[]; team?: string; pax?: string } = {}) {
+export async function fillValid(page: Page, opts: { packages?: string[]; team?: string; pax?: string; whatsapp?: string } = {}) {
 	const c = calc(page);
 	for (const p of opts.packages ?? ['Offroad']) await c.box(p).check();
 	await c.team.fill(opts.team ?? 'Tim Alfa');
+	await c.whatsapp.fill(opts.whatsapp ?? '081234567890');
 	await c.pax.fill(opts.pax ?? '40');
 	return c;
 }

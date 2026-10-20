@@ -46,6 +46,7 @@ describe('sitemapEntries', () => {
 		expect(sitemapEntries(articles, '2026-08-01T00:00:00.000Z')).toEqual([
 			{ path: '/', lastmod: '2026-10-01T00:00:00.000Z' },
 			{ path: '/artikel', lastmod: '2026-10-01T00:00:00.000Z' },
+			{ path: '/kebijakan-pembayaran', lastmod: null },
 			{ path: '/artikel/baru', lastmod: '2026-10-01T00:00:00.000Z' },
 			{ path: '/artikel/lama', lastmod: '2026-09-01T00:00:00.000Z' }
 		]);
@@ -54,7 +55,11 @@ describe('sitemapEntries', () => {
 		expect(sitemapEntries(articles, '2027-01-01T00:00:00.000Z')[0].lastmod).toBe('2027-01-01T00:00:00.000Z');
 	});
 	it('tanpa artikel: hanya beranda dan daftar; tanpa data → tanpa lastmod', () => {
-		expect(sitemapEntries([], null)).toEqual([{ path: '/', lastmod: null }, { path: '/artikel', lastmod: null }]);
+		expect(sitemapEntries([], null)).toEqual([
+			{ path: '/', lastmod: null },
+			{ path: '/artikel', lastmod: null },
+			{ path: '/kebijakan-pembayaran', lastmod: null }
+		]);
 		const xml = sitemapXml('https://contoh.id', sitemapEntries([], null));
 		expect(xml).toContain('<loc>https://contoh.id/artikel</loc>');
 		expect(xml).not.toContain('<lastmod>');

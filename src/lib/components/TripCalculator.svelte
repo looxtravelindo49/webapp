@@ -1,20 +1,11 @@
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
-	import {
-		buildWhatsappMessage,
-		DISCLAIMER,
-		pdfFilename,
-		totalNote,
-		totalText,
-		type EstimateInput
-	} from '#lib/estimate.js';
+	import { untrack } from 'svelte';
+	import { DISCLAIMER, totalNote, totalText } from '#lib/estimate.js';
 	import { formatRupiah } from '#lib/format.js';
-	import { buildEstimatePdf, loadPdfEngine } from '#lib/pdf.js';
 	import { calculateEstimate, MAX_PAX, parsePax } from '#lib/pricing.js';
-	import { canShareFile, downloadBlob, sharePdf } from '#lib/share.js';
 	import { getTripContext } from '#lib/trip.svelte.js';
 	import type { Package } from '#lib/types.js';
-	import { normalizeWhatsapp, waLink } from '#lib/whatsapp.js';
+	import { normalizeWhatsapp } from '#lib/whatsapp.js';
 	import Button from './Button.svelte';
 
 	let { packages, waNumber }: { packages: Package[]; waNumber: string | null } = $props();
@@ -34,90 +25,69 @@
 			trip.team.trim() === '' ? 'nama tim' : null,
 			estimate.state === 'empty' ? 'minimal satu paket' : null,
 			pax === null ? 'jumlah peserta yang valid' : null,
-			contactError ? 'nomor WhatsApp yang valid' : null
+			contact === null ? 'nomor WhatsApp yang valid' : null
 		].filter((m): m is string => m !== null)
 	);
 	const ready = $derived(missing.length === 0);
 
-	type Status =
-		| { kind: 'idle' }
-		| { kind: 'busy' }
-		| { kind: 'saved' }
-		| { kind: 'shared' }
-		| { kind: 'fallback'; url: string }
-		| { kind: 'error' };
+	type Status = { kind: 'idle' } | { kind: 'busy' } | { kind: 'error'; message: string };
 	let status = $state<Status>({ kind: 'idle' });
 
 	// Hasil sebelumnya tidak lagi relevan setelah masukan berubah.
 	$effect(() => {
 		void [trip.team, trip.whatsapp, trip.pax, trip.date, trip.notes, trip.selected.length];
-		// `status` dibaca tanpa dilacak, kalau tidak efek ini menghapus hasil begitu hasil itu muncul.
 		untrack(() => {
 			if (status.kind !== 'busy') status = { kind: 'idle' };
 		});
 	});
 
-	function input(): EstimateInput {
-		return { team: trip.team, whatsapp: contact ?? '', pax: pax!, estimate, planDate: trip.date, notes: trip.notes };
-	}
-	const makePdf = () => buildEstimatePdf({ ...input(), createdAt: new Date() });
-
-	async function savePdf() {
-		if (!ready || status.kind === 'busy') return;
-		status = { kind: 'busy' };
-		try {
-			downloadBlob(await makePdf(), pdfFilename(trip.team, new Date()));
-			status = { kind: 'saved' };
-		} catch {
-			status = { kind: 'error' };
-		}
-	}
-
 	async function sendWhatsapp() {
 		if (!ready || !waNumber || status.kind === 'busy') return;
-		// Diperiksa sinkron sebelum await apa pun, selagi izin klik (user activation) masih utuh.
-		const shareable = canShareFile();
 		status = { kind: 'busy' };
+		// Jendela dibuka selagi izin klik masih ada. Isinya diisi setelah server menyimpan lead.
+		const popup = window.open('about:blank', '_blank');
 		try {
-			const text = buildWhatsappMessage(input());
-			const filename = pdfFilename(trip.team, new Date());
-			const blob = await makePdf();
-
-			if (shareable) {
-				const result = await sharePdf(new File([blob], filename, { type: 'application/pdf' }), text);
-				if (result === 'shared') return void (status = { kind: 'shared' });
-				if (result === 'aborted') return void (status = { kind: 'idle' });
-				// galat lain: lanjut ke cadangan
+			const res = await fetch('/api/leads', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json', accept: 'application/json' },
+				body: JSON.stringify({
+					nama: trip.team,
+					whatsapp: trip.whatsapp,
+					paket: trip.selected,
+					jumlahPeserta: trip.pax,
+					tanggal: trip.date,
+					catatan: trip.notes
+				})
+			});
+			const data = (await res.json().catch(() => null)) as { waUrl?: string; invoicePath?: string; message?: string } | null;
+			if (!res.ok || !data?.waUrl || !data.invoicePath) {
+				popup?.close();
+				status = {
+					kind: 'error',
+					message: data?.message || 'Estimasi belum tersimpan. WhatsApp tidak kami buka. Coba lagi, ya.'
+				};
+				return;
 			}
-
-			downloadBlob(blob, filename);
-			const url = waLink(waNumber, text);
-			window.open(url, '_blank', 'noopener,noreferrer');
-			status = { kind: 'fallback', url };
+			if (popup && !popup.closed) {
+				try {
+					popup.location.href = data.waUrl;
+				} catch {
+					popup.close();
+				}
+			}
+			window.location.assign(data.invoicePath);
 		} catch {
-			status = { kind: 'error' };
+			popup?.close();
+			status = { kind: 'error', message: 'Estimasi belum tersimpan. WhatsApp tidak kami buka. Coba lagi, ya.' };
 		}
 	}
-
-	// Prefetch jsPDF pada interaksi pertama agar izin klik belum habis saat PDF dibuat.
-	let section: HTMLElement;
-	onMount(() => {
-		const warm = () => void loadPdfEngine().catch(() => {});
-		section.addEventListener('pointerenter', warm, { once: true });
-		section.addEventListener('focusin', warm, { once: true });
-	});
 
 	const label = 'mb-1.5 block text-[10px] font-bold tracking-wide';
 	const field =
 		'w-full rounded-md border border-line bg-white px-3 py-2.5 text-xs text-green-900 placeholder:text-muted/70';
 </script>
 
-<section
-	bind:this={section}
-	id="konsultasi"
-	tabindex="-1"
-	class="on-dark bg-green-900 py-11 text-white outline-none sm:py-16"
->
+<section id="konsultasi" tabindex="-1" class="on-dark bg-green-900 py-11 text-white outline-none sm:py-16">
 	<div class="wrap">
 		<div class="mb-7 max-w-xl sm:mb-9">
 			<div class="eyebrow text-accent">HITUNG PERKIRAANNYA</div>
@@ -125,19 +95,16 @@
 				Konsultasikan <span class="text-accent">Tripmu.</span>
 			</h2>
 			<p class="text-xs leading-[1.9] text-green-100 sm:text-[13px]">
-				Pilih satu atau beberapa paket, isi jumlah peserta, dan lihat estimasi biayanya. Simpan sebagai PDF{waNumber
-					? ' atau kirim ke WhatsApp kami'
-					: ''}.
+				{#if waNumber}
+					Pilih satu atau beberapa paket, isi data tim, dan lihat estimasi biayanya. Kirim ke WhatsApp untuk menyimpan estimasi dan membuka invoice.
+				{:else}
+					Pilih satu atau beberapa paket, isi data tim, dan lihat estimasi biayanya.
+				{/if}
 			</p>
 		</div>
 
 		<div class="grid gap-5 lg:grid-cols-[1.15fr_1fr] lg:gap-7">
-			<!-- Formulir -->
-			<form
-				class="on-light rounded-xl bg-white p-5 text-green-900 sm:p-7"
-				onsubmit={(e) => e.preventDefault()}
-				novalidate
-			>
+			<form class="on-light rounded-xl bg-white p-5 text-green-900 sm:p-7" onsubmit={(e) => e.preventDefault()} novalidate>
 				<div class="grid gap-5">
 					<div>
 						<label for="{uid}-team" class={label}>Nama tim / perusahaan</label>
@@ -194,9 +161,7 @@
 										<span class="min-w-0">
 											<span class="block text-xs font-bold">{p.title}</span>
 											<span class="block text-[11px] text-muted">
-												{p.price_per_person === null
-													? 'Harga menyusul'
-													: `${formatRupiah(p.price_per_person)} / orang`}
+												{p.price_per_person === null ? 'Harga menyusul' : `${formatRupiah(p.price_per_person)} / orang`}
 											</span>
 											{#if p.min_pax > 1}
 												<span class="block text-[10px] text-muted">Minimal {p.min_pax} peserta</span>
@@ -247,7 +212,6 @@
 				</div>
 			</form>
 
-			<!-- Ringkasan -->
 			<div class="on-light h-fit rounded-xl bg-cream p-5 text-green-900 sm:p-7 lg:sticky lg:top-24">
 				<div class="eyebrow text-muted">ESTIMASI TRIP</div>
 
@@ -264,9 +228,7 @@
 								<div class="min-w-0">
 									<div class="text-xs font-bold">{l.title}</div>
 									{#if l.price !== null}
-										<div class="text-[11px] text-muted">
-											{l.billedPax} × {formatRupiah(l.price)}
-										</div>
+										<div class="text-[11px] text-muted">{l.billedPax} × {formatRupiah(l.price)}</div>
 									{/if}
 									{#if l.minApplied}
 										<div class="text-[10px] text-muted">ditagihkan minimal {l.minPax} peserta</div>
@@ -292,9 +254,6 @@
 				</div>
 
 				<div class="mt-5 grid gap-2.5">
-					<Button variant="outline" disabled={!ready || status.kind === 'busy'} onclick={savePdf}>
-						Simpan PDF
-					</Button>
 					{#if waNumber}
 						<Button
 							variant="accent"
@@ -305,6 +264,8 @@
 							{status.kind === 'busy' ? 'Menyiapkan…' : 'Kirim ke WhatsApp'}
 							<span aria-hidden="true">↗</span>
 						</Button>
+					{:else}
+						<p class="text-[11px] text-muted">Pengiriman lewat WhatsApp sedang tidak aktif.</p>
 					{/if}
 				</div>
 
@@ -317,23 +278,8 @@
 				</p>
 
 				<div class="mt-3 min-h-5 text-[11px]" role="status" aria-live="polite">
-					{#if status.kind === 'saved'}
-						<p class="font-semibold">PDF tersimpan.</p>
-					{:else if status.kind === 'shared'}
-						<p class="font-semibold">Dibagikan.</p>
-					{:else if status.kind === 'fallback'}
-						<p class="font-semibold">PDF sudah diunduh. Lampirkan file itu di chat WhatsApp.</p>
-						<p class="mt-1">
-							WhatsApp tidak terbuka?
-							<a
-								href={status.url}
-								target="_blank"
-								rel="noopener noreferrer"
-								class="font-bold underline">Buka WhatsApp ↗</a
-							>
-						</p>
-					{:else if status.kind === 'error'}
-						<p class="font-semibold text-danger">Gagal membuat PDF. Coba lagi.</p>
+					{#if status.kind === 'error'}
+						<p class="font-semibold text-danger">{status.message}</p>
 					{/if}
 				</div>
 			</div>

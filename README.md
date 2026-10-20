@@ -15,20 +15,32 @@ npm run build && npm start   # build produksi (adapter-node)
 ```
 
 Migrasi (`migrations/*.sql`) dan seed berjalan otomatis saat server start. Seed hanya mengisi data jika tabel
-`package` kosong dan tidak pernah menimpa data yang sudah diedit.
+`package` kosong dan tidak pernah menimpa data yang sudah diedit. Pada database kosong, minimal peserta seed adalah
+Offroad 7, Team Building 20, Rafting 5, Paintball 10, Fun Games 20 (harga tetap kosong). Situs yang sudah terisi
+membaca `min_pax` dari admin, jadi angka itu tidak berubah sendiri.
 
-## Kalkulator trip
+## Kalkulator trip → invoice → WhatsApp
 
 Section "Konsultasikan Tripmu" (`#konsultasi`) menghitung estimasi di browser: `harga per orang × max(peserta, min_pax)`
 untuk setiap paket terpilih. Paket tanpa harga tampil "Harga menyusul" dan tidak masuk total; bila semua paket
-terpilih tanpa harga, totalnya "Dibahas via WhatsApp". Harga dan `min_pax` dibaca dari tabel `package`.
+terpilih tanpa harga, totalnya "Dibahas via WhatsApp". Harga dan `min_pax` dibaca dari tabel `package`. Harga yang
+sudah dikunci di CMS tidak diubah oleh alur ini.
 
-- **Simpan PDF** membuat PDF di browser (jsPDF, dimuat lazy saat pengguna mulai berinteraksi dengan section).
-- **Kirim ke WhatsApp** muncul bila pengaturan `whatsapp` valid. Di perangkat yang mendukung Web Share dengan berkas,
-  PDF dibagikan sebagai lampiran (pengguna memilih kontak). Selain itu PDF diunduh dan `wa.me/<nomor>` terbuka dengan
-  ringkasan teks; pengguna diminta melampirkan PDF yang baru diunduh (`wa.me` tidak bisa melampirkan berkas).
-- Teks di PDF memakai font bawaan (Latin-1): emoji dan aksara di luar Latin-1 diganti `?`.
-- Tidak ada data formulir yang dikirim ke server.
+**Kirim ke WhatsApp** (hanya bila pengaturan `whatsapp` valid):
+
+1. Browser mengirim data ke `POST /api/leads`. Server menghitung ulang estimasi dari database (angka dari browser tidak dipakai).
+2. Satu baris masuk ke tabel `lead` di database yang sama (SQLite lokal atau Turso). Nomor invoice `LA-YYYYMMDD-XXXXXXXX` (tanggal WIB, 8 karakter acak).
+3. Bila simpan gagal, WhatsApp tidak dibuka dan tidak ada invoice kosong.
+4. Bila berhasil, halaman `/invoice/<nomor>` terbuka dan `wa.me/<nomor pengaturan>` terbuka dengan detail kebutuhan, estimasi, dan tautan invoice. Tidak ada PDF dan tidak ada kalimat "Saya lampirkan PDF".
+5. Invoice bisa dicetak atau disimpan lewat dialog cetak browser. Status awal **Baru** menampilkan cara transfer ke rekening PT dan tautan WhatsApp bukti transfer (nomor invoice sudah terisi). Tombol **Bayar DP 30% (segera)** tetap nonaktif. `dp_nominal` lead baru = 30% × estimasi (dibulatkan, konstanta `DP_PERCENT`), atau kosong bila estimasi belum berupa angka. Lead lama yang DP-nya turunan persen menampilkan 30% dari total tanpa menulis ulang baris; jumlah yang sudah dibayar tidak diubah. Tidak ada biaya gateway yang dikarang. Nomor invoice memakai 8 karakter acak, bukan urutan.
+
+Invoice bersifat publik lewat nomor (tidak ditebak), `noindex`, dan tidak masuk sitemap. Nomor WhatsApp tujuan selalu dibaca dari Pengaturan. Ringkasan DP (2x24 jam) dan pelunasan (H-3) tampil di invoice, dengan tautan ke `/kebijakan-pembayaran`. Halaman itu juga ditautkan dari footer.
+
+## Rekening
+
+Invoice dan footer menampilkan rekening **CIMB Niaga Syariah**, **860025788700**, a/n **Loox Travel Luxury**, plus peringatan penipuan. Logonya berkas resmi di `static/media/cimb-niaga-syariah.png`, sudah dipotong dari pinggiran putih, proporsi asli, ditampilkan kecil supaya tetap tajam.
+
+Foto utama beranda adalah `static/media/hero-2.jpg` (foto natural, 1280×720, di bawah 400 KB, pelat nomor kabur, tanpa teks). Berkas aslinya memang 1280×720, jadi tidak diperbesar ke 1920×1080.
 
 ## Admin
 
@@ -61,6 +73,7 @@ bawaan tertulis di repositori ini. Untuk menimpanya sejak awal, setel `ADMIN_SEE
   `/uploads/<nama>`. Dengan `BLOB_READ_WRITE_TOKEN` berkas disimpan di Vercel Blob (store privat) dan tetap disajikan lewat rute yang sama. Foto dari ponsel dapat memuat data lokasi (EXIF); ekspor ulang tanpa lokasi bila perlu, karena
   berkas disimpan apa adanya. Mengganti atau menghapus foto (dan menghapus paket) menghapus berkas unggahan lamanya;
   gambar bawaan di `static/media/` tidak pernah dihapus.
+- **Leads** di `/admin/leads`: setiap kiriman kalkulator (nama, WhatsApp, paket, peserta, tanggal, catatan, total, waktu, nomor invoice, status). Saring menurut status (Baru, DP diterima, Lunas, Batal). Detail di `/admin/leads/<nomor>` mencatat tanggal dan jumlah diterima (jumlah opsional), plus catatan internal. Tombol: **Konfirmasi DP diterima**, **Tandai lunas**, dan **Batalkan** (minta konfirmasi). Xendit belum menulis status ini. **Buat Invoice Manual** di `/admin/leads/baru` menyimpan lead `source = manual` dengan baris bebas (qty × harga satuan), diskon opsional, dan DP 30%. Halaman invoice publik membaca status langsung dari database (`cache-control: no-store`).
 - **Pengaturan** di `/admin/pengaturan`: nomor WhatsApp tujuan. Format lokal (`0812-3456-7890`) atau internasional
   (`+62 812 3456 7890`) disimpan sebagai `6281234567890`. Kosong menyembunyikan tombol "Kirim ke WhatsApp" di kalkulator.
 - **Batas ukuran body.** `adapter-node` menolak body di atas `BODY_SIZE_LIMIT` (bawaan 512 KB, yang menolak foto).
@@ -152,7 +165,9 @@ bila akun awal sudah pernah diganti; gunakan database baru untuk menjalankannya 
 | `UNSPLASH_API_URL` | `https://api.unsplash.com` | Hanya untuk tes e2e (server Unsplash tiruan). Jangan diisi di produksi. |
 | `ADMIN_SEED_LOGIN` / `ADMIN_SEED_PASSWORD` | `admin@looxtravel` / `12345678` | Akun admin awal (hanya bila tabel `user` kosong; wajib ganti password). |
 | `ADMIN_RESET_LOGIN` / `ADMIN_RESET_PASSWORD` | (kosong) | Pemulihan: atur ulang password satu akun saat start. Hapus setelah dipakai. |
-| `ADDRESS_HEADER` / `XFF_DEPTH` | (kosong) | Header dan kedalaman IP klien di balik reverse proxy (dipakai pembatasan login). |
+| `ADDRESS_HEADER` / `XFF_DEPTH` | (kosong) | Header dan kedalaman IP klien di balik reverse proxy (dipakai pembatasan login dan kiriman lead). |
+| `XENDIT_SECRET_KEY` | (tidak dibaca) | **Belum dipakai.** Disiapkan untuk DP 30% nanti. Jangan diisi dan jangan di-commit. Aplikasi mengabaikan variabel ini. |
+| `XENDIT_WEBHOOK_VERIFICATION_TOKEN` | (tidak dibaca) | **Belum dipakai.** Token verifikasi webhook Xendit, nanti. Jangan di-commit. |
 
 Nilai ini dibaca dari environment proses (di dev, default sudah cukup; file `.env` tidak dimuat otomatis).
 
@@ -232,13 +247,15 @@ folder `uploads` tetap berjalan, tetapi foto yang diunggah akan tampil rusak.
 
 ## Struktur
 
-- `src/routes/(site)/` — halaman publik; `src/routes/admin/` — area admin (login, paket, pengaturan, akun, ganti password)
+- `src/routes/(site)/` — halaman publik, termasuk `/invoice/[nomor]`; `src/routes/api/leads/` — simpan lead
+- `src/routes/admin/` — area admin (login, leads, paket, artikel, pengaturan, akun, ganti password)
 - `src/routes/uploads/[name]/` — penyajian foto unggahan (hanya nama berpola `<uuid>.<jpg|png|webp|avif>`)
 - `src/lib/server/` — database, migrasi, seed, akses data, autentikasi (password, sesi, akun, pembatas login), pengelolaan paket, unggahan; hanya server
 - `src/lib/package-form.ts`, `slug.ts` — validasi form paket (harga, minimal peserta, batas teks) dan pembuat slug (murni, dites unit)
 - `src/lib/components/` — komponen Svelte per section
 - `src/lib/content/` — teks statis Hero, Destinasi, Planner, dan section Artikel populer (artikel sendiri ada di database)
-- `src/lib/pricing.ts`, `estimate.ts`, `pdf.ts`, `share.ts` — hitungan estimasi, teks pesan, PDF, dan Web Share
+- `src/lib/pricing.ts`, `estimate.ts`, `invoice.ts` — hitungan estimasi, teks WhatsApp, nomor invoice, dan DP 30% (`DP_PERCENT`)
+- `src/lib/server/leads.ts` — simpan dan baca lead di database yang sama dengan paket (`DATABASE_URL` / berkas SQLite). Tidak ada database baru.
 - `migrations/` — SQL bernomor
 - `e2e/` — tes end-to-end Playwright (`public/`, `admin/`, `mutating/`, `support/`; proyek `main`, `mutating`, `mutating-cms`); `playwright.config.ts`
 - `legacy/` — situs statis lama (Cloudflare Pages + Pages CMS), disimpan sebagai arsip

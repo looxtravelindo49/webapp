@@ -22,8 +22,8 @@
 			<img
 				src={hero.image}
 				alt={hero.imageAlt}
-				width="600"
-				height="440"
+				width="1280"
+				height="720"
 				fetchpriority="high"
 				class="block aspect-[1.7] w-full rounded-tl-[48px] rounded-tr-[10px] rounded-b-[10px] bg-green-800 object-cover sm:aspect-[1.27] sm:rounded-tl-[85px] sm:rounded-tr-xl sm:rounded-b-xl"
 			/>

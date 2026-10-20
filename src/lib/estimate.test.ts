@@ -1,13 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-	buildWhatsappMessage,
-	formatPlanDate,
-	lineText,
-	pdfFilename,
-	sanitizePdfText,
-	totalNote,
-	totalText
-} from './estimate';
+import { formatPlanDate, lineText, totalNote, totalText } from './estimate';
+import { buildConfirmationMessage } from './invoice';
 import { calculateEstimate } from './pricing';
 import type { Package } from './types';
 
@@ -20,53 +13,6 @@ const packages = [
 	pkg('rafting', 'Rafting', 200000, 10),
 	pkg('fun-games', 'Fun Games', null)
 ];
-const input = (slugs: string[], pax = 40, extra: Partial<Parameters<typeof buildWhatsappMessage>[0]> = {}) => ({
-	team: 'Tim Alfa',
-	pax,
-	estimate: calculateEstimate(packages, slugs, pax),
-	planDate: '',
-	notes: '',
-	...extra
-});
-
-describe('pdfFilename', () => {
-	const day = new Date(2026, 9, 17); // 17 Oktober 2026 (lokal)
-	it('mem-slug nama tim', () => {
-		expect(pdfFilename('PT Maju & Jaya!', day)).toBe('estimasi-trip-pt-maju-jaya-2026-10-17.pdf');
-	});
-	it('membuang diakritik', () => {
-		expect(pdfFilename('Café Naïve', day)).toBe('estimasi-trip-cafe-naive-2026-10-17.pdf');
-	});
-	it('fallback "tim" bila hanya simbol atau kosong', () => {
-		expect(pdfFilename('!!! ???', day)).toBe('estimasi-trip-tim-2026-10-17.pdf');
-		expect(pdfFilename('', day)).toBe('estimasi-trip-tim-2026-10-17.pdf');
-		expect(pdfFilename('😀', day)).toBe('estimasi-trip-tim-2026-10-17.pdf');
-	});
-	it('tidak memuat karakter berbahaya untuk nama berkas dan membatasi panjang', () => {
-		const name = pdfFilename('../../etc/passwd\\x:*?"<>|' + 'a'.repeat(100), day);
-		expect(name).toMatch(/^estimasi-trip-[a-z0-9-]+-2026-10-17\.pdf$/);
-		expect(name.length).toBeLessThan(80);
-	});
-	it('menambah nol di depan bulan dan hari', () => {
-		expect(pdfFilename('x', new Date(2026, 0, 5))).toBe('estimasi-trip-x-2026-01-05.pdf');
-	});
-});
-
-describe('sanitizePdfText', () => {
-	it('memetakan tanda baca tipografis ke ASCII', () => {
-		expect(sanitizePdfText('“halo” – ‘dunia’ — ok…')).toBe('"halo" - \'dunia\' - ok...');
-	});
-	it('mengganti emoji dengan satu "?" per karakter', () => {
-		expect(sanitizePdfText('Tim 😀 Alfa')).toBe('Tim ? Alfa');
-		expect(sanitizePdfText('日本')).toBe('??');
-	});
-	it('mempertahankan huruf Latin-1 dan baris baru', () => {
-		expect(sanitizePdfText('café × 2\nbaris dua')).toBe('café × 2\nbaris dua');
-	});
-	it('menormalkan CRLF dan tab', () => {
-		expect(sanitizePdfText('a\r\nb\tc')).toBe('a\nb c');
-	});
-});
 
 describe('formatPlanDate', () => {
 	it('memformat tanggal Indonesia tanpa bergeser hari', () => {
@@ -104,47 +50,49 @@ describe('teks total dan baris', () => {
 	});
 });
 
-describe('buildWhatsappMessage', () => {
-	it('pesan lengkap tanpa tanggal dan catatan', () => {
-		const msg = buildWhatsappMessage(input(['offroad']));
-		expect(msg).toBe(
-			[
-				'Halo Lembang Adventures, saya ingin konsultasi trip.',
-				'',
-				'Nama tim: Tim Alfa',
-				'Paket:',
-				'- Offroad: 40 x Rp 250.000 = Rp 10.000.000',
-				'Peserta: 40 orang',
-				'Tanggal rencana: Belum ditentukan',
-				'Estimasi total: Rp 10.000.000',
-				'Catatan: -',
-				'',
-				'Mohon dibantu penawarannya. Saya lampirkan PDF estimasinya.'
-			].join('\n')
-		);
+describe('buildConfirmationMessage', () => {
+	const msg = (slugs: string[], extra: Partial<Parameters<typeof buildConfirmationMessage>[0]> = {}) => {
+		const pax = extra.pax ?? 40;
+		const estimate = extra.estimate ?? calculateEstimate(packages, slugs, pax);
+		return buildConfirmationMessage({
+			nama: 'Tim Alfa',
+			whatsapp: '6281234567890',
+			titles: estimate.lines.map((l) => l.title),
+			pax,
+			planDate: '',
+			estimate,
+			notes: '',
+			invoiceUrl: 'https://www.lembangadventure.com/invoice/LA-20261020-ABCDEFGH',
+			...extra
+		});
+	};
+
+	it('memuat detail, estimasi, dan tautan invoice tanpa menyebut PDF', () => {
+		const text = msg(['offroad', 'rafting']);
+		expect(text).toContain('Halo Lembang Adventures, aku barusan hitung di kalkulator website.');
+		expect(text).toContain('Nama: Tim Alfa');
+		expect(text).toContain('Nomor WhatsApp: +6281234567890');
+		expect(text).toContain('Paket: Offroad, Rafting');
+		expect(text).toContain('Jumlah peserta: 40 orang');
+		expect(text).toContain('Tanggal: Belum ditentukan');
+		expect(text).toContain('Estimasi: Rp 18.000.000');
+		expect(text).toContain('Link invoice: https://www.lembangadventure.com/invoice/LA-20261020-ABCDEFGH');
+		expect(text).toContain('konfirmasi harga finalnya?');
+		expect(text.toLowerCase()).not.toContain('pdf');
+		expect(text.toLowerCase()).not.toContain('lampir');
 	});
-	it('menyertakan tanggal dan catatan yang di-trim', () => {
-		const msg = buildWhatsappMessage(input(['offroad'], 40, { planDate: '2026-11-20', notes: '  Ada vegetarian  ' }));
-		expect(msg).toContain('Tanggal rencana: 20 November 2026');
-		expect(msg).toContain('Catatan: Ada vegetarian');
+
+	it('menyertakan tanggal dan catatan', () => {
+		const text = msg(['offroad'], { planDate: '2026-11-20', notes: '  Ada vegetarian  ' });
+		expect(text).toContain('Tanggal: 20 November 2026');
+		expect(text).toContain('Catatan: Ada vegetarian');
 	});
-	it('menyertakan nomor WhatsApp bila diisi dan menghilangkannya bila kosong', () => {
-		expect(buildWhatsappMessage(input(['offroad'], 40, { whatsapp: '6281234567890' }))).toContain(
-			'Nama tim: Tim Alfa\nNomor WhatsApp: +6281234567890\nPaket:'
-		);
-		expect(buildWhatsappMessage(input(['offroad']))).not.toContain('Nomor WhatsApp');
+
+	it('sebagian tanpa harga disebut di samping estimasi', () => {
+		expect(msg(['offroad', 'fun-games'])).toContain('Estimasi: Rp 10.000.000 (belum termasuk paket tanpa harga)');
 	});
-	it('sebagian tanpa harga: catatan di samping total dan baris "Harga menyusul"', () => {
-		const msg = buildWhatsappMessage(input(['offroad', 'fun-games']));
-		expect(msg).toContain('- Fun Games: Harga menyusul');
-		expect(msg).toContain('Estimasi total: Rp 10.000.000 (belum termasuk paket tanpa harga)');
-	});
+
 	it('semua tanpa harga: Dibahas via WhatsApp', () => {
-		expect(buildWhatsappMessage(input(['fun-games']))).toContain('Estimasi total: Dibahas via WhatsApp');
-	});
-	it('mencantumkan minimal peserta yang ditagihkan', () => {
-		expect(buildWhatsappMessage(input(['rafting'], 4))).toContain(
-			'- Rafting: 10 x Rp 200.000 = Rp 2.000.000 (minimal 10 peserta)'
-		);
+		expect(msg(['fun-games'])).toContain('Estimasi: Dibahas via WhatsApp');
 	});
 });

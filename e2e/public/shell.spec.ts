@@ -145,3 +145,17 @@ test.describe('[site-shell] SEO dasar', () => {
 		expect(res.headers()['x-frame-options']).toBeUndefined();
 	});
 });
+
+test.describe('[site-shell] Kebijakan pembayaran', () => {
+	test('footer membuka halaman kebijakan dengan enam aturan', async ({ page }) => {
+		await gotoReady(page, '/');
+		await page.locator('footer').getByRole('link', { name: 'Kebijakan pembayaran' }).click();
+		await expect(page).toHaveURL(/\/kebijakan-pembayaran$/);
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Kebijakan pembayaran');
+		await expect(page.getByText('DP 30% dibayar maksimal 2x24 jam setelah invoice terbit;')).toBeVisible();
+		await expect(page.getByText('Pelunasan maksimal H-3 sebelum acara.')).toBeVisible();
+		await expect(page.getByText('kurang dari H-14 DP hangus')).toBeVisible();
+		await expect(page.getByText('Rp1.750.000 per mobil dibagi penumpangnya.')).toBeVisible();
+		await expect(page.getByText('Hujan biasa bukan force majeure')).toBeVisible();
+	});
+});

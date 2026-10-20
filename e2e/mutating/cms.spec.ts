@@ -284,13 +284,13 @@ test.describe('[site-settings] Nomor WhatsApp dari admin', () => {
 		await expect.poll(() => popup.url()).toMatch(/^https:\/\/wa\.me\/6281234567890\?text=/);
 	});
 
-	test('dikosongkan: tersimpan kosong dan tombol WhatsApp hilang dari kalkulator; Simpan PDF tetap ada', async ({ page }) => {
+	test('dikosongkan: tersimpan kosong dan tombol WhatsApp hilang dari kalkulator', async ({ page }) => {
 		await save(page, '   ');
 		expect(getSetting('whatsapp')).toBe('');
 		await expect(page.getByRole('status')).toContainText('dikosongkan');
 		await gotoReady(page, '/');
 		const c = await fillValid(page);
 		await expect(c.send).toHaveCount(0);
-		await expect(c.save).toBeEnabled();
+		await expect(c.root.getByRole('button', { name: 'Simpan PDF' })).toHaveCount(0);
 	});
 });

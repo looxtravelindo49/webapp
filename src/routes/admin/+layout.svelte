@@ -21,6 +21,7 @@
 					{#if !data.user.must_change_password}
 						<nav aria-label="Navigasi admin" class="flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold">
 							<a href="/admin" class="hover:text-accent">Beranda</a>
+							<a href="/admin/leads" class="hover:text-accent">Leads</a>
 							<a href="/admin/paket" class="hover:text-accent">Paket</a>
 							<a href="/admin/artikel" class="hover:text-accent">Artikel</a>
 							<a href="/admin/pengaturan" class="hover:text-accent">Pengaturan</a>

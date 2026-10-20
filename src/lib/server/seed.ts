@@ -10,6 +10,8 @@ type SeedPackage = {
 	image: string;
 	image_alt: string;
 	duration: string;
+	/** Hanya untuk database kosong. Situs yang sudah terisi memakai min_pax di admin. */
+	min_pax: number;
 };
 
 // Teks Offroad, Team Building, Paintball, dan Fun Games disalin dari konten situs lama.
@@ -26,7 +28,8 @@ export const seedPackages: SeedPackage[] = [
 			'Rute, kapasitas kendaraan, fasilitas, dan biaya mengikuti penawaran operator yang dikonfirmasi. Ikuti briefing dan arahan pemandu.',
 		image: '/media/forest.svg',
 		image_alt: 'Ilustrasi jeep di hutan pinus; ganti dengan dokumentasi asli.',
-		duration: 'Sesuai program'
+		duration: 'Sesuai program',
+		min_pax: 7
 	},
 	{
 		slug: 'team-building',
@@ -38,7 +41,8 @@ export const seedPackages: SeedPackage[] = [
 			'Permainan, fasilitas, fasilitator, lokasi, dan durasi ditentukan dalam penawaran. Siapkan alternatif kegiatan saat cuaca berubah.',
 		image: '/media/camp.svg',
 		image_alt: 'Ilustrasi tenda di perbukitan; ganti dengan dokumentasi asli.',
-		duration: 'Sesuai program'
+		duration: 'Sesuai program',
+		min_pax: 20
 	},
 	{
 		slug: 'rafting',
@@ -50,7 +54,8 @@ export const seedPackages: SeedPackage[] = [
 			'Kegiatan mengikuti kondisi debit air dan cuaca. Peserta wajib mengikuti briefing dan memakai perlengkapan keselamatan.',
 		image: '/media/river.svg',
 		image_alt: 'Ilustrasi sungai di antara tebing hijau; ganti dengan dokumentasi asli.',
-		duration: 'Sesuai program'
+		duration: 'Sesuai program',
+		min_pax: 5
 	},
 	{
 		slug: 'paintball',
@@ -62,7 +67,8 @@ export const seedPackages: SeedPackage[] = [
 			'Persyaratan peserta, perlengkapan keselamatan, jumlah peluru, dan aturan permainan mengikuti ketentuan operator.',
 		image: '/media/paintball.svg',
 		image_alt: 'Ilustrasi arena paintball di perbukitan; ganti dengan dokumentasi asli.',
-		duration: 'Sesuai program'
+		duration: 'Sesuai program',
+		min_pax: 10
 	},
 	{
 		slug: 'fun-games',
@@ -74,7 +80,8 @@ export const seedPackages: SeedPackage[] = [
 			'Jenis permainan, perlengkapan, pemandu, lokasi, dan konsumsi mengikuti penawaran yang disepakati.',
 		image: '/media/camp.svg',
 		image_alt: 'Ilustrasi area berkumpul di alam terbuka; ganti dengan dokumentasi asli.',
-		duration: 'Sesuai program'
+		duration: 'Sesuai program',
+		min_pax: 20
 	}
 ];
 
@@ -143,8 +150,8 @@ export async function seed(db: Db): Promise<void> {
 					tx,
 					`INSERT OR IGNORE INTO package
 						(slug, title, summary, body, includes, notes, image, image_alt, duration, price_per_person, min_pax, published, sort_order)
-					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 1, 1, ?)`,
-					[p.slug, p.title, p.summary, p.body, p.includes, p.notes, p.image, p.image_alt, p.duration, i + 1]
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, 1, ?)`,
+					[p.slug, p.title, p.summary, p.body, p.includes, p.notes, p.image, p.image_alt, p.duration, p.min_pax, i + 1]
 				);
 			}
 		}
