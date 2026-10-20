@@ -46,7 +46,7 @@ test.describe('[trip-calculator] Pilihan paket dibagi antara slider paket dan ka
 		await expect(c.panelToggle).toHaveText('Hapus dari trip');
 		await expect(c.panelToggle).toHaveAttribute('aria-pressed', 'true');
 		await expect(c.box('Rafting')).toBeChecked();
-		await expect(page.locator('#paket [aria-live="polite"]')).toHaveText('3/5 · Rafting');
+		await expect(page.locator('#paket').getByRole('tab', { name: 'Rafting', exact: true })).toHaveAttribute('aria-selected', 'true');
 		expect(await page.evaluate(() => scrollY)).toBe(y0);
 	});
 

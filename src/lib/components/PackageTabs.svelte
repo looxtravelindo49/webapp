@@ -15,13 +15,17 @@
 		action?: Snippet<[Package]>;
 	} = $props();
 
+	const uid = $props.id();
 	let scroller = $state<HTMLUListElement | null>(null);
+	let tabRow = $state<HTMLDivElement | null>(null);
 	let index = $state(0);
+	let tabFade = $state(false);
 	// Selama gulir terprogram, event scroll tidak boleh menimpa indeks tujuan.
 	let lock = 0;
 
 	const safe = $derived(packages.length === 0 ? 0 : Math.min(index, packages.length - 1));
-	const current = $derived(packages[safe]);
+	const tabId = (slug: string) => `${uid}-tab-${slug}`;
+	const slideId = (slug: string) => `${uid}-slide-${slug}`;
 
 	function reduced() {
 		return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -48,6 +52,42 @@
 		if (location.hash === next) return;
 		void goto(next, { shallow: true, replace: true });
 	}
+
+	function syncTabFade() {
+		const row = tabRow;
+		if (!row) return;
+		tabFade = row.scrollWidth - row.clientWidth - row.scrollLeft > 2;
+	}
+
+	/** Geser pil aktif ke dalam baris, dan sisakan pil berikutnya mengintip bila masih ada. */
+	function scrollTabIntoView(i: number) {
+		const row = tabRow;
+		const tab = row?.children[i] as HTMLElement | undefined;
+		if (!row || !tab) return;
+		const peek = 36;
+		const tabLeft = tab.offsetLeft;
+		const tabRight = tabLeft + tab.offsetWidth;
+		const viewLeft = row.scrollLeft;
+		const viewRight = viewLeft + row.clientWidth;
+		let left = viewLeft;
+		if (tabLeft < viewLeft + 4) left = Math.max(0, tabLeft - 4);
+		else if (tabRight > viewRight - peek) left = Math.max(0, tabRight - row.clientWidth + peek);
+		const max = Math.max(0, row.scrollWidth - row.clientWidth);
+		left = Math.min(left, max);
+		if (Math.abs(left - viewLeft) < 2) return;
+		row.scrollTo({ left, behavior: reduced() ? 'auto' : 'smooth' });
+	}
+
+	$effect(() => {
+		const row = tabRow;
+		const i = safe;
+		if (!row || packages.length === 0) return;
+		scrollTabIntoView(i);
+		syncTabFade();
+		const ro = new ResizeObserver(() => syncTabFade());
+		ro.observe(row);
+		return () => ro.disconnect();
+	});
 
 	function go(i: number) {
 		const n = packages.length;
@@ -78,16 +118,29 @@
 		if (slug) setHash(slug);
 	}
 
+	function move(key: string) {
+		if (packages.length < 2) return null;
+		if (key === 'ArrowRight') return safe + 1;
+		if (key === 'ArrowLeft') return safe - 1;
+		if (key === 'Home') return 0;
+		if (key === 'End') return packages.length - 1;
+		return null;
+	}
+
+	function onTabKey(e: KeyboardEvent) {
+		const next = move(e.key);
+		if (next === null) return;
+		e.preventDefault();
+		const n = packages.length;
+		const i = ((next % n) + n) % n;
+		go(i);
+		document.getElementById(tabId(packages[i].slug))?.focus();
+	}
+
 	function onKey(e: KeyboardEvent) {
-		if (packages.length < 2) return;
 		const t = e.target as HTMLElement | null;
 		if (t?.closest('a, button, input, textarea, select')) return;
-		const next =
-			e.key === 'ArrowRight' ? safe + 1
-			: e.key === 'ArrowLeft' ? safe - 1
-			: e.key === 'Home' ? 0
-			: e.key === 'End' ? packages.length - 1
-			: null;
+		const next = move(e.key);
 		if (next === null) return;
 		e.preventDefault();
 		go(next);
@@ -123,6 +176,41 @@
 			<p class="mt-2 text-xs text-muted">Segera hadir. Sementara itu, ceritakan rencanamu lewat tombol konsultasi.</p>
 		</div>
 	{:else}
+		<div class="relative mb-6">
+			<div
+				bind:this={tabRow}
+				role="tablist"
+				aria-label="Pilihan paket kegiatan"
+				tabindex="-1"
+				onscroll={syncTabFade}
+				onkeydown={onTabKey}
+				class="relative flex flex-nowrap gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+			>
+				{#each packages as p, i (p.slug)}
+					<button
+						type="button"
+						role="tab"
+						id={tabId(p.slug)}
+						aria-selected={i === safe}
+						aria-controls={slideId(p.slug)}
+						tabindex={i === safe ? 0 : -1}
+						onclick={() => go(i)}
+						class="shrink-0 cursor-pointer rounded-full border px-5 py-2 text-xs font-bold whitespace-nowrap transition-colors {i === safe
+							? 'border-green-900 bg-accent text-green-900'
+							: 'border-line bg-white text-muted hover:bg-cream hover:text-green-900'}"
+						>{p.title}</button
+					>
+				{/each}
+			</div>
+			{#if tabFade}
+				<div
+					aria-hidden="true"
+					data-tab-fade
+					class="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-surface to-transparent"
+				></div>
+			{/if}
+		</div>
+
 		<div class="relative">
 			{#if packages.length > 1}
 				<button
@@ -162,6 +250,7 @@
 					{#each packages as p, i (p.slug)}
 						{@const included = lines(p.includes)}
 						<li
+							id={slideId(p.slug)}
 							class="grid w-full min-w-full shrink-0 snap-start grid-cols-1 gap-6 md:grid-cols-[1fr_1.1fr] md:gap-12"
 							role="group"
 							aria-roledescription="slide"
@@ -235,27 +324,6 @@
 				</ul>
 			</div>
 		</div>
-
-		{#if current}
-			<p class="mt-4 text-center text-xs font-semibold" aria-live="polite">
-				{safe + 1}/{packages.length} · {current.title}
-			</p>
-		{/if}
-		{#if packages.length > 1}
-			<div class="mt-2 flex justify-center gap-1">
-				{#each packages as p, i (p.slug)}
-					<button
-						type="button"
-						class="inline-flex size-8 items-center justify-center"
-						aria-label="Geser ke {p.title}"
-						aria-current={i === safe ? 'true' : undefined}
-						onclick={() => go(i)}
-					>
-						<span aria-hidden="true" class="size-2.5 rounded-full {i === safe ? 'bg-signal' : 'bg-line'}"></span>
-					</button>
-				{/each}
-			</div>
-		{/if}
 
 		<p class="mt-6 text-[10px] text-muted">
 			Harga dan fasilitas mengikuti tanggal, jumlah peserta, ketersediaan, dan penawaran yang disepakati.

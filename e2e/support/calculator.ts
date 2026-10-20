@@ -16,7 +16,7 @@ export function calc(page: Page) {
 		send: root.getByRole('button', { name: /Kirim ke WhatsApp/ }),
 		hint: root.locator('p[id$="-hint"]'),
 		status: root.locator('[role=status]'),
-		show: (name: string) => paket.getByRole('button', { name: `Geser ke ${name}`, exact: true }).click(),
+		show: (name: string) => paket.getByRole('tab', { name, exact: true }).click(),
 		panelToggle: paket.locator('[aria-roledescription="slide"]:not([inert])').getByRole('button', { name: /dari trip$|ke trip$/ })
 	};
 }

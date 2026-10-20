@@ -151,7 +151,7 @@ describe('pilihan bersama: slider paket ↔ kalkulator', () => {
 	it('paket terpilih memakai tombol hapus, tanpa penanda tab', () => {
 		const body = html({ selected: ['offroad', 'rafting'] });
 		expect(body).not.toContain('(dipilih)');
-		expect(body).not.toContain('role="tab"');
+		expect(body).toContain('role="tab"');
 		expect(count(body, /Hapus dari trip/g)).toBe(2);
 		expect(count(body, /Tambah ke trip/g)).toBe(2);
 	});

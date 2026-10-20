@@ -30,13 +30,13 @@ describe('PackageTabs (render server)', () => {
 		expect(body).toContain('ringkasan Alfa');
 		expect(body).toContain('ringkasan Beta');
 		expect(body).toContain('aria-roledescription="carousel"');
+		expect(body).toContain('role="tablist"');
+		expect(body.match(/role="tab"/g)).toHaveLength(2);
+		expect(body.match(/aria-selected="true"/g)).toHaveLength(1);
 		expect(body.match(/aria-roledescription="slide"/g)).toHaveLength(2);
-		expect(body).toContain('1/2 · Alfa');
-		expect(body).toContain('aria-label="Geser ke Alfa"');
-		expect(body).toContain('aria-label="Geser ke Beta"');
 		expect(body).toContain('aria-label="Paket sebelumnya"');
 		expect(body).toContain('aria-label="Paket berikutnya"');
-		expect(body).not.toContain('role="tab"');
+		expect(body).not.toContain('Geser ke');
 		expect(body.match(/\sinert(?:=|>|\s)/g)).toHaveLength(1);
 	});
 
@@ -87,11 +87,11 @@ describe('PackageTabs (render server)', () => {
 		expect(body.match(/<li class="flex gap-2.5"/g)).toHaveLength(3);
 	});
 
-	it('satu paket: label saja, tanpa panah dan tanpa titik', () => {
+	it('satu paket: satu pil, tanpa panah', () => {
 		const { body } = render(PackageTabs, { props: { packages: [pkg('a', 'Alfa')] } });
-		expect(body).toContain('1/1 · Alfa');
+		expect(body.match(/role="tab"/g)).toHaveLength(1);
+		expect(body).toContain('>Alfa</button>');
 		expect(body).not.toContain('Paket sebelumnya');
-		expect(body).not.toContain('Geser ke');
 	});
 
 	it('men-escape HTML pada data', () => {
@@ -106,6 +106,7 @@ describe('PackageTabs (render server)', () => {
 		const { body } = render(PackageTabs, { props: { packages: [] } });
 		expect(body).toContain('Paket sedang disiapkan');
 		expect(body).not.toContain('aria-roledescription="carousel"');
+		expect(body).not.toContain('role="tablist"');
 	});
 
 	it('merender slot aksi per paket', () => {

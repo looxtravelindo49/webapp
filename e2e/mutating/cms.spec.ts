@@ -186,7 +186,7 @@ test.describe('[package-cms] Perubahan tampil langsung di situs publik', () => {
 		expect(saved.image).toMatch(/^\/uploads\/.+\.png$/);
 
 		await gotoReady(page, '/');
-		await page.locator('#paket').getByRole('button', { name: `Geser ke ${title}`, exact: true }).click();
+		await page.locator('#paket').getByRole('tab', { name: title, exact: true }).click();
 		const panel = page.locator('#paket [aria-roledescription="slide"]:not([inert])');
 		await expect(panel).toContainText('Ringkasan baru dari admin.');
 		await expect(panel).toContainText('Jeep terbuka');
@@ -203,7 +203,7 @@ test.describe('[package-cms] Perubahan tampil langsung di situs publik', () => {
 		await submit(page, () => page.getByRole('button', { name: 'Simpan perubahan' }).click());
 		expect(pkgById(row.id).image_alt).toBeNull();
 		await gotoReady(page, '/');
-		await page.locator('#paket').getByRole('button', { name: `Geser ke ${title}`, exact: true }).click();
+		await page.locator('#paket').getByRole('tab', { name: title, exact: true }).click();
 		await expect(page.locator('#paket [aria-roledescription="slide"]:not([inert])').getByAltText(title, { exact: true })).toHaveAttribute('src', saved.image!);
 
 		// hapus foto → gambar bawaan
@@ -211,7 +211,7 @@ test.describe('[package-cms] Perubahan tampil langsung di situs publik', () => {
 		await page.getByLabel('Hapus foto ini').check();
 		await submit(page, () => page.getByRole('button', { name: 'Simpan perubahan' }).click());
 		await gotoReady(page, '/');
-		await page.locator('#paket').getByRole('button', { name: `Geser ke ${title}`, exact: true }).click();
+		await page.locator('#paket').getByRole('tab', { name: title, exact: true }).click();
 		await expect(page.locator('#paket [aria-roledescription="slide"]:not([inert])').getByAltText(title, { exact: true })).toHaveAttribute('src', '/media/forest.svg');
 	});
 
