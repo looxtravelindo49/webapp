@@ -54,6 +54,8 @@
 		track = true;
 		originX = e.clientX;
 		originY = e.clientY;
+		const section = e.currentTarget as HTMLElement;
+		if (section.setPointerCapture) section.setPointerCapture(e.pointerId);
 	}
 	function onUp(e: PointerEvent) {
 		if (e.pointerType !== 'mouse') touching = false;
@@ -85,6 +87,7 @@
 			width="960"
 			height="720"
 			loading="eager"
+			draggable="false"
 			class="aspect-[4/3] w-full rounded-2xl bg-cream object-cover"
 		/>
 		{#if thumbs.length > 0}
@@ -103,6 +106,7 @@
 								width="320"
 								height="240"
 								loading="lazy"
+								draggable="false"
 								class="aspect-[4/3] w-full rounded-xl bg-cream object-cover"
 							/>
 						</button>
