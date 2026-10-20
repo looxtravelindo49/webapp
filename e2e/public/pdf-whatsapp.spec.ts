@@ -24,7 +24,8 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		expect(text).toContain('Paket: Offroad, Rafting');
 		expect(text).toContain('Jumlah peserta: 40 orang');
 		expect(text).toContain('20 November 2026');
-		expect(text).toContain('Estimasi: Rp 18.000.000');
+		expect(text).toContain('Estimasi: Rp 18.500.000');
+		expect(text).toContain('Offroad: 6 mobil × Rp 1.750.000 (maks. 7 orang/mobil)');
 		expect(text).toContain('Ada 2 peserta vegetarian.');
 		expect(text).toContain(new URL(page.url()).pathname);
 		expect(text.toLowerCase()).not.toContain('pdf');
@@ -43,7 +44,8 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		await expect(sheet.getByText('860025788700', { exact: true })).toBeVisible();
 		await expect(sheet.getByText('a/n Loox Travel Luxury', { exact: true })).toBeVisible();
 		await expect(sheet.getByText('Hati-hati memilih travel. Pastikan travel sudah berbadan hukum PT')).toBeVisible();
-		await expect(sheet.getByText('Rp 5.400.000')).toBeVisible();
+		await expect(sheet.getByText('Rp 5.550.000')).toBeVisible();
+		await expect(sheet.getByText('6 mobil × Rp 1.750.000 (maks. 7 orang/mobil)')).toBeVisible();
 		await expect(sheet.getByText(/biaya layanan|biaya admin/i)).toHaveCount(0);
 
 		const nomor = new URL(page.url()).pathname.split('/').pop()!;
@@ -53,8 +55,8 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		const rows = query<{ nama: string; estimasi_total: number; dp_nominal: number }>('SELECT nama, estimasi_total, dp_nominal FROM lead WHERE nomor_invoice = ?', nomor);
 		expect(rows).toHaveLength(1);
 		expect(rows[0].nama).toBe('Tim Alfa');
-		expect(rows[0].estimasi_total).toBe(18_000_000);
-		expect(rows[0].dp_nominal).toBe(5_400_000);
+		expect(rows[0].estimasi_total).toBe(18_500_000);
+		expect(rows[0].dp_nominal).toBe(5_550_000);
 
 		await page.reload();
 		await expect(page.getByText(nomor, { exact: true })).toBeVisible();

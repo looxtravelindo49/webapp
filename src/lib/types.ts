@@ -13,6 +13,15 @@ export type Package = {
 	/** Rupiah utuh per orang; null berarti "harga menyusul". */
 	price_per_person: number | null;
 	min_pax: number;
+	/**
+	 * `per_person`: harga × max(peserta, min_pax).
+	 * `per_unit`: pembulatan ke atas per satuan (mobil, dll.). Kosong = per orang.
+	 */
+	pricing_mode?: 'per_person' | 'per_unit';
+	/** Kapasitas satu satuan. Dipakai hanya bila `pricing_mode` = `per_unit`. */
+	kapasitas_per_unit?: number | null;
+	/** Nama satuan yang tampil di rincian, misalnya "mobil". */
+	nama_unit?: string | null;
 	published: number;
 	sort_order: number;
 };

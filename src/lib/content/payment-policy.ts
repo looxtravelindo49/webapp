@@ -31,7 +31,7 @@ export const paymentPolicy = {
 		},
 		{
 			title: 'Perubahan peserta',
-			body: 'Perubahan peserta: tambah sampai H-3 dengan harga per orang yang sama sesuai ketersediaan; kurangi sampai H-7 tanpa potong DP selama tetap di atas minimal peserta; lewat H-7 tagihan dihitung dari jumlah yang dikonfirmasi. Offroad: Rp249rb/orang untuk kelipatan 7; bila bukan kelipatan 7, Rp1.750.000 per mobil dibagi penumpangnya.'
+			body: 'Perubahan peserta: tambah sampai H-3 dengan harga per orang yang sama sesuai ketersediaan; kurangi sampai H-7 tanpa potong DP selama tetap di atas minimal peserta; lewat H-7 tagihan dihitung dari jumlah yang dikonfirmasi. Offroad ditagih per mobil (maks. 7 orang/mobil): jumlah mobil = pembulatan ke atas dari peserta dibagi 7; satu mobil = 7 × harga per orang (saat ini Rp249.000, yaitu Rp1.743.000), termasuk mobil yang tidak penuh.'
 		},
 		{
 			title: 'Cuaca ekstrem',

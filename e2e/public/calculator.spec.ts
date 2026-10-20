@@ -89,13 +89,13 @@ test.describe('[trip-calculator] Pilihan paket dibagi antara tab Paket dan kalku
 });
 
 test.describe('[trip-calculator] Perhitungan estimasi', () => {
-	test('satu paket: Offroad × 40 = Rp 10.000.000', async ({ page }) => {
+	test('satu paket: Offroad 40 peserta = 6 mobil × Rp 1.750.000', async ({ page }) => {
 		await gotoReady(page, '/');
 		const c = calc(page);
 		await c.box('Offroad').check();
 		await c.pax.fill('40');
-		await expect(c.root).toContainText('40 × Rp 250.000');
-		await expect(c.summary).toContainText('Rp 10.000.000');
+		await expect(c.root).toContainText('6 mobil × Rp 1.750.000 (maks. 7 orang/mobil)');
+		await expect(c.summary).toContainText('Rp 10.500.000');
 	});
 
 	test('beberapa paket dijumlahkan dan berubah langsung saat peserta diubah', async ({ page }) => {
@@ -104,11 +104,11 @@ test.describe('[trip-calculator] Perhitungan estimasi', () => {
 		await c.box('Offroad').check();
 		await c.box('Paintball').check();
 		await c.pax.fill('40');
-		await expect(c.root).toContainText('Rp 10.000.000');
+		await expect(c.root).toContainText('Rp 10.500.000');
 		await expect(c.root).toContainText('Rp 6.000.000');
-		await expect(c.summary).toContainText('Rp 16.000.000');
+		await expect(c.summary).toContainText('Rp 16.500.000');
 		await c.pax.fill('50');
-		await expect(c.summary).toContainText('Rp 20.000.000');
+		await expect(c.summary).toContainText('Rp 21.500.000');
 	});
 
 	test('minimal peserta ditagihkan dan dijelaskan', async ({ page }) => {
@@ -121,13 +121,13 @@ test.describe('[trip-calculator] Perhitungan estimasi', () => {
 		await expect(c.summary).toContainText('Rp 2.000.000');
 	});
 
-	test('Offroad + Rafting × 4 (minimal 10 untuk Rafting) = Rp 3.000.000', async ({ page }) => {
+	test('Offroad + Rafting × 4 (1 mobil + minimal 10 Rafting) = Rp 3.750.000', async ({ page }) => {
 		await gotoReady(page, '/');
 		const c = calc(page);
 		await c.box('Offroad').check();
 		await c.box('Rafting').check();
 		await c.pax.fill('4');
-		await expect(c.summary).toContainText('Rp 3.000.000');
+		await expect(c.summary).toContainText('Rp 3.750.000');
 	});
 
 	test('sebagian paket tanpa harga: "Harga menyusul", total tanpa itu, dan catatan', async ({ page }) => {
@@ -137,7 +137,7 @@ test.describe('[trip-calculator] Perhitungan estimasi', () => {
 		await c.box('Fun Games').check();
 		await c.pax.fill('40');
 		await expect(c.root.locator('li', { hasText: 'Fun Games' })).toContainText('Harga menyusul');
-		await expect(c.summary).toContainText('Rp 10.000.000');
+		await expect(c.summary).toContainText('Rp 10.500.000');
 		await expect(c.summary).toContainText('belum termasuk paket tanpa harga');
 	});
 
@@ -172,9 +172,9 @@ test.describe('[trip-calculator] Masukan formulir', () => {
 		const c = calc(page);
 		await c.box('Offroad').check();
 		await c.pax.fill('1');
-		await expect(c.summary).toContainText('Rp 250.000');
+		await expect(c.summary).toContainText('Rp 1.750.000');
 		await c.pax.fill('10000');
-		await expect(c.summary).toContainText('Rp 2.500.000.000');
+		await expect(c.summary).toContainText('Rp 2.500.750.000');
 		await expect(c.pax).not.toHaveAttribute('aria-invalid', 'true');
 	});
 

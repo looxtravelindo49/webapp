@@ -18,7 +18,8 @@ afterEach(() => dbs.splice(0).forEach((d) => d.close()));
 
 const values = (over: Partial<PackageValues> = {}): PackageValues => ({
 	title: 'Flying Fox Lembang', summary: 'Meluncur di atas hutan pinus.', body: 'isi', includes: 'a\nb', notes: 'n',
-	duration: '2 jam', image_alt: null, price_per_person: 175000, min_pax: 5, published: false, ...over
+	duration: '2 jam', image_alt: null, price_per_person: 175000, min_pax: 5,
+	pricing_mode: 'per_person', kapasitas_per_unit: null, nama_unit: null, published: false, ...over
 });
 const order = async (db: Db) => (await listAllPackages(db)).map((p) => p.slug);
 const orders = async (db: Db) => (await listAllPackages(db)).map((p) => p.sort_order);

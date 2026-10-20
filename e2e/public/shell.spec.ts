@@ -157,7 +157,8 @@ test.describe('[site-shell] Kebijakan pembayaran', () => {
 		await expect(page.getByText('DP 30% dibayar maksimal 2x24 jam setelah invoice terbit;')).toBeVisible();
 		await expect(page.getByText('Pelunasan maksimal H-3 sebelum acara.')).toBeVisible();
 		await expect(page.getByText('kurang dari H-14 DP hangus')).toBeVisible();
-		await expect(page.getByText('Rp1.750.000 per mobil dibagi penumpangnya.')).toBeVisible();
+		await expect(page.getByText('satu mobil = 7 × harga per orang (saat ini Rp249.000, yaitu Rp1.743.000)')).toBeVisible();
+		await expect(page.getByText('1.750.000')).toHaveCount(0);
 		await expect(page.getByText('Hujan biasa bukan force majeure')).toBeVisible();
 	});
 });

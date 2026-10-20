@@ -13,6 +13,10 @@ type SeedPackage = {
 	duration: string | null;
 	/** Hanya untuk database kosong. Situs yang sudah terisi memakai min_pax di admin. */
 	min_pax: number;
+	/** Hanya untuk database kosong. Situs yang sudah terisi memakai pengaturan di admin. */
+	pricing_mode?: 'per_person' | 'per_unit';
+	kapasitas_per_unit?: number | null;
+	nama_unit?: string | null;
 };
 
 // Teks Offroad, Team Building, Paintball, dan Fun Games disalin dari konten situs lama.
@@ -30,7 +34,10 @@ export const seedPackages: SeedPackage[] = [
 		image: '/media/forest.svg',
 		image_alt: 'Ilustrasi jeep di hutan pinus; ganti dengan dokumentasi asli.',
 		duration: '2-3 Jam',
-		min_pax: 7
+		min_pax: 7,
+		pricing_mode: 'per_unit',
+		kapasitas_per_unit: 7,
+		nama_unit: 'mobil'
 	},
 	{
 		slug: 'team-building',
@@ -150,9 +157,13 @@ export async function seed(db: Db): Promise<void> {
 				await run(
 					tx,
 					`INSERT OR IGNORE INTO package
-						(slug, title, summary, body, includes, notes, image, image_alt, duration, price_per_person, min_pax, published, sort_order)
-					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, 1, ?)`,
-					[p.slug, p.title, p.summary, p.body, p.includes, p.notes, p.image, p.image_alt, p.duration, p.min_pax, i + 1]
+						(slug, title, summary, body, includes, notes, image, image_alt, duration, price_per_person, min_pax,
+						 pricing_mode, kapasitas_per_unit, nama_unit, published, sort_order)
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, 1, ?)`,
+					[
+						p.slug, p.title, p.summary, p.body, p.includes, p.notes, p.image, p.image_alt, p.duration, p.min_pax,
+						p.pricing_mode ?? 'per_person', p.kapasitas_per_unit ?? null, p.nama_unit ?? null, i + 1
+					]
 				);
 			}
 		}

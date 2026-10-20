@@ -1,4 +1,4 @@
-import { formatPlanDate, totalNote, totalText } from './estimate';
+import { formatPlanDate, lineText, totalNote, totalText } from './estimate';
 import type { Estimate, EstimateLine } from './pricing';
 
 /** Persen uang muka. Satu sumber untuk hitungan, label, dan teks. Bukan biaya gateway. */
@@ -18,6 +18,12 @@ export type StoredLine = {
 	subtotal: number | null;
 	/** `bebas` = baris invoice manual (qty × harga satuan). Selain itu baris paket kalkulator. */
 	kind?: 'paket' | 'bebas';
+	/** Cuplikan mode per satuan, supaya rincian invoice tidak bergantung pada pengaturan paket yang berubah. */
+	pricingMode?: 'per_unit';
+	units?: number;
+	unitPrice?: number;
+	capacity?: number;
+	unitName?: string;
 };
 
 /** Tanggal kalender WIB `YYYYMMDD` untuk nomor invoice. */
@@ -65,15 +71,25 @@ export function displayedDp(total: number | null, storedDp: number | null, store
 }
 
 export function storedLinesFromEstimate(lines: readonly EstimateLine[]): StoredLine[] {
-	return lines.map((l) => ({
-		slug: l.slug,
-		title: l.title,
-		price: l.price,
-		minPax: l.minPax,
-		billedPax: l.billedPax,
-		subtotal: l.subtotal,
-		kind: 'paket' as const
-	}));
+	return lines.map((l) => {
+		const row: StoredLine = {
+			slug: l.slug,
+			title: l.title,
+			price: l.price,
+			minPax: l.minPax,
+			billedPax: l.billedPax,
+			subtotal: l.subtotal,
+			kind: 'paket'
+		};
+		if (l.unit) {
+			row.pricingMode = 'per_unit';
+			row.units = l.unit.count;
+			row.unitPrice = l.unit.price;
+			row.capacity = l.unit.capacity;
+			row.unitName = l.unit.name;
+		}
+		return row;
+	});
 }
 
 export function parseStoredLines(raw: string): StoredLine[] {
@@ -92,7 +108,7 @@ export function parseStoredLines(raw: string): StoredLine[] {
 		if (!title) continue;
 		const price = row.price === null ? null : Number(row.price);
 		const subtotal = row.subtotal === null ? null : Number(row.subtotal);
-		lines.push({
+		const line: StoredLine = {
 			slug: typeof row.slug === 'string' ? row.slug : '',
 			title,
 			price: price === null || Number.isFinite(price) ? price : null,
@@ -100,7 +116,25 @@ export function parseStoredLines(raw: string): StoredLine[] {
 			billedPax: Number(row.billedPax) || 0,
 			subtotal: subtotal === null || Number.isFinite(subtotal) ? subtotal : null,
 			kind: row.kind === 'bebas' ? 'bebas' : 'paket'
-		});
+		};
+		const units = Number(row.units);
+		const unitPrice = Number(row.unitPrice);
+		const capacity = Number(row.capacity);
+		const unitName = typeof row.unitName === 'string' ? row.unitName.trim() : '';
+		if (
+			row.pricingMode === 'per_unit' &&
+			Number.isInteger(units) && units >= 1 &&
+			Number.isInteger(unitPrice) && unitPrice >= 0 &&
+			Number.isInteger(capacity) && capacity >= 1 &&
+			unitName
+		) {
+			line.pricingMode = 'per_unit';
+			line.units = units;
+			line.unitPrice = unitPrice;
+			line.capacity = capacity;
+			line.unitName = unitName;
+		}
+		lines.push(line);
 	}
 	return lines;
 }
@@ -113,7 +147,10 @@ export function estimateFromStored(lines: readonly StoredLine[], total: number |
 		minPax: l.minPax,
 		billedPax: l.billedPax,
 		minApplied: false,
-		subtotal: l.subtotal
+		subtotal: l.subtotal,
+		...(l.pricingMode === 'per_unit' && l.units && l.unitPrice !== undefined && l.capacity && l.unitName
+			? { unit: { name: l.unitName, capacity: l.capacity, count: l.units, price: l.unitPrice } }
+			: {})
 	}));
 	const unpricedCount = lines.filter((l) => l.subtotal === null).length;
 	const pricedCount = lines.length - unpricedCount;
@@ -281,6 +318,10 @@ export function buildConfirmationMessage(input: ConfirmationInput): string {
 		`Tanggal: ${date}`,
 		`Estimasi: ${estimasi}`
 	];
+	for (const line of input.estimate.lines) {
+		if (!line.unit || line.subtotal === null) continue;
+		lines.push(`${line.title}: ${lineText(line)}`);
+	}
 	const catatan = input.notes.trim();
 	if (catatan) lines.push(`Catatan: ${catatan}`);
 	lines.push('', `Link invoice: ${input.invoiceUrl}`, '', 'Boleh dicek tanggalnya masih bisa atau tidak, sekalian konfirmasi harga finalnya?');
