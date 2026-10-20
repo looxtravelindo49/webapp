@@ -27,6 +27,7 @@
 		photoError={failed?.photoError}
 		image={data.image}
 		submitLabel="Simpan perubahan"
+		action="?/simpan"
 	/>
 	<PackageGalleryManager photos={data.photos} error={galleryError} />
 </div>

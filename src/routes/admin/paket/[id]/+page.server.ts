@@ -43,7 +43,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ params, request, locals }) => {
+	simpan: async ({ params, request, locals }) => {
 		requireUser(locals);
 		const id = parseId(params.id);
 		const db = await getDb();

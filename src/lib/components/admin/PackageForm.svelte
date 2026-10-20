@@ -15,7 +15,8 @@
 		photoError = '',
 		image = null,
 		submitLabel,
-		isNew = false
+		isNew = false,
+		action = undefined
 	}: {
 		values: PackageRaw;
 		errors?: PackageErrors;
@@ -25,6 +26,8 @@
 		image?: string | null;
 		submitLabel: string;
 		isNew?: boolean;
+		/** Aksi bernama, mis. `?/simpan`. Kosong = aksi bawaan (halaman tambah). */
+		action?: string;
 	} = $props();
 
 	const uid = $props.id();
@@ -42,7 +45,7 @@
 	}
 </script>
 
-<form method="POST" enctype="multipart/form-data" class="grid gap-5 rounded-xl border border-line bg-white p-5 sm:p-7">
+<form method="POST" {action} enctype="multipart/form-data" class="grid gap-5 rounded-xl border border-line bg-white p-5 sm:p-7">
 	<Field label="Nama paket" name="title" value={values.title} maxlength={LIMITS.title} error={errors.title} autocomplete="off" />
 	<TextArea label="Ringkasan" name="summary" value={values.summary} rows={2} maxlength={LIMITS.summary} required error={errors.summary} hint="Satu atau dua kalimat yang tampil di bawah nama paket (maks. 300 karakter)." />
 	<TextArea label="Penjelasan lengkap (opsional)" name="body" value={values.body} rows={6} maxlength={LIMITS.body} error={errors.body} hint="Pisahkan paragraf dengan satu baris kosong." />
