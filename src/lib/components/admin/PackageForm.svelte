@@ -50,7 +50,7 @@
 	<TextArea label="Catatan (opsional)" name="notes" value={values.notes} rows={3} maxlength={LIMITS.notes} error={errors.notes} />
 
 	<div class="grid gap-5 sm:grid-cols-3">
-		<Field label="Durasi (opsional)" name="duration" value={values.duration} required={false} maxlength={LIMITS.duration} error={errors.duration} placeholder="mis. 3 jam" />
+		<Field label="Durasi (opsional)" name="duration" value={values.duration} required={false} maxlength={LIMITS.duration} error={errors.duration} placeholder="mis. 2-3 Jam" />
 		<Field
 			label="Harga per orang (Rp)"
 			name="price"

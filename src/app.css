@@ -8,6 +8,9 @@
 	--color-transparent: transparent;
 	--color-current: currentColor;
 	--color-green-900: #113a33;
+	/* Biru dan lime dipakai hemat di katalog paket, bukan sebagai palet utama. */
+	--color-signal: #0d01ff;
+	--color-lime: #e5ff00;
 	--color-green-800: #1b4d44;
 	--color-green-100: #e7efec;
 	--color-accent: #f3d284;

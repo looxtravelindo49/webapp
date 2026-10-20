@@ -42,6 +42,14 @@ Invoice dan footer menampilkan rekening **CIMB Niaga Syariah**, **860025788700**
 
 Foto utama beranda adalah `static/media/hero-2.jpg` (foto natural, 1280×720, di bawah 400 KB, pelat nomor kabur, tanpa teks). Berkas aslinya memang 1280×720, jadi tidak diperbesar ke 1920×1080.
 
+## Katalog paket
+
+Section **Katalog paket** (`#katalog`) ada di beranda, tepat sebelum "Satu tim, banyak cerita.". Kartu memakai foto, nama, durasi, harga, dan minimal peserta dari tabel `package`. Tiga kartu pertama tampil; **Lihat semua paket** membuka sisanya tanpa pindah halaman. Tiap kartu menaut ke `/paket/<slug>`.
+
+Halaman detail memuat foto, nama, durasi (disembunyikan bila kosong), harga, minimal peserta, dan deskripsi. **Tambah ke Trip** membuka kalkulator dengan paket itu sudah terpilih (`/?paket=<slug>#konsultasi`).
+
+Kolom durasi sudah ada di admin. Tidak ada migrasi baru dan baris yang sudah tersimpan tidak diubah. Seed untuk database kosong mengisi Offroad `2-3 Jam` dan mengosongkan durasi paket lain.
+
 ## Admin
 
 Area `/admin` dilindungi login. Saat database masih tanpa akun, server membuat satu akun awal:
@@ -59,7 +67,7 @@ bawaan tertulis di repositori ini. Untuk menimpanya sejak awal, setel `ADMIN_SEE
 - **Kelola paket** di `/admin/paket`: daftar semua paket (termasuk draft) dengan status, harga, dan minimal peserta.
   - *Tambah paket* (`/admin/paket/baru`): paket baru selalu **draft** dan ditaruh di urutan terakhir; terbitkan dari daftar
     setelah siap. Slug dibuat otomatis dari nama dan **tidak berubah** walau nama diganti, supaya tautan
-    `/#paket-<slug>` tetap berlaku.
+    `/#paket-<slug>` dan halaman `/paket/<slug>` tetap berlaku.
   - *Ubah paket*: nama, ringkasan, penjelasan, fasilitas (satu per baris), catatan, durasi, foto dan teks alternatif,
     **harga per orang**, dan **minimal peserta**. Harga berupa rupiah bulat: `250000`, `250.000`, `Rp 250.000`, atau
     `Rp250000` (titik hanya sebagai pemisah ribuan, jadi `250.5` ditolak; maksimal 100.000.000). Kosongkan harga =

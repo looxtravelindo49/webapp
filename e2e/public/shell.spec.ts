@@ -17,7 +17,7 @@ test.describe('[site-shell] Urutan section beranda', () => {
 	test('paket → konsultasi → artikel-populer → destinasi → rencanakan, diapit Navbar dan Footer', async ({ page }) => {
 		await gotoReady(page, '/');
 		const ids = await page.$$eval('main > section[id]', (s) => s.map((x) => x.id));
-		expect(ids).toEqual(['paket', 'konsultasi', 'artikel-populer', 'destinasi', 'rencanakan']);
+		expect(ids).toEqual(['katalog', 'paket', 'konsultasi', 'artikel-populer', 'destinasi', 'rencanakan']);
 		await expect(page.locator('header').first()).toBeVisible();
 		await expect(page.locator('footer')).toHaveCount(1);
 		await expect(page.getByRole('heading', { level: 1 })).toContainText('Bawa timmu');

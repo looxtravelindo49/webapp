@@ -39,13 +39,18 @@ export function latestDate(...values: (string | null | undefined)[]): string | n
  * Entri sitemap: beranda, daftar artikel, dan tiap artikel terbit. `lastmod` beranda = yang terbaru dari paket
  * terbit dan artikel terbit; `lastmod` daftar = artikel terbit terbaru.
  */
-export function sitemapEntries(articles: { slug: string; updated_at: string }[], packagesUpdatedAt: string | null): SitemapEntry[] {
+export function sitemapEntries(
+	articles: { slug: string; updated_at: string }[],
+	packagesUpdatedAt: string | null,
+	packages: { slug: string; updated_at: string }[] = []
+): SitemapEntry[] {
 	const articlesLatest = latestDate(...articles.map((a) => a.updated_at));
 	return [
 		{ path: '/', lastmod: latestDate(packagesUpdatedAt, articlesLatest) },
 		{ path: '/artikel', lastmod: articlesLatest },
 		{ path: '/kebijakan-pembayaran', lastmod: null },
-		...articles.map((a) => ({ path: `/artikel/${a.slug}`, lastmod: a.updated_at }))
+		...articles.map((a) => ({ path: `/artikel/${a.slug}`, lastmod: a.updated_at })),
+		...packages.map((p) => ({ path: `/paket/${p.slug}`, lastmod: p.updated_at }))
 	];
 }
 
