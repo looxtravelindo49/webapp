@@ -44,6 +44,7 @@ export function sitemapEntries(articles: { slug: string; updated_at: string }[],
 	return [
 		{ path: '/', lastmod: latestDate(packagesUpdatedAt, articlesLatest) },
 		{ path: '/artikel', lastmod: articlesLatest },
+		{ path: '/kebijakan-pembayaran', lastmod: null },
 		...articles.map((a) => ({ path: `/artikel/${a.slug}`, lastmod: a.updated_at }))
 	];
 }

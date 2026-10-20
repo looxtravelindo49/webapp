@@ -190,7 +190,8 @@ describe('seed', () => {
 		await seed(db);
 		const rows = await listPublishedPackages(db);
 		expect(rows.map((r) => r.title)).toEqual(['Offroad', 'Team Building', 'Rafting', 'Paintball', 'Fun Games']);
-		expect(rows.every((r) => r.price_per_person === null && r.min_pax === 1)).toBe(true);
+		expect(rows.every((r) => r.price_per_person === null)).toBe(true);
+		expect(rows.map((r) => r.min_pax)).toEqual([7, 20, 5, 10, 20]);
 		expect(rows.map((r) => r.sort_order)).toEqual([1, 2, 3, 4, 5]);
 	});
 

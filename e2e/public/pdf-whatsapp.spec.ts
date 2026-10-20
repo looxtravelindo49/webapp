@@ -35,6 +35,8 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		await expect(sheet.getByText('Baru', { exact: true })).toBeVisible();
 		await expect(sheet.getByText('Transfer ke rekening PT: CIMB Niaga Syariah 860025788700 a/n Loox Travel Luxury.')).toBeVisible();
 		await expect(sheet.getByRole('link', { name: /Kirim bukti transfer/ })).toHaveAttribute('href', /wa\.me\/6282120209900\?text=/);
+		await expect(sheet.getByText('DP 20% dibayar maksimal 2x24 jam setelah invoice terbit. Pelunasan maksimal H-3 sebelum acara.')).toBeVisible();
+		await expect(sheet.getByRole('link', { name: 'Kebijakan pembayaran' })).toHaveAttribute('href', '/kebijakan-pembayaran');
 		await expect(sheet.getByRole('button', { name: 'Bayar DP 20% (segera)' })).toBeDisabled();
 		await expect(sheet.getByText('860025788700', { exact: true })).toBeVisible();
 		await expect(sheet.getByText('a/n Loox Travel Luxury', { exact: true })).toBeVisible();

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import BankAccount from '#lib/components/BankAccount.svelte';
 	import Button from '#lib/components/Button.svelte';
+	import { paymentPolicyPath, paymentPolicySummary } from '#lib/content/payment-policy.js';
 	import { site } from '#lib/content/site.js';
 	import type { PageProps } from './$types';
 
@@ -102,6 +103,11 @@
 			{/if}
 		</div>
 	</div>
+
+	<p class="mt-4 text-[11px] leading-[1.8] text-muted">
+		{paymentPolicySummary}{' '}
+		<a href={paymentPolicyPath} class="font-bold text-green-900 underline">Kebijakan pembayaran</a>
+	</p>
 
 	{#if data.status === 'baru'}
 		<div class="mt-6 rounded-lg bg-cream px-4 py-3 text-xs leading-[1.8]">

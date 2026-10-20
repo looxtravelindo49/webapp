@@ -24,6 +24,9 @@
 		</div>
 		<div class="mt-6 border-t border-white/15 pt-6">
 			<BankAccount tone="dark" />
+			<p class="mt-4 text-[11px]">
+				<a href="/kebijakan-pembayaran" class="border-b border-accent py-1 font-bold">Kebijakan pembayaran</a>
+			</p>
 		</div>
 	</div>
 </footer>

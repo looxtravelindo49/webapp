@@ -15,7 +15,9 @@ npm run build && npm start   # build produksi (adapter-node)
 ```
 
 Migrasi (`migrations/*.sql`) dan seed berjalan otomatis saat server start. Seed hanya mengisi data jika tabel
-`package` kosong dan tidak pernah menimpa data yang sudah diedit.
+`package` kosong dan tidak pernah menimpa data yang sudah diedit. Pada database kosong, minimal peserta seed adalah
+Offroad 7, Team Building 20, Rafting 5, Paintball 10, Fun Games 20 (harga tetap kosong). Situs yang sudah terisi
+membaca `min_pax` dari admin, jadi angka itu tidak berubah sendiri.
 
 ## Kalkulator trip → invoice → WhatsApp
 
@@ -32,7 +34,7 @@ sudah dikunci di CMS tidak diubah oleh alur ini.
 4. Bila berhasil, halaman `/invoice/<nomor>` terbuka dan `wa.me/<nomor pengaturan>` terbuka dengan detail kebutuhan, estimasi, dan tautan invoice. Tidak ada PDF dan tidak ada kalimat "Saya lampirkan PDF".
 5. Invoice bisa dicetak atau disimpan lewat dialog cetak browser. Status awal **Baru** menampilkan cara transfer ke rekening PT dan tautan WhatsApp bukti transfer (nomor invoice sudah terisi). Tombol **Bayar DP 20% (segera)** tetap nonaktif. `dp_nominal` = 20% × estimasi (dibulatkan), atau kosong bila estimasi belum berupa angka. Tidak ada biaya gateway yang dikarang. Nomor invoice memakai 8 karakter acak, bukan urutan.
 
-Invoice bersifat publik lewat nomor (tidak ditebak), `noindex`, dan tidak masuk sitemap. Nomor WhatsApp tujuan selalu dibaca dari Pengaturan.
+Invoice bersifat publik lewat nomor (tidak ditebak), `noindex`, dan tidak masuk sitemap. Nomor WhatsApp tujuan selalu dibaca dari Pengaturan. Ringkasan DP (2x24 jam) dan pelunasan (H-3) tampil di invoice, dengan tautan ke `/kebijakan-pembayaran`. Halaman itu juga ditautkan dari footer.
 
 ## Rekening
 
