@@ -15,7 +15,7 @@
 
 	let { data }: PageProps = $props();
 
-	// State trip dibuat per render dan dibagi antara tab Paket dan kalkulator.
+	// State trip dibuat per render dan dibagi antara slider paket dan kalkulator.
 	const trip = setTripContext();
 	// `?paket=` dari halaman detail menandai paket di kalkulator. Pengunjung tetap bisa menghapusnya.
 	$effect(() => {
@@ -40,7 +40,7 @@
 
 <Hero />
 <PackageCatalog packages={data.packages} />
-<PackageTabs packages={data.packages} selected={trip.selected}>
+<PackageTabs packages={data.packages}>
 	{#snippet action(p)}<TripToggle pkg={p} />{/snippet}
 </PackageTabs>
 <TripCalculator packages={data.packages} waNumber={data.waNumber} />

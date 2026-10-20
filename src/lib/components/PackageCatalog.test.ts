@@ -43,11 +43,16 @@ describe('PackageCatalog', () => {
 		expect(body).toContain('href="/paket/offroad"');
 		expect(body).toContain('Add Offroad');
 		expect(body).toContain('Add Team Building');
-		const details = body.match(/<details[\s\S]*<\/details>/)?.[0] ?? '';
-		expect(details).toContain('Lihat semua paket');
-		expect(details).toContain('Add Paintball');
-		expect(details).not.toContain('Add Offroad');
-		expect(body.indexOf('Add Paintball')).toBeGreaterThan(body.indexOf('Lihat semua paket'));
+		expect(body).toContain('Add Paintball');
+		expect(body).toContain('snap-x');
+		expect(body).toContain('w-[85%]');
+		expect(body).toContain('aria-expanded="false"');
+		expect(body).toContain('aria-controls="katalog-daftar"');
+		expect(body).toContain('aria-label="Tampilkan Paintball"');
+		expect(body).not.toContain('<details');
+		expect(body).not.toContain('Sembunyikan');
+		expect(body.indexOf('Lihat semua paket')).toBeGreaterThan(body.indexOf('Add Paintball'));
+		expect(body).toMatch(/md:hidden[\s\S]*?Add Paintball/);
 	});
 
 	it('kartu memakai foto galeri pertama bila ada', () => {

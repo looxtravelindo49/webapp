@@ -130,7 +130,7 @@ describe('section Konsultasikan Tripmu (render server)', () => {
 	});
 });
 
-describe('pilihan bersama: tab Paket ↔ kalkulator', () => {
+describe('pilihan bersama: slider paket ↔ kalkulator', () => {
 	it('tombol panel: "Tambah ke trip" bila belum dipilih, "Hapus dari trip" + aria-pressed bila dipilih', () => {
 		const belum = html();
 		expect(count(belum, /aria-pressed="false"/g)).toBe(4);
@@ -148,18 +148,17 @@ describe('pilihan bersama: tab Paket ↔ kalkulator', () => {
 		expect(count(body, /type="checkbox"[^>]*checked/g)).toBe(2);
 	});
 
-	it('tab terpilih diberi penanda; tab lain tidak', () => {
+	it('paket terpilih memakai tombol hapus, tanpa penanda tab', () => {
 		const body = html({ selected: ['offroad', 'rafting'] });
-		expect(count(body, /\(dipilih\)/g)).toBe(2);
-		const tabs = body.match(/<button[^>]*role="tab"[\s\S]*?<\/button>/g) ?? [];
-		expect(tabs).toHaveLength(4);
-		const marked = tabs.filter((t) => t.includes('(dipilih)'));
-		expect(marked.map((t) => /Offroad|Rafting/.exec(t)?.[0]).sort()).toEqual(['Offroad', 'Rafting']);
-		expect(tabs.filter((t) => !t.includes('(dipilih)'))).toHaveLength(2);
+		expect(body).not.toContain('(dipilih)');
+		expect(body).toContain('role="tab"');
+		expect(count(body, /Hapus dari trip/g)).toBe(2);
+		expect(count(body, /Tambah ke trip/g)).toBe(2);
 	});
 
 	it('tanpa pilihan: tidak ada penanda', () => {
 		expect(html()).not.toContain('(dipilih)');
+		expect(html()).not.toContain('Hapus dari trip');
 	});
 
 	it('pilihan usang diabaikan di ringkasan', () => {

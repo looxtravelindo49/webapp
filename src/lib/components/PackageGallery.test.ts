@@ -38,6 +38,15 @@ describe('PackageGallery', () => {
 		expect(body).not.toContain('data-autoplay-ms');
 	});
 
+	it('tanpa geser: pan horizontal tidak dikunci, geser otomatis tetap', () => {
+		const body = render(PackageGallery, {
+			props: { photos: slides, fallbackAlt: 'Jeep di hutan pinus', swipe: false }
+		}).body;
+		expect(body).not.toContain('touch-pan-y');
+		expect(body).toContain('data-autoplay-ms="4000"');
+		expect(body).toContain('aria-label="Tampilkan Dua"');
+	});
+
 	it('satu foto: tanpa thumbnail dan tanpa geser otomatis', () => {
 		const body = html([slides[0]]);
 		expect(body).toContain('alt="Satu"');

@@ -40,7 +40,7 @@ test.beforeAll(() => {
 test.afterAll(restore);
 
 const rowOf = (page: Page, slug: string) => page.locator(`li[data-package="${slug}"]`);
-const tabs = async (page: Page) => (await page.getByRole('tab').allInnerTexts()).map((t) => t.replace(/\s*✓.*$/, '').trim());
+const tabs = async (page: Page) => (await page.locator('#paket h3').allInnerTexts()).map((t) => t.trim());
 const dbOrder = () => query<{ slug: string; sort_order: number }>('SELECT slug, sort_order FROM package ORDER BY sort_order, id');
 /** Urutan paket bawaan saja (paket buatan tes lain berada di sela-selanya). */
 const seededOrder = () => dbOrder().map((r) => r.slug).filter((slug) => SEEDED.includes(slug));
@@ -76,7 +76,7 @@ test.describe('[package-cms] Terbitkan dan sembunyikan', () => {
 		const row = insertPackage(title, { price_per_person: 90_000 });
 		await adminLogin(page, admin, PW);
 		await gotoReady(page, '/');
-		await expect(page.getByRole('tab', { name: title })).toHaveCount(0);
+		await expect(page.locator('#paket h3', { hasText: title })).toHaveCount(0);
 		await gotoReady(page, '/admin/paket');
 		await click(page, row.slug, 'Terbitkan');
 		await gotoReady(page, '/');
@@ -186,8 +186,8 @@ test.describe('[package-cms] Perubahan tampil langsung di situs publik', () => {
 		expect(saved.image).toMatch(/^\/uploads\/.+\.png$/);
 
 		await gotoReady(page, '/');
-		const panel = page.getByRole('tabpanel', { name: title });
-		await page.getByRole('tab', { name: title }).click();
+		await page.locator('#paket').getByRole('tab', { name: title, exact: true }).click();
+		const panel = page.locator('#paket [aria-roledescription="slide"]:not([inert])');
 		await expect(panel).toContainText('Ringkasan baru dari admin.');
 		await expect(panel).toContainText('Jeep terbuka');
 		await expect(panel).toContainText('Pemandu');
@@ -203,16 +203,16 @@ test.describe('[package-cms] Perubahan tampil langsung di situs publik', () => {
 		await submit(page, () => page.getByRole('button', { name: 'Simpan perubahan' }).click());
 		expect(pkgById(row.id).image_alt).toBeNull();
 		await gotoReady(page, '/');
-		await page.getByRole('tab', { name: title }).click();
-		await expect(page.getByRole('tabpanel', { name: title }).getByAltText(title, { exact: true })).toHaveAttribute('src', saved.image!);
+		await page.locator('#paket').getByRole('tab', { name: title, exact: true }).click();
+		await expect(page.locator('#paket [aria-roledescription="slide"]:not([inert])').getByAltText(title, { exact: true })).toHaveAttribute('src', saved.image!);
 
 		// hapus foto → gambar bawaan
 		await gotoReady(page, `/admin/paket/${row.id}`);
 		await page.getByLabel('Hapus foto ini').check();
 		await submit(page, () => page.getByRole('button', { name: 'Simpan perubahan' }).click());
 		await gotoReady(page, '/');
-		await page.getByRole('tab', { name: title }).click();
-		await expect(page.getByRole('tabpanel', { name: title }).getByAltText(title, { exact: true })).toHaveAttribute('src', '/media/forest.svg');
+		await page.locator('#paket').getByRole('tab', { name: title, exact: true }).click();
+		await expect(page.locator('#paket [aria-roledescription="slide"]:not([inert])').getByAltText(title, { exact: true })).toHaveAttribute('src', '/media/forest.svg');
 	});
 
 	test('beranda admin memperingatkan jumlah paket terbit yang belum berharga', async ({ page }) => {

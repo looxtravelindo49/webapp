@@ -6,12 +6,15 @@
 	let {
 		photos,
 		fallbackAlt,
-		running = true
+		running = true,
+		swipe = true
 	}: {
 		photos: GallerySlide[];
 		fallbackAlt: string;
-		/** False saat panel tab disembunyikan: indeks kembali ke foto pertama dan geser otomatis berhenti. */
+		/** False saat slide paket tidak aktif: indeks kembali ke foto pertama dan geser otomatis berhenti. */
 		running?: boolean;
+		/** False di dalam slider paket: geser horizontal diserahkan ke slider luar. */
+		swipe?: boolean;
 	} = $props();
 
 	let index = $state(0);
@@ -62,6 +65,7 @@
 	}
 	function onDown(e: PointerEvent) {
 		if (e.pointerType !== 'mouse') touching = true;
+		if (!swipe) return;
 		if (e.pointerType === 'mouse' && e.button !== 0) return;
 		if ((e.target as HTMLElement | null)?.closest('button')) {
 			track = false;
@@ -75,7 +79,7 @@
 	}
 	function onUp(e: PointerEvent) {
 		if (e.pointerType !== 'mouse') touching = false;
-		if (!track) return;
+		if (!swipe || !track) return;
 		track = false;
 		const dir = swipeDirection(e.clientX - originX, e.clientY - originY);
 		if (dir) index = stepGallery(index, photos.length, dir);
@@ -88,7 +92,7 @@
 
 {#if current}
 	<section
-		class="grid touch-pan-y gap-3"
+		class="grid gap-3 {swipe ? 'touch-pan-y' : ''}"
 		aria-label="Galeri foto"
 		data-autoplay-ms={running && photos.length > 1 ? GALLERY_INTERVAL_MS : undefined}
 		onpointerenter={onEnter}

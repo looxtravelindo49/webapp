@@ -1,8 +1,9 @@
 import type { Page } from '@playwright/test';
 
-/** Locator bantu untuk section #konsultasi dan tab Paket. */
+/** Locator bantu untuk section #konsultasi dan slider paket. */
 export function calc(page: Page) {
 	const root = page.locator('#konsultasi');
+	const paket = page.locator('#paket');
 	return {
 		root,
 		team: root.getByLabel('Nama tim / perusahaan'),
@@ -15,8 +16,8 @@ export function calc(page: Page) {
 		send: root.getByRole('button', { name: /Kirim ke WhatsApp/ }),
 		hint: root.locator('p[id$="-hint"]'),
 		status: root.locator('[role=status]'),
-		tab: (name: string) => page.getByRole('tab', { name: new RegExp(`^${name}`) }),
-		panelToggle: page.locator('[role=tabpanel]:not([hidden])').getByRole('button', { name: /dari trip$|ke trip$/ })
+		show: (name: string) => paket.getByRole('tab', { name, exact: true }).click(),
+		panelToggle: paket.locator('[aria-roledescription="slide"]:not([inert])').getByRole('button', { name: /dari trip$|ke trip$/ })
 	};
 }
 

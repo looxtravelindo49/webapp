@@ -77,6 +77,7 @@ test.describe('[trip-calculator] Keyboard pada formulir', () => {
 		await c.box('Paintball').focus();
 		await page.keyboard.press('Space');
 		await expect(c.box('Paintball')).toBeChecked();
-		await expect(c.tab('Paintball')).toContainText('(dipilih)');
+		await c.show('Paintball');
+		await expect(c.panelToggle).toHaveText('Hapus dari trip');
 	});
 });

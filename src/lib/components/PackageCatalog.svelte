@@ -4,16 +4,51 @@
 
 	let { packages }: { packages: Package[] } = $props();
 
-	const first = $derived(packages.slice(0, CATALOG_PREVIEW));
-	const rest = $derived(packages.slice(CATALOG_PREVIEW));
+	let open = $state(false);
+	let scroller = $state<HTMLUListElement | null>(null);
+	let dot = $state(0);
+
+	const restCount = $derived(Math.max(0, packages.length - CATALOG_PREVIEW));
+
+	function syncDot() {
+		const el = scroller;
+		if (!el) return;
+		const cards = [...el.children] as HTMLElement[];
+		const left = el.scrollLeft;
+		let best = 0;
+		let bestDist = Infinity;
+		for (const [i, card] of cards.entries()) {
+			const dist = Math.abs(card.offsetLeft - left);
+			if (dist < bestDist) {
+				best = i;
+				bestDist = dist;
+			}
+		}
+		dot = best;
+	}
+
+	function showCard(i: number) {
+		const el = scroller;
+		const card = el?.children[i] as HTMLElement | undefined;
+		if (!el || !card) return;
+		const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		el.scrollTo({ left: card.offsetLeft, behavior: reduce ? 'auto' : 'smooth' });
+	}
+
+	function toggle() {
+		open = !open;
+		if (open) return;
+		const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		document.getElementById('katalog')?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+	}
 </script>
 
-{#snippet card(p: Package)}
+{#snippet card(p: Package, hiddenOnGrid: boolean)}
 	{@const duration = visibleDuration(p.duration)}
 	{@const price = formatPriceTag(p.price_per_person)}
 	{@const src = p.cover_image || p.image || '/media/forest.svg'}
 	{@const alt = (p.cover_image ? p.cover_alt?.trim() : p.image_alt) || p.title}
-	<li class="flex flex-col overflow-hidden rounded-2xl border border-line bg-white">
+	<li class="flex w-[85%] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-line bg-white md:w-auto {hiddenOnGrid ? 'md:hidden' : ''}">
 		<img
 			src={src}
 			alt={alt}
@@ -87,24 +122,43 @@
 			<p class="mt-2 text-xs text-muted">Segera hadir. Sementara itu, ceritakan rencanamu lewat tombol konsultasi.</p>
 		</div>
 	{:else}
-		<ul class="grid grid-cols-1 gap-5 lg:grid-cols-3">
-			{#each first as p (p.slug)}
-				{@render card(p)}
+		<ul
+			id="katalog-daftar"
+			bind:this={scroller}
+			onscroll={syncDot}
+			class="flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-smooth pb-1 [scrollbar-width:none] motion-reduce:scroll-auto md:grid md:snap-none md:grid-cols-3 md:gap-5 md:overflow-visible md:pb-0 [&::-webkit-scrollbar]:hidden"
+		>
+			{#each packages as p, i (p.slug)}
+				{@render card(p, i >= CATALOG_PREVIEW && !open)}
 			{/each}
 		</ul>
-		{#if rest.length > 0}
-			<details class="mt-6">
-				<summary
-					class="mx-auto flex w-fit cursor-pointer list-none items-center justify-center rounded-lg border border-signal bg-white px-5 py-3 text-xs font-bold text-signal marker:content-none hover:bg-cream [&::-webkit-details-marker]:hidden"
+		{#if packages.length > 1}
+			<div class="mt-3 flex flex-wrap justify-center gap-1 md:hidden">
+				{#each packages as p, i (p.slug)}
+					<button
+						type="button"
+						class="inline-flex size-8 items-center justify-center"
+						aria-label="Tampilkan {p.title}"
+						aria-current={dot === i ? 'true' : undefined}
+						onclick={() => showCard(i)}
+					>
+						<span class="block size-2 rounded-full {dot === i ? 'bg-signal' : 'bg-line'}"></span>
+					</button>
+				{/each}
+			</div>
+		{/if}
+		{#if restCount > 0}
+			<div class="mt-6 hidden justify-center md:flex">
+				<button
+					type="button"
+					class="inline-flex cursor-pointer items-center justify-center rounded-lg border border-signal bg-white px-5 py-3 text-xs font-bold text-signal hover:bg-cream"
+					aria-expanded={open}
+					aria-controls="katalog-daftar"
+					onclick={toggle}
 				>
-					Lihat semua paket
-				</summary>
-				<ul class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
-					{#each rest as p (p.slug)}
-						{@render card(p)}
-					{/each}
-				</ul>
-			</details>
+					{open ? 'Sembunyikan' : 'Lihat semua paket'}
+				</button>
+			</div>
 		{/if}
 	{/if}
 </section>
