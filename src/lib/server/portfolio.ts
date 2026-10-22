@@ -1,22 +1,18 @@
-import type { PortfolioValues } from '#lib/portfolio-form.js';
+import type { PortfolioPhotoText } from '#lib/portfolio-form.js';
 import { all, column, one, run, scalar, transaction, type Db, type Queryable } from './db';
 
 const NOW = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')";
 
 export type PortfolioItem = {
 	id: number;
-	title: string;
-	location: string;
-	event_date: string;
-	event_type: string;
-	caption: string;
-	alt: string | null;
-	image: string | null;
+	image: string;
+	alt: string;
+	caption: string | null;
 	sort_order: number;
 	updated_at: string;
 };
 
-const COLUMNS = 'id, title, location, event_date, event_type, caption, alt, image, sort_order, updated_at';
+const COLUMNS = 'id, image, alt, caption, sort_order, updated_at';
 
 export function listPortfolio(db: Queryable): Promise<PortfolioItem[]> {
 	return all<PortfolioItem>(db, `SELECT ${COLUMNS} FROM portfolio_item ORDER BY sort_order, id`);
@@ -30,36 +26,23 @@ export function latestPortfolioUpdate(db: Queryable): Promise<string | null> {
 	return scalar<string>(db, 'SELECT MAX(updated_at) FROM portfolio_item');
 }
 
-export function createPortfolio(db: Db, values: PortfolioValues, image: string | null): Promise<PortfolioItem> {
+export function addPortfolioPhotos(db: Db, photos: (PortfolioPhotoText & { image: string })[]): Promise<void> {
 	return transaction(db, async (tx) => {
-		const order = (await scalar<number>(tx, 'SELECT COALESCE(MAX(sort_order), 0) + 1 FROM portfolio_item')) ?? 1;
-		const info = await run(
-			tx,
-			`INSERT INTO portfolio_item (title, location, event_date, event_type, caption, alt, image, sort_order)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			[values.title, values.location, values.eventDate, values.eventType, values.caption, values.alt, image, order]
-		);
-		const row = await getPortfolio(tx, Number(info.lastInsertRowid));
-		if (!row) throw new Error('Portfolio gagal disimpan.');
-		return row;
+		let order = (await scalar<number>(tx, 'SELECT COALESCE(MAX(sort_order), 0) FROM portfolio_item')) ?? 0;
+		for (const photo of photos) {
+			order += 1;
+			await run(tx, 'INSERT INTO portfolio_item (image, alt, caption, sort_order) VALUES (?, ?, ?, ?)', [photo.image, photo.alt, photo.caption, order]);
+		}
 	});
 }
 
-export function updatePortfolio(db: Db, id: number, values: PortfolioValues, image: string | null): Promise<boolean> {
-	return transaction(db, async (tx) => {
-		const info = await run(
-			tx,
-			`UPDATE portfolio_item
-			 SET title = ?, location = ?, event_date = ?, event_type = ?, caption = ?, alt = ?, image = ?, updated_at = ${NOW}
-			 WHERE id = ?`,
-			[values.title, values.location, values.eventDate, values.eventType, values.caption, values.alt, image, id]
-		);
-		return info.rowsAffected > 0;
-	});
+export async function updatePortfolioText(db: Queryable, id: number, alt: string, caption: string | null): Promise<boolean> {
+	const info = await run(db, `UPDATE portfolio_item SET alt = ?, caption = ?, updated_at = ${NOW} WHERE id = ?`, [alt, caption, id]);
+	return info.rowsAffected > 0;
 }
 
 /** Hapus baris dan rapatkan urutan. Mengembalikan path foto bila ada. */
-export function deletePortfolio(db: Db, id: number): Promise<{ ok: true; image: string | null } | { ok: false }> {
+export function deletePortfolio(db: Db, id: number): Promise<{ ok: true; image: string } | { ok: false }> {
 	return transaction(db, async (tx) => {
 		const current = await getPortfolio(tx, id);
 		if (!current) return { ok: false };

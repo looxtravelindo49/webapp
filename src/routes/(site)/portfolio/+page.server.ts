@@ -6,18 +6,9 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
 	const db = await getDb();
-	const items = await listPortfolio(db);
-	return {
-		items: items.map((item) => ({
-			id: item.id,
-			title: item.title,
-			location: item.location,
-			eventDate: item.event_date,
-			eventType: item.event_type,
-			caption: item.caption,
-			alt: item.alt ?? '',
-			image: optionalImage(item.image)
-		})),
-		reviews: await loadPublicReviews(db)
-	};
+	const items = (await listPortfolio(db)).flatMap((item) => {
+		const image = optionalImage(item.image);
+		return image ? [{ id: item.id, image, alt: item.alt, caption: item.caption }] : [];
+	});
+	return { items, reviews: await loadPublicReviews(db) };
 };

@@ -1,13 +1,9 @@
--- Dokumentasi kegiatan dan ulasan yang diisi admin. Foto portfolio boleh kosong.
+-- Galeri foto portfolio dan ulasan yang diisi admin.
 CREATE TABLE portfolio_item (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	title TEXT NOT NULL,
-	location TEXT NOT NULL,
-	event_date TEXT NOT NULL,
-	event_type TEXT NOT NULL,
-	caption TEXT NOT NULL,
-	alt TEXT,
-	image TEXT,
+	image TEXT NOT NULL,
+	alt TEXT NOT NULL,
+	caption TEXT,
 	sort_order INTEGER NOT NULL CHECK (sort_order >= 1),
 	created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
 	updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))

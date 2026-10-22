@@ -9,7 +9,7 @@
 	let { data }: PageProps = $props();
 
 	const title = `Portfolio | ${site.name}`;
-	const description = 'Dokumentasi kegiatan Lembang Adventure by Loox Travel: gathering, outing, dan aktivitas tim.';
+	const description = 'Foto kegiatan Lembang Adventure by Loox Travel.';
 </script>
 
 <Seo
@@ -29,12 +29,15 @@
 
 <section class="wrap py-11 sm:py-16">
 	<div class="mb-8 max-w-xl sm:mb-10">
-		<div class="eyebrow">Dokumentasi</div>
+		<div class="eyebrow">Foto</div>
 		<h1 class="my-3 text-[32px] leading-tight font-black tracking-tight sm:text-4xl">Portfolio</h1>
-		<p class="text-xs leading-[1.9] text-muted sm:text-[13px]">Kegiatan yang sudah berjalan bersama tim dan perusahaan.</p>
+		<p class="text-xs leading-[1.9] text-muted sm:text-[13px]">Kumpulan foto kegiatan.</p>
 	</div>
 	{#if data.items.length === 0}
-		<p class="rounded-xl border border-line bg-cream p-6 text-xs text-muted">Dokumentasi kegiatan akan ditampilkan di sini.</p>
+		<div class="rounded-xl border border-dashed border-line bg-white px-6 py-16 text-center">
+			<p class="text-sm font-black">Belum ada foto</p>
+			<p class="mt-2 text-xs text-muted">Foto akan tampil di sini setelah ditambahkan.</p>
+		</div>
 	{:else}
 		<PortfolioGallery items={data.items} />
 	{/if}

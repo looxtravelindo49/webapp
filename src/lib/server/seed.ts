@@ -143,15 +143,6 @@ export const seedSettings: Record<string, string> = {
 	whatsapp: '6282120209900'
 };
 
-/** Satu dokumentasi nyata. Tanpa foto: halaman publik menampilkan "Foto segera". */
-export const seedPortfolioItem = {
-	title: 'Gathering PT Gamma Galaxy Center',
-	location: 'Citumang-Pangandaran',
-	eventDate: '30 Jul-1 Agu 2026',
-	eventType: 'Gathering',
-	caption: '22 peserta'
-} as const;
-
 /**
  * Isi data awal tanpa menimpa apa pun: paket hanya jika tabel `package` kosong,
  * artikel bawaan tepat sekali (penanda `seeded_articles`, jadi tidak muncul lagi walau admin menghapusnya),
@@ -188,19 +179,6 @@ export async function seed(db: Db): Promise<void> {
 				);
 			}
 			await run(tx, "INSERT OR IGNORE INTO setting (key, value) VALUES ('seeded_articles', '1')");
-		}
-		const portfolioSeeded = await scalar(tx, "SELECT 1 FROM setting WHERE key = 'seeded_portfolio'");
-		if (portfolioSeeded === null) {
-			const existing = (await scalar<number>(tx, 'SELECT COUNT(*) FROM portfolio_item')) ?? 0;
-			if (existing === 0) {
-				await run(
-					tx,
-					`INSERT INTO portfolio_item (title, location, event_date, event_type, caption, alt, image, sort_order)
-					 VALUES (?, ?, ?, ?, ?, NULL, NULL, 1)`,
-					[seedPortfolioItem.title, seedPortfolioItem.location, seedPortfolioItem.eventDate, seedPortfolioItem.eventType, seedPortfolioItem.caption]
-				);
-			}
-			await run(tx, "INSERT OR IGNORE INTO setting (key, value) VALUES ('seeded_portfolio', '1')");
 		}
 		for (const [key, value] of Object.entries(seedSettings)) {
 			await run(tx, 'INSERT OR IGNORE INTO setting (key, value) VALUES (?, ?)', [key, value]);
