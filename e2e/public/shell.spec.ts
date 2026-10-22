@@ -14,10 +14,10 @@ test.describe('[e2e-testing] Penanda hidrasi', () => {
 });
 
 test.describe('[site-shell] Urutan section beranda', () => {
-	test('paket → konsultasi → artikel-populer → rencanakan, diapit Navbar dan Footer', async ({ page }) => {
+	test('paket → konsultasi → ulasan → artikel-populer → rencanakan, diapit Navbar dan Footer', async ({ page }) => {
 		await gotoReady(page, '/');
 		const ids = await page.$$eval('main > section[id]', (s) => s.map((x) => x.id));
-		expect(ids).toEqual(['katalog', 'paket', 'konsultasi', 'artikel-populer', 'rencanakan']);
+		expect(ids).toEqual(['katalog', 'paket', 'konsultasi', 'ulasan', 'artikel-populer', 'rencanakan']);
 		await expect(page.locator('#destinasi')).toHaveCount(0);
 		await expect(page.getByRole('heading', { name: 'Mau suasana yang mana?' })).toHaveCount(0);
 		await expect(page.locator('header').first()).toBeVisible();

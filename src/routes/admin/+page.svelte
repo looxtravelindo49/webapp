@@ -8,7 +8,7 @@
 		{ href: '/admin/paket', title: 'Paket', text: 'Tambah, ubah, urutkan, terbitkan atau sembunyikan paket, harga, dan foto.' },
 		{ href: '/admin/artikel', title: 'Artikel', text: 'Tulis, terbitkan, dan tandai artikel populer yang tampil di beranda dan halaman artikel.' },
 		{ href: '/admin/portfolio', title: 'Portfolio', text: 'Unggah satu atau beberapa foto galeri, isi teks alternatif, dan urutkan tampilan di halaman Portfolio.' },
-		{ href: '/admin/ulasan', title: 'Ulasan', text: 'Tempel ulasan asli dari Google Business Profile. Bagian ulasan disembunyikan bila masih kosong.' },
+		{ href: '/admin/ulasan', title: 'Ulasan', text: 'Ulasan dari Google di beranda dan Portfolio. Ubah nilai serta jumlah ulasan, atau tempel ulasan asli. Tanggal boleh dikosongkan.' },
 		{ href: '/admin/pengaturan', title: 'Pengaturan', text: 'Nomor WhatsApp tujuan konsultasi dan hasil kalkulator.' },
 		{ href: '/admin/akun', title: 'Akun', text: 'Buat akun admin baru, reset password, atau hapus akun.' },
 		{ href: '/admin/ganti-password', title: 'Ganti password', text: 'Ubah password akunmu sendiri.' }

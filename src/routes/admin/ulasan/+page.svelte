@@ -5,6 +5,7 @@
 
 	let { data, form }: PageProps = $props();
 	const rowError = (id: number) => (form && 'error' in form && form.id === id ? form.error : '');
+	const summaryForm = $derived(form && 'summaryError' in form ? form : null);
 	const last = $derived(data.items.length - 1);
 </script>
 
@@ -14,14 +15,29 @@
 	<div>
 		<h1 class="text-2xl font-black tracking-tight">Kelola ulasan</h1>
 		<p class="mt-2 max-w-2xl text-xs leading-[1.8] text-muted">
-			Tempel ulasan asli dari Google Business Profile
-			<a href={GOOGLE_REVIEWS_URL} class="font-bold underline" target="_blank" rel="noopener noreferrer">Loox Travel Lembang Bandung</a>.
-			Jangan menulis nama, nilai, atau teks yang tidak ada di Google. Bagian ulasan di situs disembunyikan selama daftar ini kosong
-			dan kunci Google Places tidak mengembalikan ulasan.
+			Tempel ulasan asli dari
+			<a href={GOOGLE_REVIEWS_URL} class="font-bold underline" target="_blank" rel="noopener noreferrer">Loox Travel - PT Loox Travel Luxury</a>.
+			Jangan menulis nama, nilai, atau teks yang tidak ada di Google. Tanggal boleh dikosongkan. Bagian ulasan tampil bila ada minimal satu ulasan.
+			Google Places API tidak dipakai.
 		</p>
 	</div>
 	<Button href="/admin/ulasan/baru" variant="accent">Tambah ulasan</Button>
 </div>
+
+<form method="POST" action="?/ringkasan" class="mt-6 grid max-w-lg gap-4 rounded-xl border border-line bg-white p-5 sm:p-7">
+	<h2 class="text-sm font-extrabold tracking-wide uppercase">Ringkasan di beranda</h2>
+	<p class="text-[11px] leading-relaxed text-muted">Tampil di bawah kalkulator, misalnya 5.0 dari 41 ulasan Google. Perbarui saat angka di Google berubah. Ini teks biasa, bukan data terstruktur.</p>
+	<label class="grid gap-1 text-[11px] font-bold">
+		Nilai
+		<input name="google_rating" required inputmode="decimal" value={summaryForm ? summaryForm.googleRating : data.googleRating} class="rounded-lg border border-line px-3 py-2 text-xs font-normal" />
+	</label>
+	<label class="grid gap-1 text-[11px] font-bold">
+		Jumlah ulasan
+		<input name="google_review_count" required inputmode="numeric" value={summaryForm ? summaryForm.googleReviewCount : data.googleReviewCount} class="rounded-lg border border-line px-3 py-2 text-xs font-normal" />
+	</label>
+	{#if summaryForm}<p role="alert" class="text-[11px] font-semibold text-danger">{summaryForm.summaryError}</p>{/if}
+	<div><Button type="submit" variant="accent">Simpan ringkasan</Button></div>
+</form>
 
 {#if form && 'ok' in form && form.ok}
 	<p role="status" class="mt-5 rounded-md border border-green-900 bg-white px-4 py-3 text-xs font-semibold">{form.notice}</p>
@@ -35,7 +51,7 @@
 			<li class="grid gap-3 p-4 sm:p-5">
 				<div>
 					<strong class="text-sm">{item.reviewer_name}</strong>
-					<span class="text-[11px] text-muted"> · {item.rating}/5 · {item.review_date}</span>
+					<span class="text-[11px] text-muted"> · {item.rating}/5{#if item.review_date} · {item.review_date}{/if}</span>
 					<p class="mt-2 text-xs leading-relaxed">{item.body}</p>
 				</div>
 				<div class="flex flex-wrap items-center gap-x-3 gap-y-2">

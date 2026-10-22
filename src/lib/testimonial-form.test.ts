@@ -24,7 +24,10 @@ describe('parseTestimonialForm', () => {
 		expect(bare.ok && bare.values.url).toBeNull();
 	});
 
-	it('menolak nilai di luar 1-5, tanggal palsu, dan tautan non-http', () => {
+	it('menerima tanggal kosong dan menolak tanggal palsu', () => {
+		const parsed = parseTestimonialForm(form({ ...valid, review_date: '' }));
+		expect(parsed.ok).toBe(true);
+		if (parsed.ok) expect(parsed.values.date).toBe('');
 		expect(parseTestimonialForm(form({ ...valid, rating: '6' })).ok).toBe(false);
 		expect(parseTestimonialForm(form({ ...valid, review_date: '2026-02-31' })).ok).toBe(false);
 		expect(parseTestimonialForm(form({ ...valid, source_url: 'javascript:alert(1)' })).ok).toBe(false);
@@ -36,5 +39,6 @@ describe('formatReviewDate', () => {
 		expect(formatReviewDate('2026-07-30')).toMatch(/30/);
 		expect(formatReviewDate('2026-07-30')).toMatch(/2026/);
 		expect(formatReviewDate('30 Jul-1 Agu 2026')).toBe('30 Jul-1 Agu 2026');
+		expect(formatReviewDate('')).toBe('');
 	});
 });

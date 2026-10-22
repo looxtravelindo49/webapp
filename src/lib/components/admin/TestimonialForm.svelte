@@ -30,8 +30,9 @@
 	</div>
 	<TextArea label="Teks ulasan" name="body" value={values.body} rows={5} maxlength={TESTIMONIAL_LIMITS.body} required error={errors.body} hint="Tempel teks asli dari Google Business Profile." />
 	<div>
-		<label for="{uid}-date" class="mb-1.5 block text-[11px] font-bold tracking-wide">Tanggal ulasan</label>
-		<input id="{uid}-date" name="review_date" type="date" value={values.date} required class="w-full rounded-lg border border-line bg-white px-3 py-2.5 text-xs" aria-invalid={errors.date ? true : undefined} />
+		<label for="{uid}-date" class="mb-1.5 block text-[11px] font-bold tracking-wide">Tanggal ulasan (opsional)</label>
+		<input id="{uid}-date" name="review_date" type="date" value={values.date} class="w-full rounded-lg border border-line bg-white px-3 py-2.5 text-xs" aria-invalid={errors.date ? true : undefined} />
+		<p class="mt-1.5 text-[11px] leading-relaxed text-muted">Kosongkan bila tanggal tidak ada. Jangan mengarang tanggal.</p>
 		{#if errors.date}<p role="alert" class="mt-1.5 text-[11px] font-semibold text-danger">{errors.date}</p>{/if}
 	</div>
 	<Field label="Tautan ulasan (opsional)" name="source_url" value={values.url} required={false} maxlength={500} error={errors.url} autocomplete="off" placeholder="https://" hint="Alamat ulasan di Google, bila ada." />

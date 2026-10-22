@@ -183,8 +183,8 @@ bila akun awal sudah pernah diganti; gunakan database baru untuk menjalankannya 
 | `ADMIN_SEED_LOGIN` / `ADMIN_SEED_PASSWORD` | `admin@looxtravel` / `12345678` | Akun admin awal (hanya bila tabel `user` kosong; wajib ganti password). |
 | `ADMIN_RESET_LOGIN` / `ADMIN_RESET_PASSWORD` | (kosong) | Pemulihan: atur ulang password satu akun saat start. Hapus setelah dipakai. |
 | `ADDRESS_HEADER` / `XFF_DEPTH` | (kosong) | Header dan kedalaman IP klien di balik reverse proxy (dipakai pembatasan login dan kiriman lead). |
-| `GOOGLE_PLACES_API_KEY` | (kosong) | Opsional. Bersama `GOOGLE_PLACE_ID`, ulasan di beranda dan `/portfolio` diambil dari Google Places. Bila kosong atau gagal, situs memakai ulasan yang ditempel di admin. |
-| `GOOGLE_PLACE_ID` | (kosong) | Place ID profil Google "Loox Travel Lembang Bandung". Tanpa ini, tombol "Lihat semua ulasan di Google" tetap memakai pencarian Maps. |
+| `GOOGLE_PLACES_API_KEY` | (kosong) | Dibiarkan kosong. Jalur Places tetap ada di kode, tetapi tidak dipakai: API-nya berbayar. Ulasan di situs adalah yang tersimpan di admin. |
+| `GOOGLE_PLACE_ID` | (kosong) | Dibiarkan kosong. Tombol "Lihat semua ulasan di Google" dan "Tulis ulasan" menuju halaman Maps tempat Loox Travel, tanpa kunci API. |
 | `XENDIT_SECRET_KEY` | (tidak dibaca) | **Belum dipakai.** Disiapkan untuk DP 30% nanti. Jangan diisi dan jangan di-commit. Aplikasi mengabaikan variabel ini. |
 | `XENDIT_WEBHOOK_VERIFICATION_TOKEN` | (tidak dibaca) | **Belum dipakai.** Token verifikasi webhook Xendit, nanti. Jangan di-commit. |
 

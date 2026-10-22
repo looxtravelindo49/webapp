@@ -55,10 +55,12 @@ export function parseTestimonialForm(form: FormData): { raw: TestimonialRaw; ok:
 	if (!Number.isInteger(rating) || rating < 1 || rating > 5) errors.rating = 'Nilai harus bilangan 1 sampai 5.';
 	if (!body) errors.body = 'Teks ulasan wajib diisi.';
 	else if (body.length > TESTIMONIAL_LIMITS.body) errors.body = `Teks ulasan maksimal ${TESTIMONIAL_LIMITS.body} karakter.`;
-	const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
-	const stamp = parts ? new Date(Date.UTC(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]))) : null;
-	if (!stamp || stamp.getUTCFullYear() !== Number(parts![1]) || stamp.getUTCMonth() + 1 !== Number(parts![2]) || stamp.getUTCDate() !== Number(parts![3])) {
-		errors.date = 'Tanggal ulasan wajib diisi.';
+	if (date) {
+		const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+		const stamp = parts ? new Date(Date.UTC(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]))) : null;
+		if (!stamp || stamp.getUTCFullYear() !== Number(parts![1]) || stamp.getUTCMonth() + 1 !== Number(parts![2]) || stamp.getUTCDate() !== Number(parts![3])) {
+			errors.date = 'Tanggal ulasan tidak valid.';
+		}
 	}
 	const url = optionalHttpUrl(raw.url);
 	if (url === 'bad') errors.url = 'Tautan harus berupa alamat http atau https, atau dikosongkan.';

@@ -1,3 +1,4 @@
+import { GOOGLE_RATING_SETTING, GOOGLE_REVIEW_COUNT_SETTING } from '#lib/content/reviews.js';
 import { run, scalar, transaction, type Db } from './db';
 
 type SeedPackage = {
@@ -139,13 +140,27 @@ export const seedArticles: SeedArticle[] = [
 	}
 ];
 
+/** Ulasan asli dari Google. Tanggal dikosongkan karena tidak disertakan. */
+export const seedGoogleReviews: { name: string; rating: number; body: string }[] = [
+	{
+		name: 'Axel Van Basten Pakpahan',
+		rating: 5,
+		body: 'Loox Travel provides excellent, responsive service. The team is friendly, gives clear information, and makes the booking process smooth from start to finish. The trip was also enjoyable, well organized, and hassle free. Highly recommended for anyone looking for a reliable and convenient travel agent. Thank you, Loox Travel!'
+	},
+	{ name: 'Ira Sri', rating: 5, body: 'Wih keren Loox travel, sangat rekomend...' },
+	{ name: 'winda widyawati', rating: 5, body: 'Kereen... Terima Kasih...' }
+];
+
 export const seedSettings: Record<string, string> = {
-	whatsapp: '6282120209900'
+	whatsapp: '6282120209900',
+	[GOOGLE_RATING_SETTING]: '5.0',
+	[GOOGLE_REVIEW_COUNT_SETTING]: '41'
 };
 
 /**
  * Isi data awal tanpa menimpa apa pun: paket hanya jika tabel `package` kosong,
  * artikel bawaan tepat sekali (penanda `seeded_articles`, jadi tidak muncul lagi walau admin menghapusnya),
+ * tiga ulasan Google tepat sekali (penanda `seeded_google_reviews`, hanya bila tabel masih kosong),
  * pengaturan hanya untuk kunci yang belum ada. Aman dijalankan di setiap start, juga bila
  * beberapa instance menjalankannya bersamaan (transaksi tulis + `OR IGNORE` pada slug/kunci unik).
  */
@@ -179,6 +194,21 @@ export async function seed(db: Db): Promise<void> {
 				);
 			}
 			await run(tx, "INSERT OR IGNORE INTO setting (key, value) VALUES ('seeded_articles', '1')");
+		}
+		const reviewsSeeded = await scalar(tx, "SELECT 1 FROM setting WHERE key = 'seeded_google_reviews'");
+		if (reviewsSeeded === null) {
+			const reviewCount = (await scalar<number>(tx, 'SELECT COUNT(*) FROM testimonial')) ?? 0;
+			if (reviewCount === 0) {
+				for (const [i, review] of seedGoogleReviews.entries()) {
+					await run(
+						tx,
+						`INSERT INTO testimonial (reviewer_name, rating, body, review_date, source_url, sort_order)
+						 VALUES (?, ?, ?, '', NULL, ?)`,
+						[review.name, review.rating, review.body, i + 1]
+					);
+				}
+			}
+			await run(tx, "INSERT OR IGNORE INTO setting (key, value) VALUES ('seeded_google_reviews', '1')");
 		}
 		for (const [key, value] of Object.entries(seedSettings)) {
 			await run(tx, 'INSERT OR IGNORE INTO setting (key, value) VALUES (?, ?)', [key, value]);

@@ -2,10 +2,11 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { openDatabase, type Db } from './db';
+import { openDatabase, run, type Db } from './db';
 import { addPortfolioPhotos, deletePortfolio, listPortfolio, movePortfolio, updatePortfolioText } from './portfolio';
-import { chooseReviews, loadPublicReviews } from './public-reviews';
-import { seed } from './seed';
+import { chooseReviews, loadGoogleSummary, loadPublicReviews } from './public-reviews';
+import { seed, seedGoogleReviews } from './seed';
+import { getSetting, setSetting } from './settings';
 import { createTestimonial, listPublicTestimonials } from './testimonials';
 
 const dirs: string[] = [];
@@ -25,12 +26,26 @@ afterEach(() => {
 });
 
 describe('seed portfolio', () => {
-	it('tidak mengisi foto atau ulasan', async () => {
+	it('tidak mengisi foto, dan mengisi tiga ulasan Google plus ringkasan', async () => {
 		const db = await fresh();
 		await seed(db);
 		expect(await listPortfolio(db)).toEqual([]);
+		const reviews = await listPublicTestimonials(db);
+		expect(reviews.map(({ id, ...rest }) => rest)).toEqual(
+			seedGoogleReviews.map((review) => ({ name: review.name, rating: review.rating, text: review.body, date: '', url: null }))
+		);
+		expect(reviews.every((review) => review.id.startsWith('admin-'))).toBe(true);
+		expect(await loadGoogleSummary(db)).toBe('5.0 dari 41 ulasan Google');
+		expect(await loadPublicReviews(db, {})).toEqual(reviews);
+		await seed(db);
+		expect(await listPublicTestimonials(db)).toHaveLength(3);
+		await setSetting(db, 'google_rating', '4.9');
+		await setSetting(db, 'google_review_count', '42');
+		await run(db, 'DELETE FROM testimonial');
+		await seed(db);
 		expect(await listPublicTestimonials(db)).toEqual([]);
-		expect(await loadPublicReviews(db, {})).toEqual([]);
+		expect(await getSetting(db, 'google_rating')).toBe('4.9');
+		expect(await getSetting(db, 'google_review_count')).toBe('42');
 	});
 });
 

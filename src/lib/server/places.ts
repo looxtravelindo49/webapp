@@ -49,6 +49,7 @@ export function clearPlacesCache(): void {
 
 /**
  * Ulasan dari Google Places bila `GOOGLE_PLACES_API_KEY` dan `GOOGLE_PLACE_ID` terisi.
+ * Jalur ini dibiarkan, tetapi tetap mati: kedua variabel dikosongkan karena API-nya berbayar.
  * `null` bila tidak dikonfigurasi atau permintaan gagal, supaya pemanggil memakai data admin.
  */
 export async function fetchGoogleReviews(
