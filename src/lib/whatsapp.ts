@@ -36,6 +36,13 @@ export function floatWaMessage(packageTitle?: string | null): string {
 	return FLOAT_WA_TEMPLATE.replace(ACTIVITY_LINE, `${ACTIVITY_LINE}${name}`);
 }
 
+/** `6282120209900` → `+62 821-2020-9900`. Nomor lain ditampilkan dengan awalan +. */
+export function formatWhatsappDisplay(digits: string): string {
+	const local = digits.startsWith('62') ? digits.slice(2) : digits;
+	if (local.length === 11) return `+62 ${local.slice(0, 3)}-${local.slice(3, 7)}-${local.slice(7)}`;
+	return `+${digits}`;
+}
+
 export function waLink(number: string, text: string = DEFAULT_WA_MESSAGE): string {
 	return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
 }

@@ -37,6 +37,13 @@ const rowOf = (page: Page, slug: string) => page.locator(`li[data-article="${slu
 const click = (page: Page, slug: string, name: string) => submit(page, () => rowOf(page, slug).getByRole('button', { name, exact: true }).click());
 const popularTitles = async (page: Page) => (await page.locator('#artikel-populer h3').allInnerTexts()).map((t) => t.trim());
 const status = (request: Page['request'], slug: string) => request.get(`/artikel/${slug}`).then((r) => r.status());
+async function blogPosting(page: Page): Promise<{ headline: string; image: string[] }> {
+	const texts = await page.locator('script[type="application/ld+json"]').allTextContents();
+	const nodes = texts.flatMap((t) => (JSON.parse(t) as { '@graph': { '@type': string; headline: string; image: string[] }[] })['@graph']);
+	const post = nodes.find((n) => n['@type'] === 'BlogPosting');
+	expect(post).toBeTruthy();
+	return post!;
+}
 
 test.describe('[article-cms] Terbitkan dan sembunyikan', () => {
 	test('menerbitkan draf: tampil di /artikel dan dapat dibuka; published_at tetap saat disembunyikan lalu diterbitkan lagi', async ({ page, request }) => {
@@ -287,8 +294,8 @@ test.describe('[seo-metadata] Gambar bagikan artikel', () => {
 		await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', abs);
 		await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute('content', abs);
 		await expect(page.locator('meta[property="og:image:width"]')).toHaveCount(0);
-		const ld = JSON.parse((await page.locator('script[type="application/ld+json"]').textContent())!);
-		expect(ld['@graph'][0].image[0]).toMatch(abs);
+		const ld = await blogPosting(page);
+		expect(ld.image[0]).toMatch(abs);
 
 		const avif = insertArticle(uniqueTitle('Tes Artikel OgAvif'), { published: 1, cover_image: '/uploads/0b5e1c3a-7d2f-4a8e-9c1b-2f3d4e5a6b7d.avif' });
 		await gotoReady(page, `/artikel/${avif.slug}`);
@@ -299,9 +306,10 @@ test.describe('[seo-metadata] Gambar bagikan artikel', () => {
 		const evil = 'Tes Artikel </script><script>window.__ld=1</script> Judul';
 		const row = insertArticle(evil, { published: 1 });
 		await gotoReady(page, `/artikel/${row.slug}`);
-		await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(1);
-		const ld = JSON.parse((await page.locator('script[type="application/ld+json"]').textContent())!);
-		expect(ld['@graph'][0].headline).toBe(evil);
+		const scripts = page.locator('script[type="application/ld+json"]');
+		await expect(scripts).toHaveCount(2);
+		const ld = await blogPosting(page);
+		expect(ld.headline).toBe(evil);
 		expect(await page.evaluate(() => (window as unknown as { __ld?: number }).__ld)).toBeUndefined();
 	});
 });
@@ -364,8 +372,8 @@ test.describe('[unsplash-picker] Satu sumber sampul dan tampilan publik', () => 
 		expect(og.origin).toBe('https://images.unsplash.com');
 		expect([og.searchParams.get('w'), og.searchParams.get('h'), og.searchParams.get('ixid')]).toEqual(['1200', '630', `ID${id}`]);
 		await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute('content', og.toString());
-		const ld = JSON.parse((await page.locator('script[type="application/ld+json"]').textContent())!);
-		expect(ld['@graph'][0].image[0]).toBe(og.toString());
+		const ld = await blogPosting(page);
+		expect(ld.image[0]).toBe(og.toString());
 
 		await gotoReady(page, '/artikel');
 		const card = page.locator(`a[href="/artikel/${row.slug}"] img`);

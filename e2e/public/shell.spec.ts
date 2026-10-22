@@ -117,14 +117,21 @@ test.describe('[site-shell] Aksesibilitas dasar', () => {
 });
 
 test.describe('[site-shell] SEO dasar', () => {
-	test('title, description, canonical, Open Graph, dan JSON-LD @graph Organization + WebSite', async ({ page }) => {
+	test('title, description, canonical, Open Graph, dan JSON-LD Organization + WebSite + TravelAgency', async ({ page }) => {
 		await gotoReady(page, '/');
 		await expect(page).toHaveTitle(/Lembang Adventure/);
 		await expect(page.locator('meta[name=description]')).toHaveAttribute('content', /.{40,}/);
 		await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', /^http:\/\/127\.0\.0\.1:\d+\/$/);
 		await expect(page.locator('meta[property="og:title"]')).toHaveCount(1);
-		const ld = JSON.parse((await page.locator('script[type="application/ld+json"]').textContent())!);
-		expect((ld['@graph'] as { '@type': string }[]).map((n) => n['@type'])).toEqual(['Organization', 'WebSite']);
+		const scripts = page.locator('script[type="application/ld+json"]');
+		const types: string[] = [];
+		for (let i = 0; i < (await scripts.count()); i++) {
+			const ld = JSON.parse((await scripts.nth(i).textContent())!) as { '@graph': { '@type': string }[] };
+			types.push(...ld['@graph'].map((n) => n['@type']));
+		}
+		expect(types.filter((t) => t !== 'TravelAgency')).toEqual(['Organization', 'WebSite']);
+		expect(types).toContain('TravelAgency');
+		await expect(page.locator('footer')).toContainText('Jl. Laksana II No. 59, Jayagiri, Lembang, Kabupaten Bandung Barat, Jawa Barat 40391');
 	});
 
 	test('robots.txt melarang /admin/ dan menunjuk sitemap; sitemap memuat beranda', async ({ request }) => {

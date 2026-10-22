@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_WA_MESSAGE, FLOAT_WA_TEMPLATE, floatWaMessage, normalizeWhatsapp, waLink } from './whatsapp';
+import { DEFAULT_WA_MESSAGE, FLOAT_WA_NUMBER, FLOAT_WA_TEMPLATE, floatWaMessage, formatWhatsappDisplay, normalizeWhatsapp, waLink } from './whatsapp';
 import { formatRupiah } from './format';
 
 describe('normalizeWhatsapp', () => {
@@ -19,6 +19,13 @@ describe('normalizeWhatsapp', () => {
 	it('menolak null dan undefined', () => {
 		expect(normalizeWhatsapp(null)).toBeNull();
 		expect(normalizeWhatsapp(undefined)).toBeNull();
+	});
+});
+
+describe('formatWhatsappDisplay', () => {
+	it('menampilkan nomor bisnis dengan pemisah', () => {
+		expect(formatWhatsappDisplay(FLOAT_WA_NUMBER)).toBe('+62 821-2020-9900');
+		expect(formatWhatsappDisplay('628123456789')).toBe('+628123456789');
 	});
 });
 

@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { site } from '#lib/content/site.js';
+	import { businessAddress, site } from '#lib/content/site.js';
+	import { FLOAT_WA_NUMBER, formatWhatsappDisplay } from '#lib/whatsapp.js';
 	import BankAccount from './BankAccount.svelte';
 
 	const year = new Date().getFullYear();
@@ -13,6 +14,10 @@
 					>Lembang <span class="font-medium">Adventure</span></a
 				>
 				<p class="mt-3 text-[11px] text-green-100">{site.byline}</p>
+				<p class="mt-2 max-w-sm text-[11px] leading-relaxed text-green-100">
+					{businessAddress.line}<br />
+					<a href="https://wa.me/{FLOAT_WA_NUMBER}" class="text-green-100">WhatsApp {formatWhatsappDisplay(FLOAT_WA_NUMBER)}</a>
+				</p>
 			</div>
 			<div>
 				<a href="/#rencanakan" class="border-b border-accent py-1 text-xs font-bold">Bikin cerita bareng timmu ↗</a>

@@ -1,5 +1,7 @@
 /** Pembangun metadata dan JSON-LD (murni, aman dipakai di server maupun klien). */
+import { businessAddress, site as brand } from './content/site';
 import { unsplashSized } from './images';
+import { FLOAT_WA_NUMBER } from './whatsapp';
 
 export const OG_DEFAULT_PATH = '/og-default.png';
 export const OG_DEFAULT_SIZE = { width: 1200, height: 630 } as const;
@@ -49,6 +51,29 @@ export function organizationNode(base: string, site: Site, waNumber?: string | n
 		...(waNumber
 			? { contactPoint: { '@type': 'ContactPoint', contactType: 'customer service', telephone: `+${waNumber}`, availableLanguage: 'id' } }
 			: {})
+	};
+}
+
+/**
+ * `TravelAgency` (subtipe `LocalBusiness`) untuk seluruh situs.
+ * Tanpa rating, ulasan, atau jam buka: data itu tidak tersedia.
+ */
+export function travelAgencyNode(base: string): Node {
+	return {
+		'@type': 'TravelAgency',
+		'@id': `${base}/#travel-agency`,
+		name: brand.name,
+		url: base,
+		telephone: `+${FLOAT_WA_NUMBER}`,
+		address: {
+			'@type': 'PostalAddress',
+			streetAddress: businessAddress.streetAddress,
+			addressLocality: businessAddress.addressLocality,
+			addressRegion: businessAddress.addressRegion,
+			postalCode: businessAddress.postalCode,
+			addressCountry: businessAddress.addressCountry
+		},
+		areaServed: ['Lembang', 'Bandung']
 	};
 }
 

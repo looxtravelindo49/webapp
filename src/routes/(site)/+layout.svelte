@@ -3,13 +3,17 @@
 	import Footer from '#lib/components/Footer.svelte';
 	import Navbar from '#lib/components/Navbar.svelte';
 	import WhatsAppFloat from '#lib/components/WhatsAppFloat.svelte';
+	import { jsonLdGraph, serializeJsonLd, travelAgencyNode } from '#lib/seo.js';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
+
+	const businessLd = $derived(serializeJsonLd(jsonLdGraph([travelAgencyNode(data.siteUrl)])));
 </script>
 
 <svelte:head>
 	<link rel="alternate" type="application/rss+xml" title="Artikel {site.name}" href="{data.siteUrl}/artikel/rss.xml" />
+	{@html `<script type="application/ld+json">${businessLd}</script>`}
 </svelte:head>
 
 <a

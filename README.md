@@ -172,7 +172,7 @@ bila akun awal sudah pernah diganti; gunakan database baru untuk menjalankannya 
 | `DATABASE_PATH` | `./data/app.db` (container: `/data/app.db`) | Berkas SQLite lokal bila `DATABASE_URL` tidak diset; direktori dibuat otomatis. |
 | `BLOB_READ_WRITE_TOKEN` | (kosong) | Bila diset, foto unggahan disimpan di Vercel Blob. **Wajib di Vercel** (disk fungsi tidak persisten). |
 | `VERCEL_REGIONS` | (kosong) | Saat build di Vercel: daftar wilayah fungsi dipisah koma (mis. `sin1`), samakan dengan wilayah Turso. |
-| `PUBLIC_SITE_URL` | `http://localhost:3000` | Alamat publik untuk canonical, Open Graph, JSON-LD, sitemap, RSS, dan robots. **Wajib diisi domain produksi**; bila masih `localhost` saat `NODE_ENV=production`, server mencatat peringatan. |
+| `PUBLIC_SITE_URL` | `http://localhost:3000` | Alamat publik untuk canonical, Open Graph, JSON-LD, sitemap, RSS, dan robots. **Wajib diisi domain produksi** `https://www.lembangadventure.com`. Host `lembangadventure.com` (dengan atau tanpa `www`) selalu dijadikan origin itu. Bila masih `localhost` saat `NODE_ENV=production`, server mencatat peringatan. |
 | `PROTOCOL_HEADER` / `HOST_HEADER` / `PORT_HEADER` | (kosong) | Header dari reverse proxy untuk menurunkan alamat asal (mis. `x-forwarded-proto`, `x-forwarded-host`). Tanpa ini protokol dianggap `https` dan host diambil dari `Host`. |
 | `PORT` | `3000` | Port server produksi. |
 | `UPLOAD_DIR` | `<folder database>/uploads` (kontainer: `/data/uploads`) | Folder foto paket bila `BLOB_READ_WRITE_TOKEN` tidak diset; dibuat otomatis. Ikut volume dan backup. |
@@ -236,7 +236,7 @@ docker build -t lembang-adventures .
 docker run -d --name lembang -p 3000:3000 \
   -v lembang-data:/data \
   -e PROTOCOL_HEADER=x-forwarded-proto -e HOST_HEADER=x-forwarded-host \
-  -e PUBLIC_SITE_URL=https://lembangadventures.com \
+  -e PUBLIC_SITE_URL=https://www.lembangadventure.com \
   lembang-adventures
 ```
 

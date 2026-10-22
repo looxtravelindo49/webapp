@@ -14,12 +14,19 @@ const ARTICLE = `/artikel/${SEEDED[0]}`;
 const content = (page: Page, selector: string) => page.locator(selector).getAttribute('content');
 type Node = Record<string, unknown> & { '@type': string };
 async function graph(page: Page): Promise<Node[]> {
-	await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(1);
-	const ld = JSON.parse((await page.locator('script[type="application/ld+json"]').textContent())!);
-	expect(ld['@context']).toBe('https://schema.org');
-	return ld['@graph'];
+	const scripts = page.locator('script[type="application/ld+json"]');
+	const count = await scripts.count();
+	expect(count).toBeGreaterThan(0);
+	const nodes: Node[] = [];
+	for (let i = 0; i < count; i++) {
+		const ld = JSON.parse((await scripts.nth(i).textContent())!);
+		expect(ld['@context']).toBe('https://schema.org');
+		nodes.push(...ld['@graph']);
+	}
+	return nodes;
 }
 const node = (nodes: Node[], type: string) => nodes.find((n) => n['@type'] === type)!;
+const typesExceptBusiness = (nodes: Node[]) => nodes.map((n) => n['@type']).filter((t) => t !== 'TravelAgency');
 
 async function expectSingleTags(page: Page) {
 	for (const sel of [
@@ -48,9 +55,29 @@ test.describe('[seo-metadata] Beranda', () => {
 		await expect(page.locator('meta[property="og:image:height"]')).toHaveAttribute('content', '630');
 
 		const nodes = await graph(page);
-		expect(nodes.map((n) => n['@type'])).toEqual(['Organization', 'WebSite']);
+		expect(typesExceptBusiness(nodes)).toEqual(['Organization', 'WebSite']);
 		expect((node(nodes, 'Organization').contactPoint as { telephone: string }).telephone).toBe(`+${WA_NUMBER}`);
 		expect(node(nodes, 'WebSite')).toMatchObject({ inLanguage: 'id', name: 'Lembang Adventure' });
+		const agency = node(nodes, 'TravelAgency');
+		expect(agency).toMatchObject({
+			name: 'Lembang Adventure',
+			telephone: '+6282120209900',
+			address: {
+				'@type': 'PostalAddress',
+				streetAddress: 'Jl. Laksana II No. 59, Jayagiri',
+				addressLocality: 'Lembang',
+				addressRegion: 'Jawa Barat',
+				postalCode: '40391',
+				addressCountry: 'ID'
+			},
+			areaServed: ['Lembang', 'Bandung']
+		});
+		expect(String(agency.url)).toMatch(new RegExp(`^${ORIGIN.source}$`));
+		expect(agency).not.toHaveProperty('aggregateRating');
+		expect(agency).not.toHaveProperty('review');
+		expect(agency).not.toHaveProperty('openingHours');
+		await expect(page.locator('footer')).toContainText('Jl. Laksana II No. 59, Jayagiri, Lembang, Kabupaten Bandung Barat, Jawa Barat 40391');
+		await expect(page.locator('footer')).toContainText('WhatsApp +62 821-2020-9900');
 	});
 
 	test('/og-default.png berupa PNG 1200x630', async ({ request }) => {
@@ -69,7 +96,8 @@ test.describe('[seo-metadata] Daftar dan halaman artikel', () => {
 		await expectSingleTags(page);
 		await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', new RegExp(`${ORIGIN.source}/artikel$`));
 		const nodes = await graph(page);
-		expect(nodes.map((n) => n['@type'])).toEqual(['CollectionPage', 'BreadcrumbList']);
+		expect(typesExceptBusiness(nodes)).toEqual(['CollectionPage', 'BreadcrumbList']);
+		expect(node(nodes, 'TravelAgency').name).toBe('Lembang Adventure');
 		expect((node(nodes, 'BreadcrumbList').itemListElement as unknown[]).length).toBe(2);
 	});
 
@@ -83,7 +111,7 @@ test.describe('[seo-metadata] Daftar dan halaman artikel', () => {
 		await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', /Sepakati 5 hal.* \| Lembang Adventure$/);
 
 		const nodes = await graph(page);
-		expect(nodes.map((n) => n['@type'])).toEqual(['BlogPosting', 'BreadcrumbList']);
+		expect(typesExceptBusiness(nodes)).toEqual(['BlogPosting', 'BreadcrumbList']);
 		expect(node(nodes, 'BlogPosting')).toMatchObject({
 			headline: 'Mau gathering kantor? Sepakati 5 hal ini dulu.',
 			datePublished: '2026-09-15T00:00:00.000Z',

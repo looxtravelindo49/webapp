@@ -9,6 +9,16 @@ export const site = {
 	footerNote: 'Aktivitas dan wisata di Lembang dan sekitarnya.'
 } as const;
 
+/** NAP bisnis. `line` untuk footer; sisanya untuk PostalAddress di JSON-LD. */
+export const businessAddress = {
+	streetAddress: 'Jl. Laksana II No. 59, Jayagiri',
+	addressLocality: 'Lembang',
+	addressRegion: 'Jawa Barat',
+	postalCode: '40391',
+	addressCountry: 'ID',
+	line: 'Jl. Laksana II No. 59, Jayagiri, Lembang, Kabupaten Bandung Barat, Jawa Barat 40391'
+} as const;
+
 export const navLinks = [
 	{ label: 'Pilihan Paket', href: '/#paket' },
 	{ label: 'Artikel', href: '/artikel' },

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-	absoluteUrl, articleNodes, breadcrumbNode, collectionNodes, jsonLdGraph, organizationNode, serializeJsonLd, shareImage, websiteNode
+	absoluteUrl, articleNodes, breadcrumbNode, collectionNodes, jsonLdGraph, organizationNode, serializeJsonLd, shareImage, travelAgencyNode, websiteNode
 } from './seo';
 
 const BASE = 'https://contoh.id';
@@ -62,6 +62,30 @@ describe('node JSON-LD', () => {
 		expect(withWa.contactPoint?.telephone).toBe('+6282120209900');
 		expect('contactPoint' in organizationNode(BASE, site, null)).toBe(false);
 		expect('contactPoint' in organizationNode(BASE, site)).toBe(false);
+	});
+
+	it('TravelAgency memuat NAP dan area layanan, tanpa rating, ulasan, atau jam buka', () => {
+		const node = travelAgencyNode(BASE);
+		expect(node).toMatchObject({
+			'@type': 'TravelAgency',
+			'@id': `${BASE}/#travel-agency`,
+			name: 'Lembang Adventure',
+			url: BASE,
+			telephone: '+6282120209900',
+			address: {
+				'@type': 'PostalAddress',
+				streetAddress: 'Jl. Laksana II No. 59, Jayagiri',
+				addressLocality: 'Lembang',
+				addressRegion: 'Jawa Barat',
+				postalCode: '40391',
+				addressCountry: 'ID'
+			},
+			areaServed: ['Lembang', 'Bandung']
+		});
+		expect(node).not.toHaveProperty('aggregateRating');
+		expect(node).not.toHaveProperty('review');
+		expect(node).not.toHaveProperty('openingHours');
+		expect(node).not.toHaveProperty('openingHoursSpecification');
 	});
 
 	it('WebSite menunjuk publisher Organization lewat @id yang sama', () => {
