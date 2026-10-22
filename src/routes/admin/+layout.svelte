@@ -24,6 +24,8 @@
 							<a href="/admin/leads" class="hover:text-accent">Leads</a>
 							<a href="/admin/paket" class="hover:text-accent">Paket</a>
 							<a href="/admin/artikel" class="hover:text-accent">Artikel</a>
+							<a href="/admin/portfolio" class="hover:text-accent">Portfolio</a>
+							<a href="/admin/ulasan" class="hover:text-accent">Ulasan</a>
 							<a href="/admin/pengaturan" class="hover:text-accent">Pengaturan</a>
 							<a href="/admin/akun" class="hover:text-accent">Akun</a>
 							<a href="/" class="hover:text-accent" target="_blank" rel="noopener">Lihat situs ↗</a>

@@ -11,6 +11,7 @@ const onVercel = !!process.env.VERCEL;
 const regions = process.env.VERCEL_REGIONS?.split(',').map((r) => r.trim()).filter(Boolean);
 
 export default defineConfig({
+	ssr: { external: ['sharp'] },
 	plugins: [
 		tailwindcss(),
 		sveltekit({

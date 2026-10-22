@@ -3,6 +3,7 @@
 	import PackageCatalog from '#lib/components/PackageCatalog.svelte';
 	import PackageTabs from '#lib/components/PackageTabs.svelte';
 	import PopularArticles from '#lib/components/PopularArticles.svelte';
+	import Testimonials from '#lib/components/Testimonials.svelte';
 	import TripCalculator from '#lib/components/TripCalculator.svelte';
 	import TripToggle from '#lib/components/TripToggle.svelte';
 	import Planner from '#lib/components/Planner.svelte';
@@ -44,5 +45,6 @@
 	{#snippet action(p)}<TripToggle pkg={p} />{/snippet}
 </PackageTabs>
 <TripCalculator packages={data.packages} waNumber={data.waNumber} />
+<Testimonials reviews={data.reviews} />
 <PopularArticles articles={data.popularArticles} />
 <Planner />

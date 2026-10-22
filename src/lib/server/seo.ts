@@ -42,12 +42,14 @@ export function latestDate(...values: (string | null | undefined)[]): string | n
 export function sitemapEntries(
 	articles: { slug: string; updated_at: string }[],
 	packagesUpdatedAt: string | null,
-	packages: { slug: string; updated_at: string }[] = []
+	packages: { slug: string; updated_at: string }[] = [],
+	portfolioUpdatedAt: string | null = null
 ): SitemapEntry[] {
 	const articlesLatest = latestDate(...articles.map((a) => a.updated_at));
 	return [
 		{ path: '/', lastmod: latestDate(packagesUpdatedAt, articlesLatest) },
 		{ path: '/artikel', lastmod: articlesLatest },
+		{ path: '/portfolio', lastmod: portfolioUpdatedAt },
 		{ path: '/kebijakan-pembayaran', lastmod: null },
 		...articles.map((a) => ({ path: `/artikel/${a.slug}`, lastmod: a.updated_at })),
 		...packages.map((p) => ({ path: `/paket/${p.slug}`, lastmod: p.updated_at }))

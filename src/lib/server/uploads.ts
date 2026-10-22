@@ -167,6 +167,16 @@ export async function saveImage(store: ImageStore, bytes: Uint8Array, type: Imag
 /** Path publik `/uploads/<nama berpola>` (satu-satunya bentuk yang kita hasilkan sendiri). */
 export const isUploadPath = (path: string | null | undefined): path is string => !!path && UPLOAD_PATH.test(path);
 
+/** Foto yang lolos pemeriksaan jenis dan ukuran, siap dikompresi. */
+export async function readPhotoReady(form: { get(name: string): unknown }, field = 'photo'): Promise<{ kind: 'none' } | { kind: 'new'; bytes: Uint8Array } | { kind: 'error'; message: string }> {
+	const file = form.get(field);
+	if (!(file instanceof File)) return { kind: 'none' };
+	if (file.size === 0) return file.name ? { kind: 'error', message: 'Berkas foto kosong. Pilih foto lain.' } : { kind: 'none' };
+	if (file.size > MAX_UPLOAD_BYTES) return { kind: 'error', message: 'Foto terlalu besar. Maksimal 4 MB.' };
+	const bytes = new Uint8Array(await file.arrayBuffer());
+	return detectImageType(bytes) ? { kind: 'new', bytes } : { kind: 'error', message: 'Jenis berkas tidak didukung. Pilih foto JPEG, PNG, WebP, atau AVIF.' };
+}
+
 /** Hapus berkas unggahan; path lain (mis. `/media/…`) diabaikan. Mengembalikan true bila berkas terhapus. */
 export async function deleteUpload(store: ImageStore, path: string | null | undefined): Promise<boolean> {
 	const m = path ? UPLOAD_PATH.exec(path) : null;

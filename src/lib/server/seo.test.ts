@@ -43,9 +43,10 @@ describe('sitemapEntries', () => {
 		{ slug: 'lama', updated_at: '2026-09-01T00:00:00.000Z' }
 	];
 	it('beranda, daftar, dan tiap artikel dengan lastmod', () => {
-		expect(sitemapEntries(articles, '2026-08-01T00:00:00.000Z')).toEqual([
+		expect(sitemapEntries(articles, '2026-08-01T00:00:00.000Z', [], '2026-07-30T00:00:00.000Z')).toEqual([
 			{ path: '/', lastmod: '2026-10-01T00:00:00.000Z' },
 			{ path: '/artikel', lastmod: '2026-10-01T00:00:00.000Z' },
+			{ path: '/portfolio', lastmod: '2026-07-30T00:00:00.000Z' },
 			{ path: '/kebijakan-pembayaran', lastmod: null },
 			{ path: '/artikel/baru', lastmod: '2026-10-01T00:00:00.000Z' },
 			{ path: '/artikel/lama', lastmod: '2026-09-01T00:00:00.000Z' }
@@ -58,6 +59,7 @@ describe('sitemapEntries', () => {
 		expect(sitemapEntries([], null)).toEqual([
 			{ path: '/', lastmod: null },
 			{ path: '/artikel', lastmod: null },
+			{ path: '/portfolio', lastmod: null },
 			{ path: '/kebijakan-pembayaran', lastmod: null }
 		]);
 		const xml = sitemapXml('https://contoh.id', sitemapEntries([], null));
@@ -68,6 +70,7 @@ describe('sitemapEntries', () => {
 		expect(sitemapEntries([], null, [{ slug: 'offroad', updated_at: '2026-10-02T00:00:00.000Z' }])).toEqual([
 			{ path: '/', lastmod: null },
 			{ path: '/artikel', lastmod: null },
+			{ path: '/portfolio', lastmod: null },
 			{ path: '/kebijakan-pembayaran', lastmod: null },
 			{ path: '/paket/offroad', lastmod: '2026-10-02T00:00:00.000Z' }
 		]);

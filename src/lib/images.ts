@@ -7,6 +7,11 @@ export function safeImage(path: string | null | undefined): string {
 	return path && SAFE.test(path) && !path.includes('..') ? path : FALLBACK_IMAGE;
 }
 
+/** Path gambar yang aman, atau null bila kosong atau tidak dikenali. Tidak memakai gambar bawaan. */
+export function optionalImage(path: string | null | undefined): string | null {
+	return path && SAFE.test(path) && !path.includes('..') ? path : null;
+}
+
 // ---------------------------------------------------------------------------
 // Foto Unsplash (hotlink): hanya URL dari images.unsplash.com yang dipercaya.
 // ---------------------------------------------------------------------------

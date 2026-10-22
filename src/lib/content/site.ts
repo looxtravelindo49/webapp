@@ -21,6 +21,7 @@ export const businessAddress = {
 
 export const navLinks = [
 	{ label: 'Pilihan Paket', href: '/#paket' },
+	{ label: 'Portfolio', href: '/portfolio' },
 	{ label: 'Artikel', href: '/artikel' },
 	{ label: 'Rencanakan Trip', href: '/#rencanakan' }
 ] as const;

@@ -227,7 +227,7 @@ describe('migrasi status lama', () => {
 			`INSERT INTO lead (nomor_invoice, nama, whatsapp, paket, jumlah_peserta, invoice_url, status, paid_at)
 			 VALUES ('LA-20261019-BBBBBBBB', 'Lunas', '628111111112', '[]', 2, 'http://local/b', 'lunas_dp', '2026-10-01T00:00:00.000Z')`
 		);
-		expect(await migrate(db)).toEqual(['0007_lead_payment', '0008_lead_manual', '0009_package_pricing', '0010_package_photo']);
+		expect(await migrate(db)).toEqual(['0007_lead_payment', '0008_lead_manual', '0009_package_pricing', '0010_package_photo', '0011_portfolio_testimonial']);
 		const rows = await all<{ id: number; status: string; diterima_pada: string | null }>(
 			db,
 			'SELECT id, status, diterima_pada FROM lead ORDER BY id'
