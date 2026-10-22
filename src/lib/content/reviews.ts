@@ -2,10 +2,6 @@
 export const GOOGLE_REVIEWS_URL =
 	'https://www.google.com/maps/place/Loox+Travel+-+PT+Loox+Travel+Luxury/@-6.810069,107.6206394,17z/data=!4m8!3m7!1s0x2e68e196d5f5124b:0x84f49e021326b3eb!8m2!3d-6.810069!4d107.6206394!9m1!1b1!16s%2Fg%2F11ytjl1nr1';
 
-/** Sematan peta tanpa kunci API. */
-export const GOOGLE_MAP_EMBED_URL =
-	'https://maps.google.com/maps?q=Loox+Travel+-+PT+Loox+Travel+Luxury+Lembang&output=embed';
-
 export const GOOGLE_RATING_SETTING = 'google_rating';
 export const GOOGLE_REVIEW_COUNT_SETTING = 'google_review_count';
 

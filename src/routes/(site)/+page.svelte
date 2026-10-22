@@ -45,6 +45,6 @@
 	{#snippet action(p)}<TripToggle pkg={p} />{/snippet}
 </PackageTabs>
 <TripCalculator packages={data.packages} waNumber={data.waNumber} />
-<Testimonials reviews={data.reviews} summary={data.googleSummary} showMap />
+<Testimonials reviews={data.reviews} summary={data.googleSummary} />
 <PopularArticles articles={data.popularArticles} />
 <Planner />

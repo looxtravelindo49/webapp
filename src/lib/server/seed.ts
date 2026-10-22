@@ -1,5 +1,5 @@
 import { GOOGLE_RATING_SETTING, GOOGLE_REVIEW_COUNT_SETTING } from '#lib/content/reviews.js';
-import { run, scalar, transaction, type Db } from './db';
+import { all, run, scalar, transaction, type Db, type Queryable } from './db';
 
 type SeedPackage = {
 	slug: string;
@@ -147,8 +147,33 @@ export const seedGoogleReviews: { name: string; rating: number; body: string }[]
 		rating: 5,
 		body: 'Loox Travel provides excellent, responsive service. The team is friendly, gives clear information, and makes the booking process smooth from start to finish. The trip was also enjoyable, well organized, and hassle free. Highly recommended for anyone looking for a reliable and convenient travel agent. Thank you, Loox Travel!'
 	},
-	{ name: 'Ira Sri', rating: 5, body: 'Wih keren Loox travel, sangat rekomend...' },
-	{ name: 'winda widyawati', rating: 5, body: 'Kereen... Terima Kasih...' }
+	{
+		name: 'Khalid Alkhawarizmi',
+		rating: 5,
+		body: 'Aku diminta cari eo untuk gathering kantor di Bandung, dan setelah cari2 yang proper.. ketemu lah Loox Travel ini\n\nRespon nya gercep, presentasi bagus, eksekusinya lebih baguss lagi!\n\nThank you Loox Travel, kemarin handle 100 orang kantor dan semuanya bilang good job!\n\nBuat temen-temen yang mau gathering di Lembang atau destinasi lain, aku rekomendasikan Loox Travel ajaaa!'
+	},
+	{
+		name: 'Putri Hasna',
+		rating: 5,
+		body: 'Pengalaman ikut Loox Travel bener-bener seruu! Dari awal sampai akhir semuanya terasa nyaman dan terorganisir dengan baik. Adminnya responsif, informasinya jelas, dan selama perjalanan juga dibantu dengan baikkk\n\nPelayanannya ramah, itinerary-nya seru, dan perjalanan jadi terasa lebih santai karena semuanya sudah diatur. Terima kasih Loox Travel untuk pengalaman yang menyenangkan! 🥰✨\n\nBuat yang sedang cari travel untuk liburan, aku rekomendasikan Loox Travel. Semoga bisa ikut trip berikutnya lagi! ❤️'
+	},
+	{
+		name: 'Realisna Putri',
+		rating: 5,
+		body: 'Dari sekian banyak trip kantor, yang ini salah satu yang paling berkesan karena acaranya gak berasa kaku dan semuanya enjoy 👌'
+	},
+	{
+		name: 'Liani Qolby',
+		rating: 5,
+		body: 'Pulang-pulang bukannya kapok malah pengen jalan lagi, thankyou looxtravel udah bikin trip kemarin susah dilupain 👀✌️'
+	}
+];
+
+/** Nama pada seed lama. Dipakai sekali untuk mengganti Ira Sri dan winda widyawati. */
+const previousSeedNames = new Set(['Axel Van Basten Pakpahan', 'Ira Sri', 'winda widyawati']);
+const retiredSeedReviews = [
+	{ name: 'Ira Sri', body: 'Wih keren Loox travel, sangat rekomend...' },
+	{ name: 'winda widyawati', body: 'Kereen... Terima Kasih...' }
 ];
 
 export const seedSettings: Record<string, string> = {
@@ -160,7 +185,8 @@ export const seedSettings: Record<string, string> = {
 /**
  * Isi data awal tanpa menimpa apa pun: paket hanya jika tabel `package` kosong,
  * artikel bawaan tepat sekali (penanda `seeded_articles`, jadi tidak muncul lagi walau admin menghapusnya),
- * tiga ulasan Google tepat sekali (penanda `seeded_google_reviews`, hanya bila tabel masih kosong),
+ * lima ulasan Google tepat sekali (penanda `seeded_google_reviews`; basis yang masih
+ * menyimpan seed lama diganti sekali lewat `seeded_google_reviews_5`),
  * pengaturan hanya untuk kunci yang belum ada. Aman dijalankan di setiap start, juga bila
  * beberapa instance menjalankannya bersamaan (transaksi tulis + `OR IGNORE` pada slug/kunci unik).
  */
@@ -198,20 +224,48 @@ export async function seed(db: Db): Promise<void> {
 		const reviewsSeeded = await scalar(tx, "SELECT 1 FROM setting WHERE key = 'seeded_google_reviews'");
 		if (reviewsSeeded === null) {
 			const reviewCount = (await scalar<number>(tx, 'SELECT COUNT(*) FROM testimonial')) ?? 0;
-			if (reviewCount === 0) {
-				for (const [i, review] of seedGoogleReviews.entries()) {
-					await run(
-						tx,
-						`INSERT INTO testimonial (reviewer_name, rating, body, review_date, source_url, sort_order)
-						 VALUES (?, ?, ?, '', NULL, ?)`,
-						[review.name, review.rating, review.body, i + 1]
-					);
-				}
-			}
+			if (reviewCount === 0) await insertSeedReviews(tx);
 			await run(tx, "INSERT OR IGNORE INTO setting (key, value) VALUES ('seeded_google_reviews', '1')");
+			await run(tx, "INSERT OR IGNORE INTO setting (key, value) VALUES ('seeded_google_reviews_5', '1')");
+		} else if ((await scalar(tx, "SELECT 1 FROM setting WHERE key = 'seeded_google_reviews_5'")) === null) {
+			await replacePreviousSeedReviews(tx);
+			await run(tx, "INSERT OR IGNORE INTO setting (key, value) VALUES ('seeded_google_reviews_5', '1')");
 		}
 		for (const [key, value] of Object.entries(seedSettings)) {
 			await run(tx, 'INSERT OR IGNORE INTO setting (key, value) VALUES (?, ?)', [key, value]);
 		}
 	});
+}
+
+async function insertReview(tx: Queryable, review: (typeof seedGoogleReviews)[number], order: number) {
+	await run(
+		tx,
+		`INSERT INTO testimonial (reviewer_name, rating, body, review_date, source_url, sort_order)
+		 VALUES (?, ?, ?, '', NULL, ?)`,
+		[review.name, review.rating, review.body, order]
+	);
+}
+
+async function insertSeedReviews(tx: Queryable) {
+	for (const [i, review] of seedGoogleReviews.entries()) await insertReview(tx, review, i + 1);
+}
+
+/** Ganti seed lama (Ira Sri, winda widyawati) dengan lima ulasan. Ulasan lain milik admin tidak dihapus. */
+async function replacePreviousSeedReviews(tx: Queryable) {
+	const rows = await all<{ reviewer_name: string; body: string }>(tx, 'SELECT reviewer_name, body FROM testimonial');
+	const onlyPrevious = rows.length === 0 || rows.every((row) => previousSeedNames.has(row.reviewer_name));
+	if (onlyPrevious) {
+		await run(tx, 'DELETE FROM testimonial');
+		await insertSeedReviews(tx);
+		return;
+	}
+	for (const old of retiredSeedReviews) {
+		await run(tx, 'DELETE FROM testimonial WHERE reviewer_name = ? AND body = ?', [old.name, old.body]);
+	}
+	for (const review of seedGoogleReviews) {
+		const exists = await scalar(tx, 'SELECT 1 FROM testimonial WHERE reviewer_name = ? AND body = ?', [review.name, review.body]);
+		if (exists !== null) continue;
+		const order = (await scalar<number>(tx, 'SELECT COALESCE(MAX(sort_order), 0) + 1 FROM testimonial')) ?? 1;
+		await insertReview(tx, review, order);
+	}
 }
