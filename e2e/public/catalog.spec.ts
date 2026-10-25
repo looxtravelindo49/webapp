@@ -43,10 +43,84 @@ test.describe('[katalog] Katalog paket dan halaman detail', () => {
 		expect(await columns(390)).toBe(2);
 	});
 
-	test('detail paket memakai data database dan menambahkannya ke kalkulator', async ({ page }) => {
+	test('Lihat Detail membuka tab kegiatan di beranda, di bawah header', async ({ page }) => {
 		await gotoReady(page, '/');
-		await card(page, 'Offroad').getByRole('link', { name: 'Lihat Detail' }).click();
-		await expect(page).toHaveURL(/\/paket\/offroad$/);
+		const before = await page.evaluate(() => history.length);
+		await card(page, 'Paintball').getByRole('link', { name: 'Lihat Detail' }).click();
+		await expect(page).toHaveURL(/\/#kegiatan-paintball$/);
+		expect(await page.evaluate(() => history.length)).toBe(before);
+		const tab = page.locator('#paket').getByRole('tab', { name: 'Paintball', exact: true });
+		await expect(tab).toHaveAttribute('aria-selected', 'true');
+		await expect(page.locator('#paket [aria-roledescription="slide"]:not([inert])').getByRole('heading', { level: 3 })).toHaveText('Paintball');
+		await expect
+			.poll(() =>
+				page.evaluate(() => {
+					const header = document.querySelector('header')!.getBoundingClientRect();
+					const section = document.getElementById('paket')!.getBoundingClientRect();
+					return section.top - header.bottom;
+				})
+			)
+			.toBeGreaterThanOrEqual(8);
+		await card(page, 'Rafting').getByRole('link', { name: 'Lihat Detail' }).click();
+		await expect(page).toHaveURL(/\/#kegiatan-rafting$/);
+		await expect(page.locator('#paket').getByRole('tab', { name: 'Rafting', exact: true })).toHaveAttribute('aria-selected', 'true');
+	});
+
+	test('reduced motion menempatkan section tanpa menunggu animasi', async ({ page }) => {
+		await page.emulateMedia({ reducedMotion: 'reduce' });
+		await gotoReady(page, '/');
+		await card(page, 'Fun Games').getByRole('link', { name: 'Lihat Detail' }).click();
+		const gap = await page.evaluate(() => {
+			const header = document.querySelector('header')!.getBoundingClientRect();
+			const section = document.getElementById('paket')!.getBoundingClientRect();
+			return section.top - header.bottom;
+		});
+		expect(gap).toBeGreaterThanOrEqual(8);
+		expect(gap).toBeLessThan(24);
+		await expect(page.locator('#paket').getByRole('tab', { name: 'Fun Games', exact: true })).toHaveAttribute('aria-selected', 'true');
+	});
+
+	test('#kegiatan-offroad memilih tab pertama dan menggulir ke section', async ({ page }) => {
+		await gotoReady(page, '/#kegiatan-offroad');
+		await expect(page.locator('#paket').getByRole('tab', { name: 'Offroad', exact: true })).toHaveAttribute('aria-selected', 'true');
+		await expect
+			.poll(() =>
+				page.evaluate(() => {
+					const header = document.querySelector('header')!.getBoundingClientRect();
+					const section = document.getElementById('paket')!.getBoundingClientRect();
+					return section.top >= header.bottom - 1 && section.bottom > header.bottom;
+				})
+			)
+			.toBe(true);
+	});
+
+	test('tanpa JavaScript, Lihat Detail mengarah ke hash kegiatan', async ({ browser, baseURL }) => {
+		const context = await browser.newContext({
+			javaScriptEnabled: false,
+			baseURL,
+			extraHTTPHeaders: { 'X-Forwarded-Proto': 'http' }
+		});
+		const page = await context.newPage();
+		await page.goto('/');
+		const link = page.locator('#katalog article').filter({ hasText: 'Rafting' }).getByRole('link', { name: 'Lihat Detail' });
+		await expect(link).toHaveAttribute('href', '#kegiatan-rafting');
+		await link.click();
+		await expect(page).toHaveURL(/#kegiatan-rafting$/);
+		await expect
+			.poll(() =>
+				page.evaluate(() => {
+					const header = document.querySelector('header')!.getBoundingClientRect();
+					const target = document.getElementById('kegiatan-rafting')!.getBoundingClientRect();
+					const gap = target.top - header.bottom;
+					return gap >= 4 && gap < 40;
+				})
+			)
+			.toBe(true);
+		await context.close();
+	});
+
+	test('detail paket tetap ada dan menambahkannya ke kalkulator', async ({ page }) => {
+		await gotoReady(page, '/paket/offroad');
 		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Offroad');
 		await expect(page.getByText('2-3 Jam')).toBeVisible();
 		await expect(page.getByText('Rp 250.000 / orang')).toBeVisible();

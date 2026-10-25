@@ -29,6 +29,8 @@ describe('PackageTabs (render server)', () => {
 		});
 		expect(body).toContain('ringkasan Alfa');
 		expect(body).toContain('ringkasan Beta');
+		expect(body).toContain('id="kegiatan-a"');
+		expect(body).toContain('id="kegiatan-b"');
 		expect(body).toContain('aria-roledescription="carousel"');
 		expect(body).toContain('role="tablist"');
 		expect(body.match(/role="tab"/g)).toHaveLength(2);

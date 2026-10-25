@@ -57,7 +57,9 @@ describe('PackageCatalog', () => {
 		expect(body).toContain('Rp125.000');
 		expect(body).toContain('/orang');
 		expect(body).toContain('Minta penawaran');
-		expect(body).toContain('href="/paket/offroad"');
+		expect(body).toContain('href="#kegiatan-offroad"');
+		expect(body).toContain('href="#kegiatan-team-building"');
+		expect(body).not.toContain('href="/paket/offroad"');
 		expect(body).toContain('Lihat Detail');
 		expect(body).toContain('grid-cols-2');
 		expect(body).toContain('md:grid-cols-3');

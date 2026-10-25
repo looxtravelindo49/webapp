@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import PackageGallery from '#lib/components/PackageGallery.svelte';
 	import { formatRupiah } from '#lib/format.js';
+	import { activityFromHash, KEGIATAN_EVENT } from '#lib/kegiatan.js';
 	import { lines, paragraphs } from '#lib/text.js';
 	import type { Package } from '#lib/types.js';
 
@@ -146,24 +147,61 @@
 		go(next);
 	}
 
-	// Hash yang tidak dikenal diabaikan (slide pertama tetap tampil).
-	// Hash yang sama dengan slide aktif tidak menggulir halaman (geser sendiri memakai replace).
-	function fromHash(scrollPage: boolean) {
-		const m = location.hash.match(/^#paket-(.+)$/);
-		const found = m ? packages.findIndex((p) => p.slug === decodeURIComponent(m[1])) : -1;
-		if (found < 0) return;
+	/** Gulir ke awal section, di bawah header lengket. `scrollTo` tidak memakai scroll-padding. */
+	function scrollToSection() {
+		const section = document.getElementById('paket');
+		if (!section) return;
+		const header = document.querySelector('header');
+		const offset = (header?.getBoundingClientRect().height ?? 0) + 12;
+		const top = section.getBoundingClientRect().top + window.scrollY - offset;
+		window.scrollTo({ top: Math.max(0, top), behavior: reduced() ? 'auto' : 'smooth' });
+	}
+
+	/** `null` bila slug tidak ada. Selain itu, apakah tab itu sudah terbuka. */
+	function showSlug(slug: string, scrollPage: boolean): boolean | null {
+		const found = packages.findIndex((p) => p.slug === slug);
+		if (found < 0) return null;
 		const same = found === index;
 		index = found;
 		scrollToSlide(found);
-		if (scrollPage && !same) document.getElementById('paket')?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' });
+		if (scrollPage) scrollToSection();
+		return same;
 	}
 
-	onMount(() => fromHash(true));
+	// Hash yang tidak dikenal diabaikan (slide pertama tetap tampil).
+	// `#paket-` yang sama dengan slide aktif tidak menggulir (klik pil memakai replace).
+	// `#kegiatan-` selalu menampilkan section, termasuk paket pertama.
+	function fromHash(scrollPage: boolean) {
+		const parsed = activityFromHash(location.hash);
+		if (!parsed) return;
+		const same = showSlug(parsed.slug, false);
+		if (same === null) return;
+		if (scrollPage && (parsed.bringIntoView || !same)) scrollToSection();
+	}
+
+	function onKegiatan(event: Event) {
+		const slug = (event as CustomEvent<string>).detail;
+		if (typeof slug !== 'string') return;
+		showSlug(slug, true);
+		document.getElementById(tabId(slug))?.focus({ preventScroll: true });
+	}
+
+	onMount(() => {
+		fromHash(true);
+		window.addEventListener(KEGIATAN_EVENT, onKegiatan);
+		return () => window.removeEventListener(KEGIATAN_EVENT, onKegiatan);
+	});
 </script>
 
 <svelte:window onhashchange={() => fromHash(true)} />
 
 <section id="paket" class="wrap py-11 sm:py-16">
+	<!-- Sasaran hash #kegiatan-*. Satu baris 1px di awal isi, ditumpuk, supaya peramban tanpa JS menggulir ke section. -->
+	<div class="grid" aria-hidden="true">
+		{#each packages as p (p.slug)}
+			<div id="kegiatan-{p.slug}" class="col-start-1 row-start-1 h-px"></div>
+		{/each}
+	</div>
 	<div class="mb-6 sm:mb-7">
 		<div class="eyebrow">PILIH KEGIATAN</div>
 		<h2 class="my-2 text-[26px] leading-tight font-black tracking-tight sm:text-[30px]">Satu tim, banyak cerita.</h2>
