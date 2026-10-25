@@ -1,12 +1,20 @@
 <script lang="ts">
-	import type { ClientLogo } from '#lib/clients.js';
+	import { marqueeCopies, marqueeShift, splitClientRows, type ClientLogo } from '#lib/clients.js';
 
 	let { clients }: { clients: readonly ClientLogo[] } = $props();
 
-	// Dua salinan untuk 11 klien (geser 50%). Daftar pendek diulang sampai pita tetap penuh.
-	const copies = $derived(clients.length === 0 ? 1 : Math.max(2, Math.ceil(12 / clients.length)));
-	const shift = $derived(`${Number((100 / copies).toFixed(4))}%`);
-	const loop = $derived(Array.from({ length: copies }, () => clients).flat());
+	function band(rows: readonly ClientLogo[], visible: number) {
+		const copies = marqueeCopies(rows.length, visible);
+		return {
+			rows,
+			copies,
+			shift: marqueeShift(copies),
+			loop: Array.from({ length: copies }, () => rows).flat()
+		};
+	}
+
+	const desktop = $derived(band(clients, 6));
+	const mobileRows = $derived(splitClientRows(clients).filter((row) => row.length > 0).map((row) => band(row, 3)));
 </script>
 
 {#if clients.length > 0}
@@ -19,23 +27,49 @@
 				<li>{client.name}</li>
 			{/each}
 		</ul>
-		<div class="clients-marquee" aria-hidden="true">
-			<ul class="clients-track" style="--clients-shift: {shift}">
-				{#each loop as client, i (`${client.id}-${i}`)}
-					<li class="clients-item" class:clients-copy={i >= clients.length}>
-						{#if client.src}
-							<img src={client.src} alt="" />
-						{:else}
-							<span class="clients-word">{client.name}</span>
-						{/if}
-					</li>
-				{/each}
-			</ul>
+		<div class="clients-desktop">
+			<div class="clients-marquee" style="--clients-visible: 6">
+				<ul class="clients-track" style="--clients-shift: {desktop.shift}">
+					{#each desktop.loop as client, i (`d-${client.id}-${i}`)}
+						<li class="clients-item" class:clients-copy={i >= clients.length}>
+							{#if client.src}
+								<img src={client.src} alt="" />
+							{:else}
+								<span class="clients-word">{client.name}</span>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			</div>
+		</div>
+		<div class="clients-mobile">
+			{#each mobileRows as row, r (r)}
+				<div class="clients-marquee" style="--clients-visible: 3">
+					<ul class="clients-track" style="--clients-shift: {row.shift}">
+						{#each row.loop as client, i (`m${r}-${client.id}-${i}`)}
+							<li class="clients-item" class:clients-copy={i >= row.rows.length}>
+								{#if client.src}
+									<img src={client.src} alt="" />
+								{:else}
+									<span class="clients-word">{client.name}</span>
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				</div>
+			{/each}
 		</div>
 	</section>
 {/if}
 
 <style>
+	.clients-mobile {
+		display: grid;
+		gap: 0.35rem;
+	}
+	.clients-desktop {
+		display: none;
+	}
 	.clients-marquee {
 		overflow: hidden;
 		container-type: inline-size;
@@ -51,7 +85,7 @@
 	}
 	.clients-item {
 		display: flex;
-		flex: 0 0 calc(100cqw / 2.4);
+		flex: 0 0 calc(100cqw / var(--clients-visible, 6));
 		align-items: center;
 		justify-content: center;
 		height: 4.5rem;
@@ -82,14 +116,12 @@
 			transform: translateX(calc(var(--clients-shift, 50%) * -1));
 		}
 	}
-	@media (min-width: 768px) {
-		.clients-item {
-			flex-basis: calc(100cqw / 4);
-		}
-	}
 	@media (min-width: 1024px) {
-		.clients-item {
-			flex-basis: calc(100cqw / 6);
+		.clients-mobile {
+			display: none;
+		}
+		.clients-desktop {
+			display: block;
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {

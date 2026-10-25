@@ -4,6 +4,7 @@
 	import PackageGallery from '#lib/components/PackageGallery.svelte';
 	import { formatRupiah } from '#lib/format.js';
 	import { activityFromHash, KEGIATAN_EVENT } from '#lib/kegiatan.js';
+	import { packageStory } from '#lib/package-story.js';
 	import { lines, paragraphs } from '#lib/text.js';
 	import type { Package } from '#lib/types.js';
 
@@ -286,7 +287,9 @@
 					class="relative flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 				>
 					{#each packages as p, i (p.slug)}
-						{@const included = lines(p.includes)}
+						{@const story = packageStory(p)}
+						{@const includeItems = story ? story.includes : lines(p.includes)}
+						{@const excludeItems = story?.excludes ?? []}
 						<li
 							id={slideId(p.slug)}
 							class="grid w-full min-w-full shrink-0 snap-start grid-cols-1 gap-6 md:grid-cols-[1fr_1.1fr] md:gap-12"
@@ -319,7 +322,9 @@
 							<div>
 								{#if p.duration}<div class="eyebrow text-muted">{p.duration}</div>{/if}
 								<h3 class="my-2 text-[26px] leading-tight font-black tracking-tight">{p.title}</h3>
-								<p class="text-[13px] leading-[1.9] text-muted">{p.summary}</p>
+								{#if !story}
+									<p class="text-[13px] leading-[1.9] text-muted">{p.summary}</p>
+								{/if}
 
 								<div class="my-5 border-y border-line py-4">
 									{#if p.price_per_person === null}
@@ -337,16 +342,27 @@
 									<div class="mb-5">{@render action(p)}</div>
 								{/if}
 
-								{#each paragraphs(p.body) as para (para)}
+								{#each story ? story.paragraphs : paragraphs(p.body) as para (para)}
 									<p class="mb-4 text-[13px] leading-[1.9]">{para}</p>
 								{/each}
 
-								{#if included.length}
-									<h4 class="mt-5 mb-2 text-xs font-extrabold tracking-wider uppercase">Pilihan yang dapat dibahas</h4>
+								{#if includeItems.length}
+									<h4 class="mt-5 mb-2 text-xs font-extrabold tracking-wider uppercase">Include</h4>
 									<ul class="space-y-1.5 text-[13px]">
-										{#each included as item (item)}
+										{#each includeItems as item (item)}
 											<li class="flex gap-2.5">
 												<span aria-hidden="true" class="mt-0.5 text-green-800">✓</span><span>{item}</span>
+											</li>
+										{/each}
+									</ul>
+								{/if}
+
+								{#if excludeItems.length}
+									<h4 class="mt-5 mb-2 text-xs font-extrabold tracking-wider uppercase">Exclude</h4>
+									<ul class="space-y-1.5 text-[13px]">
+										{#each excludeItems as item (item)}
+											<li class="flex gap-2.5">
+												<span aria-hidden="true" class="mt-0.5 text-muted">−</span><span>{item}</span>
 											</li>
 										{/each}
 									</ul>

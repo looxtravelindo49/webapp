@@ -73,7 +73,7 @@
 
 	<dl class="mt-5 grid gap-3 text-xs sm:grid-cols-2">
 		<div>
-			<dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Nama</dt>
+			<dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Nama PIC / Perusahaan</dt>
 			<dd class="font-bold">{data.nama}</dd>
 		</div>
 		{#if data.perusahaan}

@@ -6,7 +6,7 @@ export function calc(page: Page) {
 	const paket = page.locator('#paket');
 	return {
 		root,
-		team: root.getByLabel('Nama tim / perusahaan'),
+		team: root.getByLabel('Nama PIC / Perusahaan'),
 		whatsapp: root.getByLabel(/Nomor WhatsApp/),
 		pax: root.getByLabel('Jumlah peserta'),
 		date: root.getByLabel(/Tanggal rencana/),

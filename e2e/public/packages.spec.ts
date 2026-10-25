@@ -182,7 +182,9 @@ test.describe('[package-catalog] Isi slide dan tampilan harga', () => {
 		const panel = activeSlide(page);
 		await expect(panel.locator('img')).toHaveAttribute('alt', /.+/);
 		await expect(panel.locator('ul li')).not.toHaveCount(0);
-		await expect(panel.getByText('Pilihan yang dapat dibahas')).toBeVisible();
+		await expect(panel.getByText('Include')).toBeVisible();
+		await expect(panel.getByText('Offroad di Cikole, Lembang, Bandung')).toBeVisible();
+		await expect(panel.getByText('Pilihan yang dapat dibahas')).toHaveCount(0);
 	});
 
 	test('semua slide ada di HTML awal (terbaca tanpa JavaScript)', async ({ request }) => {

@@ -66,7 +66,7 @@
 				</div>
 				<dl class="mt-3 grid gap-x-6 gap-y-2 text-xs sm:grid-cols-2">
 					<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Status</dt><dd class="font-semibold">{statusLabel(lead.status)}</dd></div>
-					<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Nama</dt><dd class="font-semibold">{lead.nama}</dd></div>
+					<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Nama PIC / Perusahaan</dt><dd class="font-semibold">{lead.nama}</dd></div>
 					<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">WhatsApp</dt><dd class="font-semibold">+{lead.whatsapp}</dd></div>
 					<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Paket</dt><dd>{titles(lead)}</dd></div>
 					<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Peserta</dt><dd>{lead.jumlah_peserta.toLocaleString('id-ID')} orang</dd></div>

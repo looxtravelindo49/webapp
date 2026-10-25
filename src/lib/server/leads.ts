@@ -215,8 +215,8 @@ function isUniqueError(err: unknown): boolean {
  */
 export async function submitLead(db: Db, raw: Record<string, unknown>, ctx: SubmitContext): Promise<SubmitResult> {
 	const nama = typeof raw.nama === 'string' ? raw.nama.trim() : '';
-	if (!nama) return FAIL(400, 'Lengkapi dulu nama tim.');
-	if (nama.length > 100) return FAIL(400, 'Nama tim terlalu panjang.');
+	if (!nama) return FAIL(400, 'Lengkapi dulu nama PIC / perusahaan.');
+	if (nama.length > 100) return FAIL(400, 'Nama PIC / perusahaan terlalu panjang.');
 
 	const whatsapp = normalizeWhatsapp(typeof raw.whatsapp === 'string' ? raw.whatsapp : '');
 	if (!whatsapp) return FAIL(400, 'Masukkan nomor WhatsApp kamu yang valid, misalnya 081234567890.');

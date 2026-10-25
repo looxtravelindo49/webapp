@@ -21,6 +21,7 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		const popup = await popupP;
 		await expect.poll(() => popup.url()).toMatch(/^https:\/\/wa\.me\/6282120209900\?text=/);
 		const text = waText(popup.url());
+		expect(text).toContain('Nama PIC / Perusahaan: Tim Alfa');
 		expect(text).toContain('Paket: Offroad, Rafting');
 		expect(text).toContain('Jumlah peserta: 40 orang');
 		expect(text).toContain('20 November 2026');
@@ -34,6 +35,8 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 
 		const sheet = page.locator('.invoice-sheet');
 		await expect(sheet.getByRole('heading', { level: 1 })).toHaveText('Invoice Estimasi');
+		await expect(sheet.getByText('Nama PIC / Perusahaan', { exact: true })).toBeVisible();
+		await expect(sheet.getByText('Tim Alfa', { exact: true })).toBeVisible();
 		const fresh = await page.request.get(page.url());
 		expect(fresh.headers()['cache-control'] ?? '').toContain('no-store');
 		await expect(sheet.getByText('Baru', { exact: true })).toBeVisible();

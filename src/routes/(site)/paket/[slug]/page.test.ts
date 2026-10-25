@@ -32,8 +32,10 @@ describe('halaman detail paket', () => {
 		expect(body).toContain('2-3 Jam');
 		expect(body).toContain('Rp 249.000');
 		expect(body).toContain('Min. 7 orang');
-		expect(body).toContain('Nikmati kegiatan offroad.');
-		expect(body).toContain('Rute disesuaikan.');
+		expect(body).toContain('Offroad di Cikole, Lembang, Bandung');
+		expect(body).toContain('Rp 249.000 per mobil');
+		expect(body).toContain('>Include<');
+		expect(body).not.toContain('Pilihan yang dapat dibahas');
 		expect(body).toContain('href="/?paket=offroad#konsultasi"');
 		expect(body).toContain('Tambah ke Trip');
 		expect(body).toContain('Jeep di hutan pinus');
@@ -58,12 +60,13 @@ describe('halaman detail paket', () => {
 		expect(body).not.toContain('src="/media/forest.svg"');
 	});
 
-	it('menampilkan fasilitas, termasuk 40 peluru, dan tidak menampilkan daftar bila kosong', () => {
-		const withBullets = html({ includes: 'Perlengkapan\nIsi 40 peluru per orang' });
-		expect(withBullets).toContain('Pilihan yang dapat dibahas');
+	it('menampilkan fasilitas kustom sebagai Include, dan menyembunyikan daftar bila kosong', () => {
+		const withBullets = html({ slug: 'flying-fox', includes: 'Perlengkapan\nIsi 40 peluru per orang' });
+		expect(withBullets).toContain('>Include<');
 		expect(withBullets).toContain('Isi 40 peluru per orang');
+		expect(withBullets).not.toContain('Pilihan yang dapat dibahas');
 		expect(withBullets).not.toContain('100 peluru');
-		expect(html()).not.toContain('Pilihan yang dapat dibahas');
+		expect(html({ slug: 'flying-fox', includes: '' })).not.toContain('>Include<');
 	});
 
 	it('menyembunyikan durasi yang kosong', () => {

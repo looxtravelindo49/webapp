@@ -85,6 +85,24 @@ export function newClientId(existing: Iterable<string>): string {
 	return `k${Date.now().toString(36)}`;
 }
 
+/** Jumlah salinan agar pita mengulang mulus: minimal dua set, dan cukup mengisi dua layar. */
+export function marqueeCopies(count: number, visible: number): number {
+	if (count <= 0) return 1;
+	return Math.max(2, Math.ceil((visible * 2) / count));
+}
+
+/** Geser satu set. Dua salinan = 50%. */
+export function marqueeShift(copies: number): string {
+	return `${Number((100 / copies).toFixed(4))}%`;
+}
+
+/** Bagi daftar ke dua baris. Baris pertama mendapat sisa bila jumlahnya ganjil. */
+export function splitClientRows<T>(clients: readonly T[]): [T[], T[]] {
+	if (clients.length <= 1) return [[...clients], []];
+	const mid = Math.ceil(clients.length / 2);
+	return [[...clients.slice(0, mid)], [...clients.slice(mid)]];
+}
+
 export type ClientPlanInput = {
 	ids: string[];
 	names: string[];

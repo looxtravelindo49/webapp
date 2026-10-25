@@ -319,7 +319,7 @@ export function buildConfirmationMessage(input: ConfirmationInput): string {
 	const lines = [
 		'Halo Lembang Adventure, aku barusan hitung di kalkulator website.',
 		'',
-		`Nama: ${input.nama.trim()}`,
+		`Nama PIC / Perusahaan: ${input.nama.trim()}`,
 		`Nomor WhatsApp: +${input.whatsapp}`,
 		`Paket: ${input.titles.filter(Boolean).join(', ')}`,
 		`Jumlah peserta: ${input.pax} orang`,

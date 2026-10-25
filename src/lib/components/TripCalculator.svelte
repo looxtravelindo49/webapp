@@ -23,7 +23,7 @@
 
 	const missing = $derived(
 		[
-			trip.team.trim() === '' ? 'nama tim' : null,
+			trip.team.trim() === '' ? 'nama PIC / perusahaan' : null,
 			estimate.state === 'empty' ? 'minimal satu paket' : null,
 			pax === null ? 'jumlah peserta yang valid' : null,
 			contact === null ? 'nomor WhatsApp yang valid' : null
@@ -109,13 +109,13 @@
 			<form class="on-light rounded-xl bg-white p-5 text-green-900 sm:p-7" onsubmit={(e) => e.preventDefault()} novalidate>
 				<div class="grid gap-5">
 					<div>
-						<label for="{uid}-team" class={label}>Nama tim / perusahaan</label>
+						<label for="{uid}-team" class={label}>Nama PIC / Perusahaan</label>
 						<input
 							id="{uid}-team"
 							class={field}
 							maxlength="100"
 							autocomplete="organization"
-							placeholder="Tim kamu"
+							placeholder="Nama PIC atau perusahaan"
 							bind:value={trip.team}
 						/>
 					</div>

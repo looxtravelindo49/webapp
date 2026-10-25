@@ -227,7 +227,7 @@ test.describe('[trip-calculator] Aksi hanya tersedia bila masukan valid', () => 
 		const c = calc(page);
 		await expect(c.send).toBeDisabled();
 		await expect(c.root.getByRole('button', { name: 'Simpan PDF' })).toHaveCount(0);
-		await expect(c.hint).toHaveText('Lengkapi dulu: nama tim, minimal satu paket, jumlah peserta yang valid, nomor WhatsApp yang valid.');
+		await expect(c.hint).toHaveText('Lengkapi dulu: nama PIC / perusahaan, minimal satu paket, jumlah peserta yang valid, nomor WhatsApp yang valid.');
 	});
 
 	test('tanpa nama tim: petunjuk menyebut nama tim; setelah data lengkap tombol aktif', async ({ page }) => {
@@ -236,7 +236,7 @@ test.describe('[trip-calculator] Aksi hanya tersedia bila masukan valid', () => 
 		await c.box('Offroad').check();
 		await c.pax.fill('40');
 		await c.whatsapp.fill('081234567890');
-		await expect(c.hint).toHaveText('Lengkapi dulu: nama tim.');
+		await expect(c.hint).toHaveText('Lengkapi dulu: nama PIC / perusahaan.');
 		await expect(c.send).toBeDisabled();
 		await c.team.fill('Tim Alfa');
 		await expect(c.send).toBeEnabled();

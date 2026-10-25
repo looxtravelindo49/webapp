@@ -84,8 +84,10 @@ describe('PackageTabs (render server)', () => {
 		expect(body.match(/data-autoplay-ms="4000"/g)).toHaveLength(1);
 	});
 
-	it('menampilkan 3 butir fasilitas', () => {
+	it('menampilkan 3 butir fasilitas sebagai Include', () => {
 		const { body } = render(PackageTabs, { props: { packages: [pkg('a', 'Alfa')] } });
+		expect(body).toContain('>Include<');
+		expect(body).not.toContain('Pilihan yang dapat dibahas');
 		expect(body.match(/<li class="flex gap-2.5"/g)).toHaveLength(3);
 	});
 

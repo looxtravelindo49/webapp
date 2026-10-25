@@ -58,7 +58,7 @@ describe('section Estimasi Budget & Booking Kegiatan (render server)', () => {
 		const body = html();
 		expect(body).not.toMatch(/>\s*Tujuan\s*</);
 		expect(body).not.toMatch(/Anggaran/);
-		expect(body).toContain('Nama tim / perusahaan');
+		expect(body).toContain('Nama PIC / Perusahaan');
 		expect(body).toContain('Jumlah peserta');
 		expect(body).toContain('Nomor WhatsApp');
 		expect(body).toContain('Tanggal rencana (opsional)');
@@ -92,13 +92,13 @@ describe('section Estimasi Budget & Booking Kegiatan (render server)', () => {
 
 	it('aksi disabled dan petunjuk menyebut yang kurang', () => {
 		const body = html({ waNumber: '6282120209900', selected: ['offroad'], pax: '40', team: '', whatsapp: '081234567890' });
-		expect(body).toContain('Lengkapi dulu: nama tim.');
+		expect(body).toContain('Lengkapi dulu: nama PIC / perusahaan.');
 		expect(body).toMatch(/<button[^>]*\sdisabled=""/);
 	});
 
 	it('petunjuk menyebut semua yang kurang', () => {
 		const body = html();
-		expect(body).toContain('Lengkapi dulu: nama tim, minimal satu paket, jumlah peserta yang valid, nomor WhatsApp yang valid.');
+		expect(body).toContain('Lengkapi dulu: nama PIC / perusahaan, minimal satu paket, jumlah peserta yang valid, nomor WhatsApp yang valid.');
 	});
 
 	it('tambahan masuk total; dokumentasi terakhir yang menang', () => {
