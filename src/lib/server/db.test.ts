@@ -210,6 +210,17 @@ describe('seed', () => {
 		expect(await getSetting(db, 'tidak-ada')).toBeNull();
 	});
 
+	it('mengisi logo klien awal dan tidak menimpa daftar yang sudah diubah', async () => {
+		const db = await open(':memory:');
+		await seed(db);
+		const raw = await getSetting(db, 'clients');
+		expect(JSON.parse(raw!)[0]).toMatchObject({ id: 'mandiri', name: 'Mandiri', src: '/media/clients/mandiri.svg' });
+		expect(JSON.parse(raw!)).toHaveLength(11);
+		await run(db, "UPDATE setting SET value = '[]' WHERE key = 'clients'");
+		await seed(db);
+		expect(await getSetting(db, 'clients')).toBe('[]');
+	});
+
 	it('sekali jalan mengganti 100 peluru dan harga, lalu tidak menimpa ubahan berikutnya', async () => {
 		const db = await open(':memory:');
 		await seed(db);

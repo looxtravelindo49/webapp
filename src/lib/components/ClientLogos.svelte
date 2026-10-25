@@ -1,32 +1,39 @@
 <script lang="ts">
-	import { CLIENTS } from '#lib/content/clients.js';
+	import type { ClientLogo } from '#lib/clients.js';
 
-	const loop = [...CLIENTS, ...CLIENTS];
+	let { clients }: { clients: readonly ClientLogo[] } = $props();
+
+	// Dua salinan untuk 11 klien (geser 50%). Daftar pendek diulang sampai pita tetap penuh.
+	const copies = $derived(clients.length === 0 ? 1 : Math.max(2, Math.ceil(12 / clients.length)));
+	const shift = $derived(`${Number((100 / copies).toFixed(4))}%`);
+	const loop = $derived(Array.from({ length: copies }, () => clients).flat());
 </script>
 
-<section id="klien" class="border-y border-line bg-cream py-10 sm:py-14" aria-labelledby="klien-judul">
-	<div class="wrap mb-6 text-center">
-		<h2 id="klien-judul" class="text-xl font-black tracking-tight sm:text-2xl">Our Clients</h2>
-	</div>
-	<ul class="sr-only">
-		{#each CLIENTS as client (client.id)}
-			<li>{client.name}</li>
-		{/each}
-	</ul>
-	<div class="clients-marquee" aria-hidden="true">
-		<ul class="clients-track">
-			{#each loop as client, i (`${client.id}-${i}`)}
-				<li class="clients-item" class:clients-copy={i >= CLIENTS.length}>
-					{#if client.src}
-						<img src={client.src} alt="" />
-					{:else}
-						<span class="clients-word">{client.name}</span>
-					{/if}
-				</li>
+{#if clients.length > 0}
+	<section id="klien" class="border-y border-line bg-cream py-10 sm:py-14" aria-labelledby="klien-judul">
+		<div class="wrap mb-6 text-center">
+			<h2 id="klien-judul" class="text-xl font-black tracking-tight sm:text-2xl">Our Clients</h2>
+		</div>
+		<ul class="sr-only">
+			{#each clients as client (client.id)}
+				<li>{client.name}</li>
 			{/each}
 		</ul>
-	</div>
-</section>
+		<div class="clients-marquee" aria-hidden="true">
+			<ul class="clients-track" style="--clients-shift: {shift}">
+				{#each loop as client, i (`${client.id}-${i}`)}
+					<li class="clients-item" class:clients-copy={i >= clients.length}>
+						{#if client.src}
+							<img src={client.src} alt="" />
+						{:else}
+							<span class="clients-word">{client.name}</span>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		</div>
+	</section>
+{/if}
 
 <style>
 	.clients-marquee {
@@ -72,7 +79,7 @@
 			transform: translateX(0);
 		}
 		to {
-			transform: translateX(-50%);
+			transform: translateX(calc(var(--clients-shift, 50%) * -1));
 		}
 	}
 	@media (min-width: 768px) {

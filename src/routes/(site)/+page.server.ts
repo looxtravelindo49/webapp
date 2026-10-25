@@ -5,6 +5,7 @@ import { packageGalleries } from '#lib/server/package-photos.js';
 import { listPublishedPackages } from '#lib/server/packages.js';
 import { loadGoogleSummary, loadPublicReviews } from '#lib/server/public-reviews.js';
 import { getSetting } from '#lib/server/settings.js';
+import { CLIENTS_SETTING_KEY, clientsFromStored } from '#lib/clients.js';
 import { PROMO_SETTING_KEY, promoFromStored } from '#lib/promo.js';
 import type { PageServerLoad } from './$types';
 
@@ -33,6 +34,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		reviews: await loadPublicReviews(db),
 		googleSummary: await loadGoogleSummary(db),
 		preselect,
-		promo: promoFromStored(await getSetting(db, PROMO_SETTING_KEY))
+		promo: promoFromStored(await getSetting(db, PROMO_SETTING_KEY)),
+		clients: clientsFromStored(await getSetting(db, CLIENTS_SETTING_KEY))
 	};
 };

@@ -1,9 +1,11 @@
+import { existsSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
 import type { Page } from '@playwright/test';
 import { adminLogin, alerts, noClientValidation } from '../support/admin-ui';
 import { insertAdmin, uniqueLogin } from '../support/admin';
-import { file, PNG } from '../support/assets';
+import { file, PNG, TEXT } from '../support/assets';
 import { calc, fillValid } from '../support/calculator';
-import { cleanupPackages, fillPackage, insertPackage, pkgById, pkgByTitle, uniqueTitle } from '../support/cms';
+import { cleanupPackages, fillPackage, insertPackage, pkgById, pkgByTitle, uniqueTitle, UPLOAD_DIR } from '../support/cms';
 import { exec, getSetting, query, scalar, setSetting } from '../support/db';
 import { capturePopups, expect, gotoReady, stubShare, submit, test } from '../support/fixtures';
 
@@ -19,7 +21,18 @@ const BASE_TABS = ['Offroad', 'Team Building', 'Rafting', 'Paintball', 'Fun Game
 type Pkg = { slug: string; published: number; sort_order: number; price_per_person: number | null; min_pax: number };
 let original: Pkg[] = [];
 let originalWhatsapp = '';
+let originalClients: string | undefined;
 let admin = '';
+
+function restoreClients() {
+	const uploadInSetting = /\/uploads\/([0-9a-f-]{36}\.(?:webp|png|jpe?g|avif))/g;
+	const keep = new Set([...(originalClients ?? '').matchAll(uploadInSetting)].map((m) => m[1]));
+	for (const match of (getSetting('clients') ?? '').matchAll(uploadInSetting)) {
+		if (!keep.has(match[1])) rmSync(join(UPLOAD_DIR, match[1]), { force: true });
+	}
+	if (originalClients == null) exec("DELETE FROM setting WHERE key = 'clients'");
+	else setSetting('clients', originalClients);
+}
 
 function restore() {
 	for (const p of PREFIXES) cleanupPackages(p);
@@ -27,6 +40,7 @@ function restore() {
 		exec('UPDATE package SET published = ?, sort_order = ?, price_per_person = ?, min_pax = ? WHERE slug = ?', p.published, p.sort_order, p.price_per_person, p.min_pax, p.slug);
 	}
 	setSetting('whatsapp', originalWhatsapp);
+	restoreClients();
 }
 
 test.beforeAll(() => {
@@ -34,6 +48,7 @@ test.beforeAll(() => {
 	for (const p of PREFIXES) cleanupPackages(p);
 	original = query<Pkg>('SELECT slug, published, sort_order, price_per_person, min_pax FROM package');
 	originalWhatsapp = getSetting('whatsapp')!;
+	originalClients = getSetting('clients');
 	admin = uniqueLogin('mutasi');
 	insertAdmin(admin, PW);
 });
@@ -243,7 +258,7 @@ test.describe('[site-settings] Nomor WhatsApp dari admin', () => {
 		await gotoReady(page, '/admin/pengaturan');
 		await noClientValidation(page);
 		await page.getByLabel('Nomor WhatsApp tujuan').fill(value);
-		await submit(page, () => page.getByRole('button', { name: 'Simpan' }).click());
+		await submit(page, () => page.getByRole('button', { name: 'Simpan', exact: true }).click());
 	}
 
 	test.beforeEach(async ({ page }) => {
@@ -292,5 +307,70 @@ test.describe('[site-settings] Nomor WhatsApp dari admin', () => {
 		const c = await fillValid(page);
 		await expect(c.send).toHaveCount(0);
 		await expect(c.root.getByRole('button', { name: 'Simpan PDF' })).toHaveCount(0);
+	});
+});
+
+test.describe('[site-settings] Logo klien dari admin', () => {
+	test('menolak berkas palsu, mengganti logo, mengurutkan, menambah wordmark, dan menghapus', async ({ page }) => {
+		test.setTimeout(90_000);
+		try {
+			await adminLogin(page, admin, PW);
+			await gotoReady(page, '/admin/pengaturan');
+			await expect(page.getByRole('heading', { name: 'Logo klien' })).toBeVisible();
+			await expect(page.getByRole('group', { name: /^Klien \d+$/ })).toHaveCount(11);
+			await expect(page.getByRole('group', { name: 'Klien 1', exact: true }).getByRole('button', { name: 'Naik' })).toBeDisabled();
+			await expect(page.getByRole('group', { name: 'Klien 11', exact: true }).getByRole('button', { name: 'Turun' })).toBeDisabled();
+
+			const before = getSetting('clients');
+			await page.getByLabel('Nama klien baru').fill('Tidak Tersimpan');
+			await page.getByLabel('Logo baru (opsional)').setInputFiles(file('bukan.png', TEXT, 'image/png'));
+			await submit(page, () => page.getByRole('button', { name: 'Tambah', exact: true }).click());
+			expect(await alerts(page)).toEqual(['Jenis berkas tidak didukung. Pilih foto JPEG, PNG, WebP, atau AVIF.']);
+			expect(getSetting('clients')).toBe(before);
+			await expect(page.getByLabel('Nama klien baru')).toHaveValue('Tidak Tersimpan');
+			await expect(page.getByRole('group', { name: /^Klien \d+$/ })).toHaveCount(11);
+
+			const first = page.getByRole('group', { name: 'Klien 1', exact: true });
+			await expect(first.getByLabel('Nama')).toHaveValue('Mandiri');
+			await first.getByLabel('Ganti logo').setInputFiles(file('mandiri.png', PNG, 'image/png'));
+			await submit(page, () => page.getByRole('button', { name: 'Simpan logo klien' }).click());
+			await expect(page.getByRole('status')).toContainText('Logo klien disimpan.');
+			const src = (JSON.parse(getSetting('clients')!) as { id: string; src: string | null }[]).find((c) => c.id === 'mandiri')?.src ?? '';
+			expect(src).toMatch(/^\/uploads\/[0-9a-f-]{36}\.webp$/);
+			expect(existsSync(join(UPLOAD_DIR, src.slice('/uploads/'.length)))).toBe(true);
+			await gotoReady(page, '/');
+			await expect(page.locator(`#klien img[src="${src}"]`).first()).toBeAttached();
+
+			await gotoReady(page, '/admin/pengaturan');
+			await page.getByRole('group', { name: 'Klien 1', exact: true }).getByLabel('Hapus logo').check();
+			await submit(page, () => page.getByRole('button', { name: 'Simpan logo klien' }).click());
+			expect((JSON.parse(getSetting('clients')!) as { id: string; src: string | null }[]).find((c) => c.id === 'mandiri')?.src).toBeNull();
+			expect(existsSync(join(UPLOAD_DIR, src.slice('/uploads/'.length)))).toBe(false);
+			await expect(page.getByRole('group', { name: 'Klien 1', exact: true }).getByText('Tanpa logo, nama tampil abu-abu.')).toBeVisible();
+
+			await submit(page, () => page.getByRole('group', { name: 'Klien 1', exact: true }).getByRole('button', { name: 'Turun' }).click());
+			await expect(page.getByRole('group', { name: 'Klien 1', exact: true }).getByLabel('Nama')).toHaveValue('BNI');
+			await expect(page.getByRole('group', { name: 'Klien 2', exact: true }).getByLabel('Nama')).toHaveValue('Mandiri');
+			await submit(page, () => page.getByRole('group', { name: 'Klien 2', exact: true }).getByRole('button', { name: 'Naik' }).click());
+			await expect(page.getByRole('group', { name: 'Klien 1', exact: true }).getByLabel('Nama')).toHaveValue('Mandiri');
+
+			await page.getByLabel('Nama klien baru').fill('Klien Uji');
+			await submit(page, () => page.getByRole('button', { name: 'Tambah', exact: true }).click());
+			await expect(page.getByRole('status')).toContainText('Klien ditambahkan.');
+			const added = page.getByRole('group', { name: 'Klien 12', exact: true });
+			await expect(added.getByLabel('Nama')).toHaveValue('Klien Uji');
+			await expect(added.getByText('Tanpa logo, nama tampil abu-abu.')).toBeVisible();
+			await gotoReady(page, '/');
+			await expect(page.locator('#klien')).toContainText('Klien Uji');
+
+			await gotoReady(page, '/admin/pengaturan');
+			await submit(page, () => page.getByRole('group', { name: 'Klien 12', exact: true }).getByRole('button', { name: 'Hapus', exact: true }).click());
+			await expect(page.getByRole('status')).toContainText('Klien dihapus.');
+			await expect(page.getByRole('group', { name: /^Klien \d+$/ })).toHaveCount(11);
+			await gotoReady(page, '/');
+			await expect(page.locator('#klien')).not.toContainText('Klien Uji');
+		} finally {
+			restoreClients();
+		}
 	});
 });

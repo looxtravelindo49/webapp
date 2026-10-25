@@ -1,5 +1,6 @@
 import { RAFTING_CARD_ALT, RAFTING_CARD_IMAGE } from '#lib/catalog.js';
 import { GOOGLE_RATING_SETTING, GOOGLE_REVIEW_COUNT_SETTING } from '#lib/content/reviews.js';
+import { CLIENTS_SETTING_KEY, DEFAULT_CLIENTS } from '#lib/clients.js';
 import { DEFAULT_PROMO, PROMO_SETTING_KEY } from '#lib/promo.js';
 import { all, run, scalar, transaction, type Db, type Queryable } from './db';
 
@@ -206,7 +207,8 @@ export const seedSettings: Record<string, string> = {
 	whatsapp: '6282120209900',
 	[GOOGLE_RATING_SETTING]: '5.0',
 	[GOOGLE_REVIEW_COUNT_SETTING]: '41',
-	[PROMO_SETTING_KEY]: JSON.stringify(DEFAULT_PROMO)
+	[PROMO_SETTING_KEY]: JSON.stringify(DEFAULT_PROMO),
+	[CLIENTS_SETTING_KEY]: JSON.stringify(DEFAULT_CLIENTS)
 };
 
 /**
