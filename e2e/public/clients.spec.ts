@@ -2,10 +2,58 @@ import { expect, gotoReady, test } from '../support/fixtures';
 
 test.describe('[clients] Our Clients di bawah estimasi', () => {
 	test('desktop enam logo satu baris, ponsel dua baris tiga logo, gerak terus', async ({ page }) => {
+		await page.emulateMedia({ reducedMotion: 'reduce' });
+		await page.setViewportSize({ width: 390, height: 800 });
+		await gotoReady(page, '/');
+		const section = page.locator('#klien');
+		const rows = section.locator('.clients-mobile .clients-marquee');
+		await expect(rows).toHaveCount(2);
+		await expect(section.locator('.clients-desktop')).toBeHidden();
+
+		const before = await rows.evaluateAll((els) =>
+			els.map((el) => {
+				const track = el.querySelector('.clients-track') as HTMLElement;
+				const style = getComputedStyle(track);
+				const band = el.getBoundingClientRect();
+				const visible = [...el.querySelectorAll('.clients-item')].filter((item) => {
+					const box = item.getBoundingClientRect();
+					return box.right > band.left + 8 && box.left < band.right - 8;
+				}).length;
+				return {
+					transform: style.transform,
+					name: style.animationName,
+					wrap: style.flexWrap,
+					visible,
+					item: (el.querySelector('.clients-item') as HTMLElement).offsetWidth,
+					band: el.clientWidth
+				};
+			})
+		);
+		for (const row of before) {
+			expect(row.name).toContain('clients-scroll');
+			expect(row.wrap).toBe('nowrap');
+			expect(row.visible).toBeGreaterThanOrEqual(3);
+			expect(row.visible).toBeLessThanOrEqual(4);
+			expect(row.item).toBeGreaterThan(row.band / 3 - 2);
+			expect(row.item).toBeLessThan(row.band / 3 + 2);
+		}
+		await page.waitForTimeout(700);
+		const after = await rows.evaluateAll((els) => els.map((el) => getComputedStyle(el.querySelector('.clients-track') as HTMLElement).transform));
+		expect(after[0]).not.toBe(before[0].transform);
+		expect(after[1]).not.toBe(before[1].transform);
+		expect(after[0]).not.toBe('none');
+
+		const plnBox = await section.locator('.clients-mobile img[src="/media/clients/pln.svg"]').first().evaluate((img: HTMLImageElement) => ({
+			w: img.naturalWidth,
+			h: img.naturalHeight,
+			ratio: img.naturalWidth / img.naturalHeight
+		}));
+		expect(plnBox.w).toBeGreaterThan(0);
+		expect(plnBox.ratio).toBeGreaterThan(2);
+
 		await page.emulateMedia({ reducedMotion: 'no-preference' });
 		await page.setViewportSize({ width: 1280, height: 900 });
 		await gotoReady(page, '/');
-		const section = page.locator('#klien');
 		await expect(section.getByRole('heading', { name: 'Our Clients' })).toBeVisible();
 		const html = await page.content();
 		expect(html.indexOf('id="klien"')).toBeGreaterThan(html.indexOf('id="konsultasi"'));
@@ -35,7 +83,6 @@ test.describe('[clients] Our Clients di bawah estimasi', () => {
 
 		await page.setViewportSize({ width: 390, height: 800 });
 		await expect(section.locator('.clients-desktop')).toBeHidden();
-		const rows = section.locator('.clients-mobile .clients-marquee');
 		await expect(rows).toHaveCount(2);
 		const mobile = await rows.evaluateAll((els) =>
 			els.map((el) => {
@@ -78,10 +125,12 @@ test.describe('[clients] Our Clients di bawah estimasi', () => {
 		expect(mobileHtml).toContain('Sanbe Farma');
 		expect(mobileHtml).toContain('Syamil Quran');
 
-		await page.emulateMedia({ reducedMotion: 'reduce' });
-		await gotoReady(page, '/');
-		const reduced = await page.locator('#klien .clients-mobile .clients-track').evaluateAll((els) => els.map((el) => getComputedStyle(el).animationName));
-		expect(reduced).toEqual(['none', 'none']);
-		await expect(page.locator('#klien .clients-mobile .clients-copy').first()).toBeHidden();
+		await page.setViewportSize({ width: 1280, height: 900 });
+		const desktopTrack = section.locator('.clients-desktop .clients-track');
+		const desktopStart = await desktopTrack.evaluate((el) => getComputedStyle(el).transform);
+		await page.waitForTimeout(700);
+		const desktopEnd = await desktopTrack.evaluate((el) => getComputedStyle(el).transform);
+		expect(desktopEnd).not.toBe(desktopStart);
+		expect(desktopEnd).not.toBe('none');
 	});
 });

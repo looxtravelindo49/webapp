@@ -29,7 +29,12 @@ describe('halaman detail paket', () => {
 	it('menampilkan data paket dan tautan ke kalkulator', () => {
 		const body = html();
 		expect(body).toContain('Offroad Land Rover');
-		expect(body).toContain('2-3 Jam');
+		expect(body).toContain('Durasi 1–3 jam');
+		expect(body).toContain('Titik kumpul Cikole, bisa juga start dari hotel area Lembang');
+		expect(body).toContain('Transport');
+		expect(body).toContain('Makan');
+		expect(body).toContain('Dokumentasi');
+		expect(body).not.toContain('2-3 Jam');
 		expect(body).toContain('Rp 249.000');
 		expect(body).toContain('Min. 7 orang');
 		expect(body).toContain('Offroad di Cikole, Lembang, Bandung');
@@ -69,8 +74,22 @@ describe('halaman detail paket', () => {
 		expect(html({ slug: 'flying-fox', includes: '' })).not.toContain('>Include<');
 	});
 
-	it('menyembunyikan durasi yang kosong', () => {
-		expect(html({ duration: '  ' })).not.toContain('Durasi');
-		expect(html({ duration: null })).not.toContain('2-3 Jam');
+	it('rafting memakai lokasi Ciater dan tidak menampilkan teks perahu atau briefing', () => {
+		const body = html({
+			slug: 'rafting',
+			title: 'Rafting',
+			summary: 'Susuri arus sungai bersama tim dengan perahu karet dan arahan pemandu.',
+			includes: 'Briefing sebelum mulai'
+		});
+		expect(body).toContain('Rafting di Ciater, Lembang, Bandung');
+		expect(body).toContain('Lokasi Ciater');
+		expect(body).toContain('Peralatan rafting');
+		expect(body).not.toContain('perahu');
+		expect(body).not.toContain('Briefing');
+	});
+
+	it('menyembunyikan durasi yang kosong pada paket tanpa cerita', () => {
+		expect(html({ slug: 'flying-fox', duration: '  ' })).not.toContain('>Durasi<');
+		expect(html({ slug: 'flying-fox', duration: null })).not.toContain('2-3 Jam');
 	});
 });

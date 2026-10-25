@@ -49,7 +49,7 @@ describe('PackageCatalog', () => {
 		expect(body).toContain('Paling Dicari');
 		expect(body).toContain('Cikole, Lembang · Setengah hari');
 		expect(body).toContain('Cikole, Lembang · Termasuk 40 peluru');
-		expect(body).toContain('Lokasi sungai sesuai konsultasi');
+		expect(body).toContain('Ciater, Lembang');
 		expect(body).toContain('>Offroad Cikole<');
 		expect(body).toContain('Rp249.000');
 		expect(body).toContain('/pax*');

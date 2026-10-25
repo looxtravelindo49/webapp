@@ -26,7 +26,7 @@ const PROFILES: Record<string, Profile> = {
 	'team-building': { badge: 'Corporate', filter: 'corp', location: 'Cikole, Lembang · Setengah hari' },
 	'fun-games': { badge: 'Untuk Grup', filter: 'grup', location: 'Cikole, Lembang · Sesuai program' },
 	paintball: { badge: 'Adventure', filter: 'adv', location: 'Cikole, Lembang · Termasuk 40 peluru' },
-	rafting: { badge: 'Outdoor', filter: 'adv', location: 'Lokasi sungai sesuai konsultasi' }
+	rafting: { badge: 'Outdoor', filter: 'adv', location: 'Ciater, Lembang' }
 };
 
 export function catalogProfile(slug: string): Profile | null {

@@ -1,8 +1,7 @@
 import { formatRupiah } from './format.js';
-import { visibleDuration } from './package-display.js';
 import type { Package } from './types.js';
 
-/** Kalimat tab dan halaman paket. Hanya fakta yang sudah ada di data paket. */
+/** Kalimat tab dan halaman paket. Include/exclude mengikuti konfirmasi pemilik. */
 export type PackageStory = {
 	paragraphs: string[];
 	includes: string[];
@@ -10,6 +9,8 @@ export type PackageStory = {
 };
 
 const AUDIENCE = 'perusahaan, kantor, sekolah, dan rombongan';
+const EXCLUDES = ['Transport', 'Makan', 'Dokumentasi'];
+const ADDON = 'Dokumentasi dan makan siang Liwet tersedia sebagai tambahan di kalkulator estimasi.';
 
 type StorySource = Pick<
 	Package,
@@ -21,69 +22,71 @@ function money(p: StorySource, unit: string): string {
 	return `${price} Minimal ${p.min_pax} peserta.`;
 }
 
-function withDuration(p: StorySource, lines: string[]): string[] {
-	const duration = visibleDuration(p.duration);
-	if (duration) lines.push(`Durasi kegiatan ${duration}.`);
-	return lines;
-}
-
 /**
  * Teks jawaban untuk lima paket bawaan.
- * Butir Include/Exclude yang tidak tertulis di data paket tidak dimasukkan.
+ * Butir Include/Exclude memakai daftar yang dikonfirmasi pemilik.
  */
 export function packageStory(p: StorySource): PackageStory | null {
 	switch (p.slug) {
-		case 'offroad': {
-			const unit = p.nama_unit?.trim() || 'mobil';
-			const cap = p.kapasitas_per_unit;
-			const capacity = cap && cap > 0 ? `Satu ${unit} memuat maksimal ${cap} orang.` : `Kegiatan memakai ${unit}.`;
-			const includes = cap && cap > 0 ? [`Mobil offroad, maksimal ${cap} orang per ${unit}`] : ['Mobil offroad'];
+		case 'offroad':
 			return {
-				paragraphs: withDuration(p, [
-					`Offroad di Cikole, Lembang, Bandung, adalah kegiatan menyusuri jalur hutan dengan mobil offroad untuk ${AUDIENCE}.`,
-					`${capacity} ${money(p, 'per mobil')}`
-				]),
-				includes,
-				excludes: []
+				paragraphs: [
+					`Offroad di Cikole, Lembang, Bandung, adalah kegiatan menyusuri jalur hutan dengan Land Rover untuk ${AUDIENCE}.`,
+					`Titik kumpul Cikole, bisa juga start dari hotel area Lembang. Maksimal 7 orang per mobil. ${money(p, 'per mobil')} ${ADDON}`
+				],
+				includes: [
+					'Durasi 1–3 jam',
+					'Land Rover',
+					'Supir berpengalaman',
+					'Tiket masuk Cikole',
+					'Air mineral',
+					'P3K',
+					'Asuransi',
+					'Coffee break'
+				],
+				excludes: EXCLUDES
 			};
-		}
 		case 'team-building':
 			return {
-				paragraphs: withDuration(p, [
-					`Team building di Cikole, Lembang, Bandung, adalah kegiatan untuk melatih komunikasi, kerja sama, dan kebersamaan ${AUDIENCE}.`,
-					money(p, 'per orang')
-				]),
-				includes: [],
-				excludes: []
+				paragraphs: [
+					`Team building di Lembang, Bandung, adalah kegiatan untuk membangun kekompakan ${AUDIENCE}.`,
+					`Titik kumpul kegiatan di Cikole. Bisa request di villa/hotel tempat menginap. ${money(p, 'per orang')} ${ADDON}`
+				],
+				includes: [
+					'Game master',
+					'Fasilitator',
+					'Sound system',
+					'Area',
+					'Beragam jenis permainan untuk membangun kekompakan'
+				],
+				excludes: EXCLUDES
 			};
 		case 'rafting':
 			return {
-				paragraphs: withDuration(p, [
-					`Rafting adalah arung jeram untuk ${AUDIENCE} di kawasan Lembang dan Bandung. Peserta mendayung perahu karet mengikuti arahan pemandu. Lokasi sungai mengikuti konsultasi.`,
-					money(p, 'per orang')
-				]),
-				includes: ['Perahu, dayung, dan perlengkapan keselamatan', 'Pemandu berpengalaman', 'Briefing sebelum mulai'],
-				excludes: []
+				paragraphs: [
+					`Rafting di Ciater, Lembang, Bandung, adalah arung jeram untuk ${AUDIENCE}.`,
+					`Titik kumpul kegiatan di Cikole. ${money(p, 'per orang')} ${ADDON}`
+				],
+				includes: ['Lokasi Ciater', 'Peralatan rafting', 'Pemandu', 'Durasi 20–30 menit'],
+				excludes: EXCLUDES
 			};
 		case 'paintball':
 			return {
-				paragraphs: withDuration(p, [
+				paragraphs: [
 					`Paintball di Cikole, Lembang, Bandung, adalah permainan strategi kelompok untuk ${AUDIENCE}.`,
-					p.price_per_person === null
-						? `Harga menyusul. Paket sudah termasuk 40 peluru per orang. Minimal ${p.min_pax} peserta.`
-						: `Harga ${formatRupiah(p.price_per_person)} per orang, sudah termasuk 40 peluru per orang. Minimal ${p.min_pax} peserta.`
-				]),
-				includes: ['Perlengkapan paintball dan pelindung', 'Isi 40 peluru per orang', 'Briefing aturan dan keselamatan'],
-				excludes: []
+					`Titik kumpul kegiatan di Cikole. Paket mencakup 40 peluru. ${money(p, 'per orang')} ${ADDON}`
+				],
+				includes: ['Pemandu', '40 peluru', 'Perlengkapan paintball', 'Area bermain'],
+				excludes: EXCLUDES
 			};
 		case 'fun-games':
 			return {
-				paragraphs: withDuration(p, [
-					`Fun games di Cikole, Lembang, Bandung, adalah permainan kelompok yang ringan untuk ${AUDIENCE}. Jenis permainan, durasi, dan lokasi mengikuti program yang disepakati.`,
-					money(p, 'per orang')
-				]),
-				includes: [],
-				excludes: []
+				paragraphs: [
+					`Fun games di Lembang, Bandung, adalah permainan kelompok untuk ${AUDIENCE}.`,
+					`Titik kumpul kegiatan di Cikole. Bisa request dilakukan di villa/hotel tempat menginap. ${money(p, 'per orang')} ${ADDON}`
+				],
+				includes: ['Pemandu', 'Sound system'],
+				excludes: EXCLUDES
 			};
 		default:
 			return null;

@@ -33,7 +33,7 @@
 	{description}
 	image={share}
 	imageAlt={share.isDefault ? undefined : imageAltText}
-	nodes={packageNodes(data.siteUrl, site, { ...p, image: lead?.src ?? p.image })}
+	nodes={packageNodes(data.siteUrl, site, { ...p, summary: story?.paragraphs[0] ?? p.summary, image: lead?.src ?? p.image })}
 />
 
 <article class="wrap py-11 sm:py-16">
@@ -56,7 +56,7 @@
 			<h1 class="mt-2 text-[30px] leading-tight font-black tracking-tight sm:text-[38px]">{p.title}</h1>
 			{#if p.summary && !story}<p class="mt-3 text-sm leading-[1.8] text-muted">{p.summary}</p>{/if}
 			<dl class="mt-5 grid gap-3 text-xs sm:grid-cols-2">
-				{#if duration}
+				{#if duration && !story}
 					<div>
 						<dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Durasi</dt>
 						<dd class="font-bold">{duration}</dd>

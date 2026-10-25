@@ -1,16 +1,15 @@
 <script lang="ts">
-	import { marqueeCopies, marqueeShift, splitClientRows, type ClientLogo } from '#lib/clients.js';
+	import { splitClientRows, type ClientLogo } from '#lib/clients.js';
 
 	let { clients }: { clients: readonly ClientLogo[] } = $props();
 
 	function band(rows: readonly ClientLogo[], visible: number) {
-		const copies = marqueeCopies(rows.length, visible);
-		return {
-			rows,
-			copies,
-			shift: marqueeShift(copies),
-			loop: Array.from({ length: copies }, () => rows).flat()
-		};
+		const set: ClientLogo[] = [];
+		if (rows.length > 0) {
+			do set.push(...rows);
+			while (set.length < visible);
+		}
+		return { loop: [...set, ...set] };
 	}
 
 	const desktop = $derived(band(clients, 6));
@@ -29,9 +28,9 @@
 		</ul>
 		<div class="clients-desktop">
 			<div class="clients-marquee" style="--clients-visible: 6">
-				<ul class="clients-track" style="--clients-shift: {desktop.shift}">
+				<ul class="clients-track">
 					{#each desktop.loop as client, i (`d-${client.id}-${i}`)}
-						<li class="clients-item" class:clients-copy={i >= clients.length}>
+						<li class="clients-item">
 							{#if client.src}
 								<img src={client.src} alt="" />
 							{:else}
@@ -45,9 +44,9 @@
 		<div class="clients-mobile">
 			{#each mobileRows as row, r (r)}
 				<div class="clients-marquee" style="--clients-visible: 3">
-					<ul class="clients-track" style="--clients-shift: {row.shift}">
+					<ul class="clients-track">
 						{#each row.loop as client, i (`m${r}-${client.id}-${i}`)}
-							<li class="clients-item" class:clients-copy={i >= row.rows.length}>
+							<li class="clients-item">
 								{#if client.src}
 									<img src={client.src} alt="" />
 								{:else}
@@ -76,12 +75,15 @@
 	}
 	.clients-track {
 		display: flex;
+		flex-wrap: nowrap;
 		width: max-content;
 		align-items: center;
 		margin: 0;
 		padding: 0;
 		list-style: none;
-		animation: clients-scroll 36s linear infinite;
+		will-change: transform;
+		/* Tetap bergerak meski aturan global reduced-motion mematikan animasi lain. */
+		animation: clients-scroll 32s linear infinite !important;
 	}
 	.clients-item {
 		display: flex;
@@ -113,7 +115,7 @@
 			transform: translateX(0);
 		}
 		to {
-			transform: translateX(calc(var(--clients-shift, 50%) * -1));
+			transform: translateX(-50%);
 		}
 	}
 	@media (min-width: 1024px) {
@@ -122,21 +124,6 @@
 		}
 		.clients-desktop {
 			display: block;
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.clients-track {
-			width: 100%;
-			flex-wrap: wrap;
-			justify-content: center;
-			transform: none;
-			animation: none;
-		}
-		.clients-copy {
-			display: none;
-		}
-		.clients-item {
-			flex: 0 1 9rem;
 		}
 	}
 </style>

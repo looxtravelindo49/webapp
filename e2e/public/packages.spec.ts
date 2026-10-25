@@ -175,6 +175,9 @@ test.describe('[package-catalog] Isi slide dan tampilan harga', () => {
 		await tab(page, 'Rafting').click();
 		await expect(activeSlide(page)).toContainText('Rp 200.000');
 		await expect(activeSlide(page)).toContainText('Minimal 10 peserta');
+		await expect(activeSlide(page)).toContainText('Lokasi Ciater');
+		await expect(activeSlide(page)).toContainText('Durasi 20–30 menit');
+		await expect(activeSlide(page)).not.toContainText('Briefing sebelum mulai');
 	});
 
 	test('slide memuat gambar dengan teks alternatif, ringkasan, dan daftar fasilitas', async ({ page }) => {
@@ -183,7 +186,12 @@ test.describe('[package-catalog] Isi slide dan tampilan harga', () => {
 		await expect(panel.locator('img')).toHaveAttribute('alt', /.+/);
 		await expect(panel.locator('ul li')).not.toHaveCount(0);
 		await expect(panel.getByText('Include')).toBeVisible();
+		await expect(panel.getByText('Land Rover', { exact: true })).toBeVisible();
+		await expect(panel.getByText('Durasi 1–3 jam')).toBeVisible();
+		await expect(panel.getByText('Exclude')).toBeVisible();
+		await expect(panel.getByText('Transport')).toBeVisible();
 		await expect(panel.getByText('Offroad di Cikole, Lembang, Bandung')).toBeVisible();
+		await expect(panel.getByText('Titik kumpul Cikole, bisa juga start dari hotel area Lembang')).toBeVisible();
 		await expect(panel.getByText('Pilihan yang dapat dibahas')).toHaveCount(0);
 	});
 

@@ -320,7 +320,7 @@
 								/>
 							{/if}
 							<div>
-								{#if p.duration}<div class="eyebrow text-muted">{p.duration}</div>{/if}
+								{#if p.duration && !story}<div class="eyebrow text-muted">{p.duration}</div>{/if}
 								<h3 class="my-2 text-[26px] leading-tight font-black tracking-tight">{p.title}</h3>
 								{#if !story}
 									<p class="text-[13px] leading-[1.9] text-muted">{p.summary}</p>
@@ -368,7 +368,7 @@
 									</ul>
 								{/if}
 
-								{#if p.notes.trim()}
+								{#if p.notes.trim() && !story}
 									<h4 class="mt-5 mb-2 text-xs font-extrabold tracking-wider uppercase">Catatan program</h4>
 									<p class="text-xs leading-[1.8] text-muted">{p.notes}</p>
 								{/if}
