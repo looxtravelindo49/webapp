@@ -61,6 +61,14 @@ describe('section Konsultasikan Tripmu (render server)', () => {
 		expect(body).toContain('Nomor WhatsApp');
 		expect(body).toContain('Tanggal rencana (opsional)');
 		expect(body).toContain('Catatan (opsional)');
+		const wa = body.indexOf('Nomor WhatsApp');
+		const pax = body.indexOf('Jumlah peserta');
+		const date = body.indexOf('Tanggal rencana (opsional)');
+		const paket = body.indexOf('Pilih paket (boleh lebih dari satu)');
+		expect(wa).toBeGreaterThan(-1);
+		expect(pax).toBeGreaterThan(wa);
+		expect(date).toBeGreaterThan(pax);
+		expect(paket).toBeGreaterThan(date);
 	});
 
 	it('tidak memuat tautan wa.me di HTML awal', () => {

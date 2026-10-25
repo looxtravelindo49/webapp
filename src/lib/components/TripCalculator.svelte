@@ -141,6 +141,31 @@
 						{/if}
 					</div>
 
+					<div class="grid gap-5 sm:grid-cols-2">
+						<div>
+							<label for="{uid}-pax" class={label}>Jumlah peserta</label>
+							<input
+								id="{uid}-pax"
+								class="{field} {paxError ? 'border-danger' : ''}"
+								inputmode="numeric"
+								autocomplete="off"
+								placeholder="Misalnya 40"
+								aria-invalid={paxError}
+								aria-describedby={paxError ? `${uid}-pax-error` : undefined}
+								bind:value={trip.pax}
+							/>
+							{#if paxError}
+								<p id="{uid}-pax-error" class="mt-1.5 text-[11px] font-semibold text-danger">
+									Masukkan bilangan bulat 1 sampai {MAX_PAX.toLocaleString('id-ID')}.
+								</p>
+							{/if}
+						</div>
+						<div>
+							<label for="{uid}-date" class={label}>Tanggal rencana (opsional)</label>
+							<input id="{uid}-date" type="date" class={field} bind:value={trip.date} />
+						</div>
+					</div>
+
 					<fieldset class="m-0 min-w-0 border-0 p-0">
 						<legend class="{label} p-0">Pilih paket (boleh lebih dari satu)</legend>
 						{#if packages.length === 0}
@@ -201,31 +226,6 @@
 							{/each}
 						</div>
 					</fieldset>
-
-					<div class="grid gap-5 sm:grid-cols-2">
-						<div>
-							<label for="{uid}-pax" class={label}>Jumlah peserta</label>
-							<input
-								id="{uid}-pax"
-								class="{field} {paxError ? 'border-danger' : ''}"
-								inputmode="numeric"
-								autocomplete="off"
-								placeholder="Misalnya 40"
-								aria-invalid={paxError}
-								aria-describedby={paxError ? `${uid}-pax-error` : undefined}
-								bind:value={trip.pax}
-							/>
-							{#if paxError}
-								<p id="{uid}-pax-error" class="mt-1.5 text-[11px] font-semibold text-danger">
-									Masukkan bilangan bulat 1 sampai {MAX_PAX.toLocaleString('id-ID')}.
-								</p>
-							{/if}
-						</div>
-						<div>
-							<label for="{uid}-date" class={label}>Tanggal rencana (opsional)</label>
-							<input id="{uid}-date" type="date" class={field} bind:value={trip.date} />
-						</div>
-					</div>
 
 					<div>
 						<label for="{uid}-notes" class={label}>Catatan (opsional)</label>
