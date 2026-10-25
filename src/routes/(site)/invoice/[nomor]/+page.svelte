@@ -122,6 +122,7 @@
 			{/if}
 			<p class="text-[10px] font-bold tracking-wider text-muted uppercase">{data.totalLabel}</p>
 			<p class="text-2xl font-black tracking-tight">{data.estimasiLabel}</p>
+			{#if data.perPaxLabel}<p class="text-[11px] font-bold text-muted">{data.perPaxLabel}</p>{/if}
 			{#if data.estimasiNote}<p class="text-[11px] text-muted">{data.estimasiNote}</p>{/if}
 		</div>
 		{#if data.status === 'dp_diterima'}

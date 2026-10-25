@@ -31,7 +31,7 @@ export const actions: Actions = {
 		// Kosong diizinkan: aksi WhatsApp di kalkulator disembunyikan.
 		if (trimmed === '') {
 			await setSetting(await getDb(), 'whatsapp', '');
-			return { ok: true as const, notice: 'Nomor WhatsApp dikosongkan. Tombol "Kirim ke WhatsApp" disembunyikan dari kalkulator.' };
+			return { ok: true as const, notice: 'Nomor WhatsApp dikosongkan. Tombol "Booking via WhatsApp" disembunyikan dari kalkulator.' };
 		}
 		const normalized = normalizeWhatsapp(trimmed);
 		if (!normalized) return fail(400, { whatsapp: raw, error: WHATSAPP_MESSAGE });

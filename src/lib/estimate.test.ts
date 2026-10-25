@@ -88,6 +88,7 @@ describe('buildConfirmationMessage', () => {
 		expect(text).toContain('Jumlah peserta: 40 orang');
 		expect(text).toContain('Tanggal: Belum ditentukan');
 		expect(text).toContain('Estimasi: Rp 18.000.000');
+		expect(text).toContain('Per peserta: Rp 450.000');
 		expect(text).toContain('Link invoice: https://www.lembangadventure.com/invoice/LA-20261020-ABCDEFGH');
 		expect(text).toContain('konfirmasi harga finalnya?');
 		expect(text.toLowerCase()).not.toContain('pdf');
@@ -105,7 +106,9 @@ describe('buildConfirmationMessage', () => {
 	});
 
 	it('semua tanpa harga: Dibahas via WhatsApp', () => {
-		expect(msg(['fun-games'])).toContain('Estimasi: Dibahas via WhatsApp');
+		const quote = msg(['fun-games']);
+		expect(quote).toContain('Estimasi: Dibahas via WhatsApp');
+		expect(quote).not.toContain('Per peserta:');
 	});
 
 	it('menyebut tambahan tanpa memasukkannya ke daftar paket', () => {

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { ADDONS, addonPriceLabel, withAddons } from '#lib/addons.js';
-	import { DISCLAIMER, totalNote, totalText, unitBreakdown } from '#lib/estimate.js';
+	import { DISCLAIMER, perPaxText, totalNote, totalText, unitBreakdown } from '#lib/estimate.js';
 	import { formatRupiah } from '#lib/format.js';
 	import { calculateEstimate, MAX_PAX, parsePax } from '#lib/pricing.js';
 	import { getTripContext } from '#lib/trip.svelte.js';
@@ -92,15 +92,15 @@
 <section id="konsultasi" tabindex="-1" class="on-dark bg-green-900 py-11 text-white outline-none sm:py-16">
 	<div class="wrap">
 		<div class="mb-7 max-w-xl sm:mb-9">
-			<div class="eyebrow text-accent">HITUNG PERKIRAANNYA</div>
+			<div class="eyebrow text-accent">ESTIMASI & BOOKING</div>
 			<h2 class="my-3 text-[30px] leading-tight font-black tracking-tight sm:text-4xl">
-				Konsultasikan <span class="text-accent">Tripmu.</span>
+				Estimasi Budget & <span class="text-accent">Booking Kegiatan</span>
 			</h2>
 			<p class="text-xs leading-[1.9] text-green-100 sm:text-[13px]">
 				{#if waNumber}
-					Pilih satu atau beberapa paket, isi data tim, dan lihat estimasi biayanya. Kirim ke WhatsApp untuk menyimpan estimasi dan membuka invoice.
+					Hitung estimasi budget, lalu booking lewat WhatsApp.
 				{:else}
-					Pilih satu atau beberapa paket, isi data tim, dan lihat estimasi biayanya.
+					Hitung estimasi budget kegiatanmu.
 				{/if}
 			</p>
 		</div>
@@ -280,6 +280,9 @@
 					{#if estimate.state === 'complete' || estimate.state === 'partial' || estimate.state === 'quote-only'}
 						<div class="text-[10px] font-bold tracking-wider text-muted uppercase">Total estimasi</div>
 						<div class="text-2xl font-black tracking-tight">{totalText(estimate)}</div>
+						{#if pax !== null && (estimate.state === 'complete' || estimate.state === 'partial')}
+							<div class="mt-1 text-xs font-bold">{perPaxText(estimate.total, pax)}</div>
+						{/if}
 						{#if totalNote(estimate)}
 							<div class="text-[11px] text-muted">{totalNote(estimate)}</div>
 						{/if}
@@ -294,7 +297,7 @@
 							aria-describedby="{uid}-hint"
 							onclick={sendWhatsapp}
 						>
-							{status.kind === 'busy' ? 'Menyiapkan…' : 'Kirim ke WhatsApp'}
+							{status.kind === 'busy' ? 'Menyiapkan…' : 'Booking via WhatsApp'}
 							<span aria-hidden="true">↗</span>
 						</Button>
 					{:else}

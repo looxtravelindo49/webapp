@@ -57,10 +57,10 @@ test.describe('[trip-calculator] Keyboard pada formulir', () => {
 					return (e.labels?.[0]?.innerText ?? e.innerText ?? e.tagName).split('\n')[0].trim();
 				})
 			);
-			if (seen.at(-1)?.startsWith('Kirim ke WhatsApp')) break;
+			if (seen.at(-1)?.startsWith('Booking via WhatsApp')) break;
 		}
 		const at = (label: string) => seen.findIndex((s) => s.startsWith(label));
-		const order = ['Jumlah peserta', 'Tanggal rencana', 'Offroad', 'Team Building', 'Rafting', 'Paintball', 'Fun Games', 'Catatan', 'Kirim ke WhatsApp'];
+		const order = ['Jumlah peserta', 'Tanggal rencana', 'Offroad', 'Team Building', 'Rafting', 'Paintball', 'Fun Games', 'Catatan', 'Booking via WhatsApp'];
 		const idx = order.map(at);
 		expect(idx.every((i) => i >= 0), `semua kontrol dapat dijangkau dengan Tab: ${seen.join(' → ')}`).toBe(true);
 		expect([...idx].sort((a, b) => a - b)).toEqual(idx);

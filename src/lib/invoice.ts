@@ -1,4 +1,5 @@
-import { formatPlanDate, lineText, totalNote, totalText } from './estimate';
+import { formatPlanDate, lineText, perPaxAmount, totalNote, totalText } from './estimate';
+import { formatRupiah } from './format';
 import type { Estimate, EstimateLine } from './pricing';
 
 /** Persen uang muka. Satu sumber untuk hitungan, label, dan teks. Bukan biaya gateway. */
@@ -325,6 +326,10 @@ export function buildConfirmationMessage(input: ConfirmationInput): string {
 		`Tanggal: ${date}`,
 		`Estimasi: ${estimasi}`
 	];
+	if (input.estimate.state === 'complete' || input.estimate.state === 'partial') {
+		const each = perPaxAmount(input.estimate.total, input.pax);
+		if (each !== null) lines.push(`Per peserta: ${formatRupiah(each)}`);
+	}
 	for (const line of input.estimate.lines) {
 		if (!line.unit || line.subtotal === null) continue;
 		lines.push(`${line.title}: ${lineText(line)}`);

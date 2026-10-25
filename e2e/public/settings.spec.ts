@@ -16,6 +16,6 @@ test.describe('[site-settings] CTA WhatsApp', () => {
 
 	test('aksi WhatsApp tersedia di hasil kalkulator bila nomor valid', async ({ page }) => {
 		await gotoReady(page, '/');
-		await expect(page.locator('#konsultasi').getByRole('button', { name: /Kirim ke WhatsApp/ })).toBeVisible();
+		await expect(page.locator('#konsultasi').getByRole('button', { name: /Booking via WhatsApp/ })).toBeVisible();
 	});
 });

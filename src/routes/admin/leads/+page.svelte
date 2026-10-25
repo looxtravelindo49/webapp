@@ -31,7 +31,7 @@
 	<Button href="/admin/leads/baru" variant="primary">Buat Invoice Manual</Button>
 </div>
 <p class="mt-2 max-w-2xl text-xs leading-[1.8] text-muted">
-	Setiap ketukan "Kirim ke WhatsApp" di kalkulator beranda masuk ke sini, lengkap dengan nomor invoice.
+	Setiap ketukan "Booking via WhatsApp" di kalkulator beranda masuk ke sini, lengkap dengan nomor invoice.
 </p>
 
 <nav class="mt-4 flex flex-wrap gap-2" aria-label="Saring status">
@@ -48,7 +48,7 @@
 
 {#if data.leads.length === 0}
 	<p class="mt-6 rounded-xl border border-line bg-white p-6 text-xs text-muted">
-		{data.status ? 'Tidak ada lead dengan status ini.' : 'Belum ada lead. Daftar ini terisi setelah pengunjung menekan Kirim ke WhatsApp.'}
+		{data.status ? 'Tidak ada lead dengan status ini.' : 'Belum ada lead. Daftar ini terisi setelah pengunjung menekan Booking via WhatsApp.'}
 	</p>
 {:else}
 	{#if data.total > data.leads.length}

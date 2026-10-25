@@ -17,6 +17,19 @@ export function totalText(e: Estimate): string {
 	return e.state === 'quote-only' ? 'Dibahas via WhatsApp' : formatRupiah(e.total);
 }
 
+/** Total dibagi jumlah peserta yang diisi, dibulatkan ke rupiah. */
+export function perPaxAmount(total: number, pax: number): number | null {
+	if (!Number.isFinite(total) || !Number.isInteger(pax) || pax < 1) return null;
+	return Math.round(total / pax);
+}
+
+/** "Rp 262.500 / peserta", atau "" bila total bukan angka. */
+export function perPaxText(total: number | null, pax: number): string {
+	if (total === null) return '';
+	const amount = perPaxAmount(total, pax);
+	return amount === null ? '' : `${formatRupiah(amount)} / peserta`;
+}
+
 /** Catatan tambahan di samping total ("" bila tidak perlu). */
 export function totalNote(e: Estimate): string {
 	return e.state === 'partial' ? 'belum termasuk paket tanpa harga' : '';

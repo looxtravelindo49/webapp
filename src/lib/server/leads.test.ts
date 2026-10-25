@@ -128,6 +128,7 @@ describe('submitLead', () => {
 		expect(text).toContain('Tambahan: Dokumentasi Basic (Foto & Video cinematic, 4 jam) — Rp 700.000');
 		expect(text).not.toContain('Dokumentasi Pro');
 		expect(text).toContain('Estimasi: Rp 4.686.000');
+		expect(text).toContain('Per peserta: Rp 468.600');
 	});
 
 	it('beberapa paket dijumlahkan di server', async () => {

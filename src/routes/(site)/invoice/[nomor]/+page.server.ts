@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { formatRupiah } from '#lib/format.js';
 import { formatDateTime } from '#lib/format.js';
-import { formatPlanDate, totalNote, totalText, unitBreakdown } from '#lib/estimate.js';
+import { formatPlanDate, perPaxText, totalNote, totalText, unitBreakdown } from '#lib/estimate.js';
 import { buildPaymentProofMessage, displayedDp, DP_PERCENT, estimateFromStored, invoiceChrome, settlement, type StoredLine } from '#lib/invoice.js';
 import { getDb } from '#lib/server/database.js';
 import { getLeadByNomor, leadLines, leadMessage } from '#lib/server/leads.js';
@@ -66,6 +66,7 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 		catatan: lead.catatan,
 		totalLabel: lead.status === 'baru' ? 'Total estimasi' : 'Total',
 		estimasiLabel: totalText(estimate),
+		perPaxLabel: perPaxText(lead.estimasi_total, lead.jumlah_peserta),
 		estimasiNote: lead.status === 'baru' ? totalNote(estimate) : '',
 		subtotalLabel: diskon > 0 && lineSum !== null ? formatRupiah(lineSum) : null,
 		diskonLabel: diskon > 0 ? formatRupiah(diskon) : null,

@@ -25,6 +25,7 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		expect(text).toContain('Jumlah peserta: 40 orang');
 		expect(text).toContain('20 November 2026');
 		expect(text).toContain('Estimasi: Rp 18.500.000');
+		expect(text).toContain('Per peserta: Rp 462.500');
 		expect(text).toContain('Offroad: 6 mobil × Rp 1.750.000 (maks. 7 orang/mobil)');
 		expect(text).toContain('Ada 2 peserta vegetarian.');
 		expect(text).toContain(new URL(page.url()).pathname);
@@ -45,6 +46,7 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		await expect(sheet.getByText('a/n Loox Travel Luxury', { exact: true })).toBeVisible();
 		await expect(sheet.getByText('Hati-hati memilih travel. Pastikan travel sudah berbadan hukum PT')).toBeVisible();
 		await expect(sheet.getByText('Rp 5.550.000')).toBeVisible();
+		await expect(sheet.getByText('Rp 462.500 / peserta')).toBeVisible();
 		await expect(sheet.getByText('6 mobil × Rp 1.750.000 (maks. 7 orang/mobil)')).toBeVisible();
 		await expect(sheet.getByText(/biaya layanan|biaya admin/i)).toHaveCount(0);
 

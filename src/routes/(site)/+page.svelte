@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ClientLogos from '#lib/components/ClientLogos.svelte';
 	import Hero from '#lib/components/Hero.svelte';
 	import PackageCatalog from '#lib/components/PackageCatalog.svelte';
 	import PackageTabs from '#lib/components/PackageTabs.svelte';
@@ -47,6 +48,7 @@
 	{#snippet action(p)}<TripToggle pkg={p} />{/snippet}
 </PackageTabs>
 <TripCalculator packages={data.packages} waNumber={data.waNumber} />
+<ClientLogos />
 <Testimonials reviews={data.reviews} summary={data.googleSummary} />
 <PopularArticles articles={data.popularArticles} />
 <Planner />

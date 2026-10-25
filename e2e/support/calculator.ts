@@ -15,7 +15,7 @@ export function calc(page: Page) {
 		packageBoxes: root.getByRole('group', { name: /^Pilih paket/ }).getByRole('checkbox'),
 		addon: (name: string | RegExp) => root.getByRole('group', { name: /^Tambahan/ }).getByRole('checkbox', { name }),
 		summary: root.locator('[aria-live="polite"][aria-atomic="true"]'),
-		send: root.getByRole('button', { name: /Kirim ke WhatsApp/ }),
+		send: root.getByRole('button', { name: /Booking via WhatsApp/ }),
 		hint: root.locator('p[id$="-hint"]'),
 		status: root.locator('[role=status]'),
 		show: (name: string) => paket.getByRole('tab', { name, exact: true }).click(),

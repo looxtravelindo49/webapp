@@ -1,12 +1,13 @@
 import { calc } from '../support/calculator';
 import { expect, gotoReady, test } from '../support/fixtures';
 
-test.describe('[trip-calculator] Section Konsultasikan Tripmu', () => {
+test.describe('[trip-calculator] Section Estimasi Budget & Booking Kegiatan', () => {
 	test('keadaan awal: ajakan memilih paket dan tidak ada angka total', async ({ page }) => {
 		await gotoReady(page, '/');
 		const c = calc(page);
-		await expect(c.root).toContainText('Konsultasikan');
-		await expect(c.root).toContainText('Tripmu.');
+		await expect(c.root).toContainText('Estimasi Budget');
+		await expect(c.root).toContainText('Booking Kegiatan');
+		await expect(c.root).toContainText('Hitung estimasi budget, lalu booking lewat WhatsApp.');
 		await expect(c.root).toContainText('Pilih minimal satu paket');
 		await expect(c.root).not.toContainText('Total estimasi');
 	});
@@ -98,6 +99,7 @@ test.describe('[trip-calculator] Perhitungan estimasi', () => {
 		await c.pax.fill('40');
 		await expect(c.root).toContainText('6 mobil × Rp 1.750.000 (maks. 7 orang/mobil)');
 		await expect(c.summary).toContainText('Rp 10.500.000');
+		await expect(c.summary).toContainText('Rp 262.500 / peserta');
 	});
 
 	test('beberapa paket dijumlahkan dan berubah langsung saat peserta diubah', async ({ page }) => {
