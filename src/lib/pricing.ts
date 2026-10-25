@@ -34,6 +34,10 @@ export type EstimateLine = {
 	subtotal: number | null;
 	/** Terisi hanya pada mode per satuan yang berharga. */
 	unit?: UnitCharge;
+	/** Baris tambahan kalkulator, bukan paket. */
+	addon?: boolean;
+	/** Harga tetap, tidak dikali peserta. */
+	flat?: boolean;
 };
 
 export type EstimateState =

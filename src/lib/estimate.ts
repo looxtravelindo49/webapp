@@ -31,6 +31,7 @@ export function unitBreakdown(count: number, unitPrice: number, capacity: number
 /** Rincian satu baris: "40 x Rp 250.000 = Rp 10.000.000", rincian per satuan, atau "Harga menyusul". */
 export function lineText(l: EstimateLine): string {
 	if (l.price === null || l.subtotal === null) return 'Harga menyusul';
+	if (l.flat) return formatRupiah(l.subtotal);
 	if (l.unit) return unitBreakdown(l.unit.count, l.unit.price, l.unit.capacity, l.unit.name);
 	const base = `${l.billedPax} x ${formatRupiah(l.price)} = ${formatRupiah(l.subtotal)}`;
 	return l.minApplied ? `${base} (minimal ${l.minPax} peserta)` : base;

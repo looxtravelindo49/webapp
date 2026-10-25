@@ -16,7 +16,7 @@ test.describe('[trip-calculator] Daftar paket di kalkulator', () => {
 	test('lima paket berurutan dengan harga dan minimal peserta', async ({ page }) => {
 		await gotoReady(page, '/');
 		const c = calc(page);
-		await expect(c.root.getByRole('checkbox')).toHaveCount(5);
+		await expect(c.packageBoxes).toHaveCount(5);
 		await expect(c.box('Offroad')).toBeVisible();
 		await expect(c.root).toContainText('Rp 250.000 / orang');
 		await expect(c.root).toContainText('Rp 125.000 / orang');
@@ -141,6 +141,26 @@ test.describe('[trip-calculator] Perhitungan estimasi', () => {
 		await expect(c.root.locator('li', { hasText: 'Fun Games' })).toContainText('Rp 3.200.000');
 		await expect(c.summary).toContainText('Rp 13.700.000');
 		await expect(c.summary).not.toContainText('Harga menyusul');
+	});
+
+	test('tambahan masuk total; dokumentasi saling mengganti', async ({ page }) => {
+		await gotoReady(page, '/');
+		const c = calc(page);
+		await c.box('Offroad').check();
+		await c.pax.fill('10');
+		await c.addon(/Makan siang Liwet/).check();
+		await c.addon(/Dokumentasi Basic/).check();
+		await expect(c.root).toContainText('10 × Rp 50.000');
+		await expect(c.root).toContainText('Harga tetap');
+		await expect(c.summary).toContainText('Rp 4.700.000');
+		await c.addon(/Dokumentasi Pro/).check();
+		await expect(c.addon(/Dokumentasi Basic/)).not.toBeChecked();
+		await expect(c.addon(/Dokumentasi Pro/)).toBeChecked();
+		await expect(c.summary).toContainText('Rp 5.500.000');
+		await expect(page.locator('#katalog')).not.toContainText('Makan siang Liwet');
+		await expect(page.locator('#paket')).not.toContainText('Dokumentasi');
+		await c.addon(/Dokumentasi Pro/).uncheck();
+		await expect(c.summary).toContainText('Rp 4.000.000');
 	});
 
 	test('Fun Games berharga: total angka, bukan dibahas via WhatsApp', async ({ page }) => {

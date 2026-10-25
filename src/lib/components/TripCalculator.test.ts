@@ -32,7 +32,17 @@ describe('section Konsultasikan Tripmu (render server)', () => {
 		const body = html();
 		expect(body.indexOf('id="paket"')).toBeGreaterThan(-1);
 		expect(body.indexOf('id="konsultasi"')).toBeGreaterThan(body.indexOf('id="paket"'));
-		expect(count(body, /type="checkbox"/g)).toBe(4);
+		expect(count(body, /type="checkbox"/g)).toBe(7);
+		expect(body).toContain('Tambahan (opsional)');
+		expect(body).toContain('Makan siang Liwet di hutan');
+		expect(body).toContain('Dokumentasi Basic (Foto &amp; Video cinematic, 4 jam)');
+		expect(body).toContain('Dokumentasi Pro (Foto + Video + Drone, 4 jam)');
+		expect(body).toContain('Rp 50.000 / orang');
+		expect(body).toContain('Rp 700.000');
+		expect(body).toContain('Rp 1.500.000');
+		const beforeCalc = body.slice(0, body.indexOf('id="konsultasi"'));
+		expect(beforeCalc).not.toContain('Makan siang Liwet');
+		expect(beforeCalc).not.toContain('Dokumentasi Basic');
 	});
 
 	it('menampilkan harga per orang, "Harga menyusul", dan minimal peserta', () => {
@@ -76,6 +86,16 @@ describe('section Konsultasikan Tripmu (render server)', () => {
 	it('petunjuk menyebut semua yang kurang', () => {
 		const body = html();
 		expect(body).toContain('Lengkapi dulu: nama tim, minimal satu paket, jumlah peserta yang valid, nomor WhatsApp yang valid.');
+	});
+
+	it('tambahan masuk total; dokumentasi terakhir yang menang', () => {
+		const body = html({ selected: ['offroad'], pax: '40', team: 'x', addons: ['liwet', 'dok-basic', 'dok-pro'] });
+		expect(body).toContain('Rp 2.000.000');
+		expect(body).toContain('Rp 1.500.000');
+		expect(body).toContain('Rp 13.500.000');
+		expect(body).toContain('Harga tetap');
+		expect(body).toContain('40 × Rp 50.000');
+		expect(body).not.toContain('Rp 700.000</div>');
 	});
 
 	it('aksi aktif dan total tampil bila masukan lengkap', () => {

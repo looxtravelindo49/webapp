@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { ADDONS, addonPriceLabel, withAddons } from '#lib/addons.js';
 	import { DISCLAIMER, totalNote, totalText, unitBreakdown } from '#lib/estimate.js';
 	import { formatRupiah } from '#lib/format.js';
 	import { calculateEstimate, MAX_PAX, parsePax } from '#lib/pricing.js';
@@ -14,7 +15,7 @@
 	const uid = $props.id();
 
 	const pax = $derived(parsePax(trip.pax));
-	const estimate = $derived(calculateEstimate(packages, trip.selected, pax));
+	const estimate = $derived(withAddons(calculateEstimate(packages, trip.selected, pax), trip.addons, pax));
 	const paxError = $derived(trip.pax.trim() !== '' && pax === null);
 
 	const contact = $derived(normalizeWhatsapp(trip.whatsapp));
@@ -35,7 +36,7 @@
 
 	// Hasil sebelumnya tidak lagi relevan setelah masukan berubah.
 	$effect(() => {
-		void [trip.team, trip.whatsapp, trip.pax, trip.date, trip.notes, trip.selected.length];
+		void [trip.team, trip.whatsapp, trip.pax, trip.date, trip.notes, trip.selected.length, trip.addons.join()];
 		untrack(() => {
 			if (status.kind !== 'busy') status = { kind: 'idle' };
 		});
@@ -56,7 +57,8 @@
 					paket: trip.selected,
 					jumlahPeserta: trip.pax,
 					tanggal: trip.date,
-					catatan: trip.notes
+					catatan: trip.notes,
+					tambahan: trip.addons
 				})
 			});
 			const data = (await res.json().catch(() => null)) as { waUrl?: string; invoicePath?: string; message?: string } | null;
@@ -173,6 +175,33 @@
 						{/if}
 					</fieldset>
 
+					<fieldset class="m-0 min-w-0 border-0 p-0">
+						<legend class="{label} p-0">Tambahan (opsional)</legend>
+						<p id="{uid}-addon-note" class="mb-2 text-[11px] text-muted">Dokumentasi Basic dan Pro: pilih satu, atau tidak sama sekali.</p>
+						<div class="grid gap-2">
+							{#each ADDONS as addon (addon.id)}
+								{@const on = trip.hasAddon(addon.id)}
+								<label
+									class="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors {on
+										? 'border-green-900 bg-cream'
+										: 'border-line bg-white hover:bg-cream'}"
+								>
+									<input
+										type="checkbox"
+										class="mt-0.5 size-4 shrink-0 accent-green-900"
+										checked={on}
+										aria-describedby="{uid}-addon-note"
+										onchange={() => trip.toggleAddon(addon.id)}
+									/>
+									<span class="min-w-0">
+										<span class="block text-xs font-bold">{addon.title}</span>
+										<span class="block text-[11px] text-muted">{addonPriceLabel(addon)}</span>
+									</span>
+								</label>
+							{/each}
+						</div>
+					</fieldset>
+
 					<div class="grid gap-5 sm:grid-cols-2">
 						<div>
 							<label for="{uid}-pax" class={label}>Jumlah peserta</label>
@@ -229,6 +258,8 @@
 									<div class="text-xs font-bold">{l.title}</div>
 									{#if l.unit}
 										<div class="text-[11px] text-muted">{unitBreakdown(l.unit.count, l.unit.price, l.unit.capacity, l.unit.name)}</div>
+									{:else if l.flat}
+										<div class="text-[11px] text-muted">Harga tetap</div>
 									{:else if l.price !== null}
 										<div class="text-[11px] text-muted">{l.billedPax} × {formatRupiah(l.price)}</div>
 									{/if}

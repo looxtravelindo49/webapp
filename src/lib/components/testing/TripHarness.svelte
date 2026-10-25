@@ -1,6 +1,7 @@
 <script lang="ts">
 	// Hanya untuk tes: memasang context trip dan merangkai slider paket + kalkulator seperti di beranda.
 	import { untrack } from 'svelte';
+	import { normalizeAddonIds } from '#lib/addons.js';
 	import { setTripContext } from '#lib/trip.svelte.js';
 	import type { Package } from '#lib/types.js';
 	import PackageTabs from '../PackageTabs.svelte';
@@ -15,7 +16,8 @@
 		pax = '',
 		date = '',
 		notes = '',
-		whatsapp = ''
+		whatsapp = '',
+		addons = []
 	}: {
 		packages: Package[];
 		waNumber?: string | null;
@@ -25,6 +27,7 @@
 		date?: string;
 		notes?: string;
 		whatsapp?: string;
+		addons?: string[];
 	} = $props();
 
 	const trip = setTripContext();
@@ -35,6 +38,7 @@
 		trip.date = date;
 		trip.notes = notes;
 		trip.whatsapp = whatsapp;
+		trip.addons = normalizeAddonIds(addons);
 	});
 </script>
 

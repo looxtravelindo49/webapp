@@ -13,6 +13,7 @@ export const prerender = false;
 
 const lineDetail = (line: StoredLine, pax: number) => {
 	if (line.price === null) return 'Harga menyusul';
+	if (line.flat) return 'Harga tetap';
 	if (line.pricingMode === 'per_unit' && line.units && line.unitPrice !== undefined && line.capacity && line.unitName) {
 		return unitBreakdown(line.units, line.unitPrice, line.capacity, line.unitName);
 	}

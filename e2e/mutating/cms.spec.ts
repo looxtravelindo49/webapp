@@ -60,7 +60,7 @@ test.describe('[package-cms] Terbitkan dan sembunyikan', () => {
 
 		await gotoReady(page, '/');
 		expect(await tabs(page)).toEqual(['Offroad', 'Team Building', 'Paintball', 'Fun Games']);
-		await expect(calc(page).root.getByRole('checkbox')).toHaveCount(4);
+		await expect(calc(page).packageBoxes).toHaveCount(4);
 		await expect(calc(page).box('Rafting')).toHaveCount(0);
 
 		await gotoReady(page, '/admin/paket');
@@ -68,7 +68,7 @@ test.describe('[package-cms] Terbitkan dan sembunyikan', () => {
 		await expect(page.getByRole('status')).toContainText('diterbitkan');
 		await gotoReady(page, '/');
 		expect(await tabs(page)).toEqual(BASE_TABS);
-		await expect(calc(page).root.getByRole('checkbox')).toHaveCount(5);
+		await expect(calc(page).packageBoxes).toHaveCount(5);
 	});
 
 	test('paket draft yang diterbitkan tampil sebagai tab dan pilihan kalkulator di urutannya', async ({ page }) => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { formatPlanDate, lineText, totalNote, totalText, unitBreakdown } from './estimate';
 import { buildConfirmationMessage } from './invoice';
+import { withAddons } from './addons';
 import { calculateEstimate } from './pricing';
 import type { Package } from './types';
 
@@ -105,5 +106,20 @@ describe('buildConfirmationMessage', () => {
 
 	it('semua tanpa harga: Dibahas via WhatsApp', () => {
 		expect(msg(['fun-games'])).toContain('Estimasi: Dibahas via WhatsApp');
+	});
+
+	it('menyebut tambahan tanpa memasukkannya ke daftar paket', () => {
+		const pax = 10;
+		const estimate = withAddons(calculateEstimate(packages, ['offroad'], pax), ['liwet', 'dok-pro', 'dok-basic'], pax);
+		const text = msg(['offroad'], {
+			pax,
+			estimate,
+			titles: estimate.lines.filter((line) => !line.addon).map((line) => line.title)
+		});
+		expect(text).toContain('Paket: Offroad');
+		expect(text).toContain('Tambahan: Makan siang Liwet di hutan — 10 x Rp 50.000 = Rp 500.000');
+		expect(text).toContain('Tambahan: Dokumentasi Basic (Foto & Video cinematic, 4 jam) — Rp 700.000');
+		expect(text).not.toContain('Dokumentasi Pro');
+		expect(text).toContain('Estimasi: Rp 3.700.000');
 	});
 });
