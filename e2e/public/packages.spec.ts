@@ -187,8 +187,13 @@ test.describe('[package-catalog] Isi slide dan tampilan harga', () => {
 
 	test('semua slide ada di HTML awal (terbaca tanpa JavaScript)', async ({ request }) => {
 		const html = await (await request.get('/')).text();
-		for (const n of NAMES) expect(html, n).toContain(n);
-		expect((html.match(/aria-roledescription="slide"/g) ?? []).length).toBe(5);
-		expect((html.match(/role="tab"/g) ?? []).length).toBe(5);
+		const start = html.indexOf('id="paket"');
+		const end = html.indexOf('id="konsultasi"', start);
+		expect(start, 'section paket').toBeGreaterThan(-1);
+		expect(end, 'section konsultasi setelah paket').toBeGreaterThan(start);
+		const section = html.slice(start, end);
+		for (const n of NAMES) expect(section, n).toContain(n);
+		expect((section.match(/aria-roledescription="slide"/g) ?? []).length).toBe(5);
+		expect((section.match(/role="tab"/g) ?? []).length).toBe(5);
 	});
 });
