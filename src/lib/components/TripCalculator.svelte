@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { DISCLAIMER, totalNote, totalText, unitBreakdown } from '#lib/estimate.js';
+	import { ADDONS, addonPriceLabel, withAddons } from '#lib/addons.js';
+	import { DISCLAIMER, perPaxText, totalNote, totalText, unitBreakdown } from '#lib/estimate.js';
 	import { formatRupiah } from '#lib/format.js';
 	import { calculateEstimate, MAX_PAX, parsePax } from '#lib/pricing.js';
 	import { getTripContext } from '#lib/trip.svelte.js';
@@ -14,7 +15,7 @@
 	const uid = $props.id();
 
 	const pax = $derived(parsePax(trip.pax));
-	const estimate = $derived(calculateEstimate(packages, trip.selected, pax));
+	const estimate = $derived(withAddons(calculateEstimate(packages, trip.selected, pax), trip.addons, pax));
 	const paxError = $derived(trip.pax.trim() !== '' && pax === null);
 
 	const contact = $derived(normalizeWhatsapp(trip.whatsapp));
@@ -22,7 +23,7 @@
 
 	const missing = $derived(
 		[
-			trip.team.trim() === '' ? 'nama tim' : null,
+			trip.team.trim() === '' ? 'nama PIC / perusahaan' : null,
 			estimate.state === 'empty' ? 'minimal satu paket' : null,
 			pax === null ? 'jumlah peserta yang valid' : null,
 			contact === null ? 'nomor WhatsApp yang valid' : null
@@ -35,7 +36,7 @@
 
 	// Hasil sebelumnya tidak lagi relevan setelah masukan berubah.
 	$effect(() => {
-		void [trip.team, trip.whatsapp, trip.pax, trip.date, trip.notes, trip.selected.length];
+		void [trip.team, trip.whatsapp, trip.pax, trip.date, trip.notes, trip.selected.length, trip.addons.join()];
 		untrack(() => {
 			if (status.kind !== 'busy') status = { kind: 'idle' };
 		});
@@ -56,7 +57,8 @@
 					paket: trip.selected,
 					jumlahPeserta: trip.pax,
 					tanggal: trip.date,
-					catatan: trip.notes
+					catatan: trip.notes,
+					tambahan: trip.addons
 				})
 			});
 			const data = (await res.json().catch(() => null)) as { waUrl?: string; invoicePath?: string; message?: string } | null;
@@ -90,15 +92,15 @@
 <section id="konsultasi" tabindex="-1" class="on-dark bg-green-900 py-11 text-white outline-none sm:py-16">
 	<div class="wrap">
 		<div class="mb-7 max-w-xl sm:mb-9">
-			<div class="eyebrow text-accent">HITUNG PERKIRAANNYA</div>
+			<div class="eyebrow text-accent">ESTIMASI & BOOKING</div>
 			<h2 class="my-3 text-[30px] leading-tight font-black tracking-tight sm:text-4xl">
-				Konsultasikan <span class="text-accent">Tripmu.</span>
+				Estimasi Budget & <span class="text-accent">Booking Kegiatan</span>
 			</h2>
 			<p class="text-xs leading-[1.9] text-green-100 sm:text-[13px]">
 				{#if waNumber}
-					Pilih satu atau beberapa paket, isi data tim, dan lihat estimasi biayanya. Kirim ke WhatsApp untuk menyimpan estimasi dan membuka invoice.
+					Hitung estimasi budget, lalu booking lewat WhatsApp.
 				{:else}
-					Pilih satu atau beberapa paket, isi data tim, dan lihat estimasi biayanya.
+					Hitung estimasi budget kegiatanmu.
 				{/if}
 			</p>
 		</div>
@@ -107,13 +109,13 @@
 			<form class="on-light rounded-xl bg-white p-5 text-green-900 sm:p-7" onsubmit={(e) => e.preventDefault()} novalidate>
 				<div class="grid gap-5">
 					<div>
-						<label for="{uid}-team" class={label}>Nama tim / perusahaan</label>
+						<label for="{uid}-team" class={label}>Nama PIC / Perusahaan</label>
 						<input
 							id="{uid}-team"
 							class={field}
 							maxlength="100"
 							autocomplete="organization"
-							placeholder="Tim kamu"
+							placeholder="Nama PIC atau perusahaan"
 							bind:value={trip.team}
 						/>
 					</div>
@@ -137,6 +139,31 @@
 								Masukkan nomor Indonesia yang valid, misalnya 081234567890.
 							</p>
 						{/if}
+					</div>
+
+					<div class="grid gap-5 sm:grid-cols-2">
+						<div>
+							<label for="{uid}-pax" class={label}>Jumlah peserta</label>
+							<input
+								id="{uid}-pax"
+								class="{field} {paxError ? 'border-danger' : ''}"
+								inputmode="numeric"
+								autocomplete="off"
+								placeholder="Misalnya 40"
+								aria-invalid={paxError}
+								aria-describedby={paxError ? `${uid}-pax-error` : undefined}
+								bind:value={trip.pax}
+							/>
+							{#if paxError}
+								<p id="{uid}-pax-error" class="mt-1.5 text-[11px] font-semibold text-danger">
+									Masukkan bilangan bulat 1 sampai {MAX_PAX.toLocaleString('id-ID')}.
+								</p>
+							{/if}
+						</div>
+						<div>
+							<label for="{uid}-date" class={label}>Tanggal rencana (opsional)</label>
+							<input id="{uid}-date" type="date" class={field} bind:value={trip.date} />
+						</div>
 					</div>
 
 					<fieldset class="m-0 min-w-0 border-0 p-0">
@@ -173,30 +200,32 @@
 						{/if}
 					</fieldset>
 
-					<div class="grid gap-5 sm:grid-cols-2">
-						<div>
-							<label for="{uid}-pax" class={label}>Jumlah peserta</label>
-							<input
-								id="{uid}-pax"
-								class="{field} {paxError ? 'border-danger' : ''}"
-								inputmode="numeric"
-								autocomplete="off"
-								placeholder="Misalnya 40"
-								aria-invalid={paxError}
-								aria-describedby={paxError ? `${uid}-pax-error` : undefined}
-								bind:value={trip.pax}
-							/>
-							{#if paxError}
-								<p id="{uid}-pax-error" class="mt-1.5 text-[11px] font-semibold text-danger">
-									Masukkan bilangan bulat 1 sampai {MAX_PAX.toLocaleString('id-ID')}.
-								</p>
-							{/if}
+					<fieldset class="m-0 min-w-0 border-0 p-0">
+						<legend class="{label} p-0">Tambahan (opsional)</legend>
+						<p id="{uid}-addon-note" class="mb-2 text-[11px] text-muted">Dokumentasi Basic dan Pro: pilih satu, atau tidak sama sekali.</p>
+						<div class="grid gap-2">
+							{#each ADDONS as addon (addon.id)}
+								{@const on = trip.hasAddon(addon.id)}
+								<label
+									class="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors {on
+										? 'border-green-900 bg-cream'
+										: 'border-line bg-white hover:bg-cream'}"
+								>
+									<input
+										type="checkbox"
+										class="mt-0.5 size-4 shrink-0 accent-green-900"
+										checked={on}
+										aria-describedby="{uid}-addon-note"
+										onchange={() => trip.toggleAddon(addon.id)}
+									/>
+									<span class="min-w-0">
+										<span class="block text-xs font-bold">{addon.title}</span>
+										<span class="block text-[11px] text-muted">{addonPriceLabel(addon)}</span>
+									</span>
+								</label>
+							{/each}
 						</div>
-						<div>
-							<label for="{uid}-date" class={label}>Tanggal rencana (opsional)</label>
-							<input id="{uid}-date" type="date" class={field} bind:value={trip.date} />
-						</div>
-					</div>
+					</fieldset>
 
 					<div>
 						<label for="{uid}-notes" class={label}>Catatan (opsional)</label>
@@ -229,6 +258,8 @@
 									<div class="text-xs font-bold">{l.title}</div>
 									{#if l.unit}
 										<div class="text-[11px] text-muted">{unitBreakdown(l.unit.count, l.unit.price, l.unit.capacity, l.unit.name)}</div>
+									{:else if l.flat}
+										<div class="text-[11px] text-muted">Harga tetap</div>
 									{:else if l.price !== null}
 										<div class="text-[11px] text-muted">{l.billedPax} × {formatRupiah(l.price)}</div>
 									{/if}
@@ -249,6 +280,9 @@
 					{#if estimate.state === 'complete' || estimate.state === 'partial' || estimate.state === 'quote-only'}
 						<div class="text-[10px] font-bold tracking-wider text-muted uppercase">Total estimasi</div>
 						<div class="text-2xl font-black tracking-tight">{totalText(estimate)}</div>
+						{#if pax !== null && (estimate.state === 'complete' || estimate.state === 'partial')}
+							<div class="mt-1 text-xs font-bold">{perPaxText(estimate.total, pax)}</div>
+						{/if}
 						{#if totalNote(estimate)}
 							<div class="text-[11px] text-muted">{totalNote(estimate)}</div>
 						{/if}
@@ -263,7 +297,7 @@
 							aria-describedby="{uid}-hint"
 							onclick={sendWhatsapp}
 						>
-							{status.kind === 'busy' ? 'Menyiapkan…' : 'Kirim ke WhatsApp'}
+							{status.kind === 'busy' ? 'Menyiapkan…' : 'Booking via WhatsApp'}
 							<span aria-hidden="true">↗</span>
 						</Button>
 					{:else}

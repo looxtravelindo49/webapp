@@ -17,6 +17,7 @@ import {
 	type StoredLine
 } from '#lib/invoice.js';
 import { calculateEstimate, parsePax } from '#lib/pricing.js';
+import { withAddons } from '#lib/addons.js';
 import { normalizeWhatsapp, waLink } from '#lib/whatsapp.js';
 import { all, one, run, scalar, transaction, type Db, type Queryable } from './db';
 import { listPublishedPackages } from './packages';
@@ -102,7 +103,7 @@ export function leadMessage(lead: Lead): string {
 	return buildConfirmationMessage({
 		nama: lead.nama,
 		whatsapp: lead.whatsapp,
-		titles: lines.map((l) => l.title),
+		titles: lines.filter((l) => l.kind !== 'addon').map((l) => l.title),
 		pax: lead.jumlah_peserta,
 		planDate: lead.tanggal_acara ?? '',
 		estimate: estimateFromStored(lines, lead.estimasi_total),
@@ -214,8 +215,8 @@ function isUniqueError(err: unknown): boolean {
  */
 export async function submitLead(db: Db, raw: Record<string, unknown>, ctx: SubmitContext): Promise<SubmitResult> {
 	const nama = typeof raw.nama === 'string' ? raw.nama.trim() : '';
-	if (!nama) return FAIL(400, 'Lengkapi dulu nama tim.');
-	if (nama.length > 100) return FAIL(400, 'Nama tim terlalu panjang.');
+	if (!nama) return FAIL(400, 'Lengkapi dulu nama PIC / perusahaan.');
+	if (nama.length > 100) return FAIL(400, 'Nama PIC / perusahaan terlalu panjang.');
 
 	const whatsapp = normalizeWhatsapp(typeof raw.whatsapp === 'string' ? raw.whatsapp : '');
 	if (!whatsapp) return FAIL(400, 'Masukkan nomor WhatsApp kamu yang valid, misalnya 081234567890.');
@@ -236,7 +237,8 @@ export async function submitLead(db: Db, raw: Record<string, unknown>, ctx: Subm
 	const slugs = raw.paket.filter((s): s is string => typeof s === 'string' && /^[a-z0-9-]{1,80}$/.test(s)).slice(0, 20);
 
 	const packages = await listPublishedPackages(db);
-	const estimate = calculateEstimate(packages, slugs, pax);
+	const tambahan = Array.isArray(raw.tambahan) ? raw.tambahan : [];
+	const estimate = withAddons(calculateEstimate(packages, slugs, pax), tambahan, pax);
 	if (estimate.state === 'empty' || estimate.state === 'invalid-pax') {
 		return FAIL(400, 'Pilih minimal satu paket yang masih tersedia.');
 	}

@@ -163,10 +163,11 @@ test.describe('[package-catalog] Isi slide dan tampilan harga', () => {
 		await expect(activeSlide(page)).toContainText('/ orang');
 	});
 
-	test('paket tanpa harga menampilkan "Harga menyusul"', async ({ page }) => {
+	test('Team Building menampilkan harga Rp125.000 dan minimal 20 peserta', async ({ page }) => {
 		await gotoReady(page, '/');
 		await tab(page, 'Team Building').click();
-		await expect(activeSlide(page)).toContainText('Harga menyusul');
+		await expect(activeSlide(page)).toContainText('Rp 125.000');
+		await expect(activeSlide(page)).toContainText('Minimal 20 peserta');
 	});
 
 	test('Rafting: harga dan "Minimal 10 peserta"', async ({ page }) => {
@@ -174,6 +175,9 @@ test.describe('[package-catalog] Isi slide dan tampilan harga', () => {
 		await tab(page, 'Rafting').click();
 		await expect(activeSlide(page)).toContainText('Rp 200.000');
 		await expect(activeSlide(page)).toContainText('Minimal 10 peserta');
+		await expect(activeSlide(page)).toContainText('Lokasi Ciater');
+		await expect(activeSlide(page)).toContainText('Durasi 20–30 menit');
+		await expect(activeSlide(page)).not.toContainText('Briefing sebelum mulai');
 	});
 
 	test('slide memuat gambar dengan teks alternatif, ringkasan, dan daftar fasilitas', async ({ page }) => {
@@ -181,13 +185,25 @@ test.describe('[package-catalog] Isi slide dan tampilan harga', () => {
 		const panel = activeSlide(page);
 		await expect(panel.locator('img')).toHaveAttribute('alt', /.+/);
 		await expect(panel.locator('ul li')).not.toHaveCount(0);
-		await expect(panel.getByText('Pilihan yang dapat dibahas')).toBeVisible();
+		await expect(panel.getByText('Include')).toBeVisible();
+		await expect(panel.getByText('Land Rover', { exact: true })).toBeVisible();
+		await expect(panel.getByText('Durasi 1–3 jam')).toBeVisible();
+		await expect(panel.getByText('Exclude')).toBeVisible();
+		await expect(panel.getByText('Transport')).toBeVisible();
+		await expect(panel.getByText('Offroad di Cikole, Lembang, Bandung')).toBeVisible();
+		await expect(panel.getByText('Titik kumpul Cikole, bisa juga start dari hotel area Lembang')).toBeVisible();
+		await expect(panel.getByText('Pilihan yang dapat dibahas')).toHaveCount(0);
 	});
 
 	test('semua slide ada di HTML awal (terbaca tanpa JavaScript)', async ({ request }) => {
 		const html = await (await request.get('/')).text();
-		for (const n of NAMES) expect(html, n).toContain(n);
-		expect((html.match(/aria-roledescription="slide"/g) ?? []).length).toBe(5);
-		expect((html.match(/role="tab"/g) ?? []).length).toBe(5);
+		const start = html.indexOf('id="paket"');
+		const end = html.indexOf('id="konsultasi"', start);
+		expect(start, 'section paket').toBeGreaterThan(-1);
+		expect(end, 'section konsultasi setelah paket').toBeGreaterThan(start);
+		const section = html.slice(start, end);
+		for (const n of NAMES) expect(section, n).toContain(n);
+		expect((section.match(/aria-roledescription="slide"/g) ?? []).length).toBe(5);
+		expect((section.match(/role="tab"/g) ?? []).length).toBe(5);
 	});
 });

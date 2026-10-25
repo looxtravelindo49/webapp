@@ -1,4 +1,5 @@
-import { formatPlanDate, lineText, totalNote, totalText } from './estimate';
+import { formatPlanDate, lineText, perPaxAmount, totalNote, totalText } from './estimate';
+import { formatRupiah } from './format';
 import type { Estimate, EstimateLine } from './pricing';
 
 /** Persen uang muka. Satu sumber untuk hitungan, label, dan teks. Bukan biaya gateway. */
@@ -16,8 +17,10 @@ export type StoredLine = {
 	minPax: number;
 	billedPax: number;
 	subtotal: number | null;
-	/** `bebas` = baris invoice manual (qty × harga satuan). Selain itu baris paket kalkulator. */
-	kind?: 'paket' | 'bebas';
+	/** `bebas` = baris invoice manual. `addon` = tambahan kalkulator. Selain itu baris paket. */
+	kind?: 'paket' | 'bebas' | 'addon';
+	/** Harga tetap, tidak dikali peserta. */
+	flat?: boolean;
 	/** Cuplikan mode per satuan, supaya rincian invoice tidak bergantung pada pengaturan paket yang berubah. */
 	pricingMode?: 'per_unit';
 	units?: number;
@@ -81,6 +84,8 @@ export function storedLinesFromEstimate(lines: readonly EstimateLine[]): StoredL
 			subtotal: l.subtotal,
 			kind: 'paket'
 		};
+		if (l.addon) row.kind = 'addon';
+		if (l.flat) row.flat = true;
 		if (l.unit) {
 			row.pricingMode = 'per_unit';
 			row.units = l.unit.count;
@@ -115,7 +120,8 @@ export function parseStoredLines(raw: string): StoredLine[] {
 			minPax: Number(row.minPax) || 1,
 			billedPax: Number(row.billedPax) || 0,
 			subtotal: subtotal === null || Number.isFinite(subtotal) ? subtotal : null,
-			kind: row.kind === 'bebas' ? 'bebas' : 'paket'
+			kind: row.kind === 'bebas' ? 'bebas' : row.kind === 'addon' ? 'addon' : 'paket',
+			...(row.flat === true ? { flat: true } : {})
 		};
 		const units = Number(row.units);
 		const unitPrice = Number(row.unitPrice);
@@ -148,6 +154,8 @@ export function estimateFromStored(lines: readonly StoredLine[], total: number |
 		billedPax: l.billedPax,
 		minApplied: false,
 		subtotal: l.subtotal,
+		...(l.kind === 'addon' ? { addon: true } : {}),
+		...(l.flat ? { flat: true } : {}),
 		...(l.pricingMode === 'per_unit' && l.units && l.unitPrice !== undefined && l.capacity && l.unitName
 			? { unit: { name: l.unitName, capacity: l.capacity, count: l.units, price: l.unitPrice } }
 			: {})
@@ -311,16 +319,24 @@ export function buildConfirmationMessage(input: ConfirmationInput): string {
 	const lines = [
 		'Halo Lembang Adventure, aku barusan hitung di kalkulator website.',
 		'',
-		`Nama: ${input.nama.trim()}`,
+		`Nama PIC / Perusahaan: ${input.nama.trim()}`,
 		`Nomor WhatsApp: +${input.whatsapp}`,
 		`Paket: ${input.titles.filter(Boolean).join(', ')}`,
 		`Jumlah peserta: ${input.pax} orang`,
 		`Tanggal: ${date}`,
 		`Estimasi: ${estimasi}`
 	];
+	if (input.estimate.state === 'complete' || input.estimate.state === 'partial') {
+		const each = perPaxAmount(input.estimate.total, input.pax);
+		if (each !== null) lines.push(`Per peserta: ${formatRupiah(each)}`);
+	}
 	for (const line of input.estimate.lines) {
 		if (!line.unit || line.subtotal === null) continue;
 		lines.push(`${line.title}: ${lineText(line)}`);
+	}
+	for (const line of input.estimate.lines) {
+		if (!line.addon || line.subtotal === null) continue;
+		lines.push(`Tambahan: ${line.title} — ${lineText(line)}`);
 	}
 	const catatan = input.notes.trim();
 	if (catatan) lines.push(`Catatan: ${catatan}`);

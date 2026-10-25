@@ -21,10 +21,12 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		const popup = await popupP;
 		await expect.poll(() => popup.url()).toMatch(/^https:\/\/wa\.me\/6282120209900\?text=/);
 		const text = waText(popup.url());
+		expect(text).toContain('Nama PIC / Perusahaan: Tim Alfa');
 		expect(text).toContain('Paket: Offroad, Rafting');
 		expect(text).toContain('Jumlah peserta: 40 orang');
 		expect(text).toContain('20 November 2026');
 		expect(text).toContain('Estimasi: Rp 18.500.000');
+		expect(text).toContain('Per peserta: Rp 462.500');
 		expect(text).toContain('Offroad: 6 mobil × Rp 1.750.000 (maks. 7 orang/mobil)');
 		expect(text).toContain('Ada 2 peserta vegetarian.');
 		expect(text).toContain(new URL(page.url()).pathname);
@@ -33,6 +35,8 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 
 		const sheet = page.locator('.invoice-sheet');
 		await expect(sheet.getByRole('heading', { level: 1 })).toHaveText('Invoice Estimasi');
+		await expect(sheet.getByText('Nama PIC / Perusahaan', { exact: true })).toBeVisible();
+		await expect(sheet.getByText('Tim Alfa', { exact: true })).toBeVisible();
 		const fresh = await page.request.get(page.url());
 		expect(fresh.headers()['cache-control'] ?? '').toContain('no-store');
 		await expect(sheet.getByText('Baru', { exact: true })).toBeVisible();
@@ -45,6 +49,7 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		await expect(sheet.getByText('a/n Loox Travel Luxury', { exact: true })).toBeVisible();
 		await expect(sheet.getByText('Hati-hati memilih travel. Pastikan travel sudah berbadan hukum PT')).toBeVisible();
 		await expect(sheet.getByText('Rp 5.550.000')).toBeVisible();
+		await expect(sheet.getByText('Rp 462.500 / peserta')).toBeVisible();
 		await expect(sheet.getByText('6 mobil × Rp 1.750.000 (maks. 7 orang/mobil)')).toBeVisible();
 		await expect(sheet.getByText(/biaya layanan|biaya admin/i)).toHaveCount(0);
 
@@ -77,19 +82,20 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		expect(query('SELECT id FROM lead WHERE nama = ?', 'Tim Popup')).toHaveLength(1);
 	});
 
-	test('semua paket tanpa harga: invoice tanpa nominal DP karangan', async ({ page, context }) => {
+	test('Fun Games di bawah minimal: tagihan 20 orang dan DP 30% dari angka itu', async ({ page, context }) => {
 		const popups = await capturePopups(context);
 		await gotoReady(page, '/');
 		const c = await fillValid(page, { packages: ['Fun Games'], team: 'Tim Nol', pax: '8' });
 		await c.send.click();
 		await expect(page).toHaveURL(/\/invoice\/LA-/);
-		await expect(page.getByText('Dibahas via WhatsApp')).toBeVisible();
-		await expect(page.getByText('Nominal DP 30% muncul setelah estimasinya berupa angka.')).toBeVisible();
+		await expect(page.getByText('Rp 1.600.000').first()).toBeVisible();
+		await expect(page.getByText('Rp 480.000').first()).toBeVisible();
+		await expect(page.getByText('Dibahas via WhatsApp')).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Bayar DP 30% (segera)' })).toBeDisabled();
 		const nomor = new URL(page.url()).pathname.split('/').pop()!;
 		const rows = query<{ estimasi_total: number | null; dp_nominal: number | null }>('SELECT estimasi_total, dp_nominal FROM lead WHERE nomor_invoice = ?', nomor);
-		expect(rows[0].estimasi_total).toBeNull();
-		expect(rows[0].dp_nominal).toBeNull();
+		expect(rows[0].estimasi_total).toBe(1_600_000);
+		expect(rows[0].dp_nominal).toBe(480_000);
 		expect(popups.length).toBeGreaterThan(0);
 	});
 

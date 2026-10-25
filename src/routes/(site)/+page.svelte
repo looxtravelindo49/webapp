@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ClientLogos from '#lib/components/ClientLogos.svelte';
 	import Hero from '#lib/components/Hero.svelte';
 	import PackageCatalog from '#lib/components/PackageCatalog.svelte';
 	import PackageTabs from '#lib/components/PackageTabs.svelte';
@@ -7,6 +8,7 @@
 	import TripCalculator from '#lib/components/TripCalculator.svelte';
 	import TripToggle from '#lib/components/TripToggle.svelte';
 	import Planner from '#lib/components/Planner.svelte';
+	import PromoPopup from '#lib/components/PromoPopup.svelte';
 	import Seo from '#lib/components/Seo.svelte';
 	import { site } from '#lib/content/site.js';
 	import { organizationNode, shareImage, websiteNode } from '#lib/seo.js';
@@ -41,10 +43,12 @@
 
 <Hero />
 <PackageCatalog packages={data.packages} />
+<PromoPopup promo={data.promo} />
 <PackageTabs packages={data.packages}>
 	{#snippet action(p)}<TripToggle pkg={p} />{/snippet}
 </PackageTabs>
 <TripCalculator packages={data.packages} waNumber={data.waNumber} />
+<ClientLogos clients={data.clients} />
 <Testimonials reviews={data.reviews} summary={data.googleSummary} />
 <PopularArticles articles={data.popularArticles} />
 <Planner />

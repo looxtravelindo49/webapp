@@ -3,6 +3,8 @@
 	import { goto } from '$app/navigation';
 	import PackageGallery from '#lib/components/PackageGallery.svelte';
 	import { formatRupiah } from '#lib/format.js';
+	import { activityFromHash, KEGIATAN_EVENT } from '#lib/kegiatan.js';
+	import { packageStory } from '#lib/package-story.js';
 	import { lines, paragraphs } from '#lib/text.js';
 	import type { Package } from '#lib/types.js';
 
@@ -146,24 +148,61 @@
 		go(next);
 	}
 
-	// Hash yang tidak dikenal diabaikan (slide pertama tetap tampil).
-	// Hash yang sama dengan slide aktif tidak menggulir halaman (geser sendiri memakai replace).
-	function fromHash(scrollPage: boolean) {
-		const m = location.hash.match(/^#paket-(.+)$/);
-		const found = m ? packages.findIndex((p) => p.slug === decodeURIComponent(m[1])) : -1;
-		if (found < 0) return;
+	/** Gulir ke awal section, di bawah header lengket. `scrollTo` tidak memakai scroll-padding. */
+	function scrollToSection() {
+		const section = document.getElementById('paket');
+		if (!section) return;
+		const header = document.querySelector('header');
+		const offset = (header?.getBoundingClientRect().height ?? 0) + 12;
+		const top = section.getBoundingClientRect().top + window.scrollY - offset;
+		window.scrollTo({ top: Math.max(0, top), behavior: reduced() ? 'auto' : 'smooth' });
+	}
+
+	/** `null` bila slug tidak ada. Selain itu, apakah tab itu sudah terbuka. */
+	function showSlug(slug: string, scrollPage: boolean): boolean | null {
+		const found = packages.findIndex((p) => p.slug === slug);
+		if (found < 0) return null;
 		const same = found === index;
 		index = found;
 		scrollToSlide(found);
-		if (scrollPage && !same) document.getElementById('paket')?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' });
+		if (scrollPage) scrollToSection();
+		return same;
 	}
 
-	onMount(() => fromHash(true));
+	// Hash yang tidak dikenal diabaikan (slide pertama tetap tampil).
+	// `#paket-` yang sama dengan slide aktif tidak menggulir (klik pil memakai replace).
+	// `#kegiatan-` selalu menampilkan section, termasuk paket pertama.
+	function fromHash(scrollPage: boolean) {
+		const parsed = activityFromHash(location.hash);
+		if (!parsed) return;
+		const same = showSlug(parsed.slug, false);
+		if (same === null) return;
+		if (scrollPage && (parsed.bringIntoView || !same)) scrollToSection();
+	}
+
+	function onKegiatan(event: Event) {
+		const slug = (event as CustomEvent<string>).detail;
+		if (typeof slug !== 'string') return;
+		showSlug(slug, true);
+		document.getElementById(tabId(slug))?.focus({ preventScroll: true });
+	}
+
+	onMount(() => {
+		fromHash(true);
+		window.addEventListener(KEGIATAN_EVENT, onKegiatan);
+		return () => window.removeEventListener(KEGIATAN_EVENT, onKegiatan);
+	});
 </script>
 
 <svelte:window onhashchange={() => fromHash(true)} />
 
 <section id="paket" class="wrap py-11 sm:py-16">
+	<!-- Sasaran hash #kegiatan-*. Satu baris 1px di awal isi, ditumpuk, supaya peramban tanpa JS menggulir ke section. -->
+	<div class="grid" aria-hidden="true">
+		{#each packages as p (p.slug)}
+			<div id="kegiatan-{p.slug}" class="col-start-1 row-start-1 h-px"></div>
+		{/each}
+	</div>
 	<div class="mb-6 sm:mb-7">
 		<div class="eyebrow">PILIH KEGIATAN</div>
 		<h2 class="my-2 text-[26px] leading-tight font-black tracking-tight sm:text-[30px]">Satu tim, banyak cerita.</h2>
@@ -248,7 +287,9 @@
 					class="relative flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 				>
 					{#each packages as p, i (p.slug)}
-						{@const included = lines(p.includes)}
+						{@const story = packageStory(p)}
+						{@const includeItems = story ? story.includes : lines(p.includes)}
+						{@const excludeItems = story?.excludes ?? []}
 						<li
 							id={slideId(p.slug)}
 							class="grid w-full min-w-full shrink-0 snap-start grid-cols-1 gap-6 md:grid-cols-[1fr_1.1fr] md:gap-12"
@@ -279,9 +320,11 @@
 								/>
 							{/if}
 							<div>
-								{#if p.duration}<div class="eyebrow text-muted">{p.duration}</div>{/if}
+								{#if p.duration && !story}<div class="eyebrow text-muted">{p.duration}</div>{/if}
 								<h3 class="my-2 text-[26px] leading-tight font-black tracking-tight">{p.title}</h3>
-								<p class="text-[13px] leading-[1.9] text-muted">{p.summary}</p>
+								{#if !story}
+									<p class="text-[13px] leading-[1.9] text-muted">{p.summary}</p>
+								{/if}
 
 								<div class="my-5 border-y border-line py-4">
 									{#if p.price_per_person === null}
@@ -299,14 +342,14 @@
 									<div class="mb-5">{@render action(p)}</div>
 								{/if}
 
-								{#each paragraphs(p.body) as para (para)}
+								{#each story ? story.paragraphs : paragraphs(p.body) as para (para)}
 									<p class="mb-4 text-[13px] leading-[1.9]">{para}</p>
 								{/each}
 
-								{#if included.length}
-									<h4 class="mt-5 mb-2 text-xs font-extrabold tracking-wider uppercase">Pilihan yang dapat dibahas</h4>
+								{#if includeItems.length}
+									<h4 class="mt-5 mb-2 text-xs font-extrabold tracking-wider uppercase">Include</h4>
 									<ul class="space-y-1.5 text-[13px]">
-										{#each included as item (item)}
+										{#each includeItems as item (item)}
 											<li class="flex gap-2.5">
 												<span aria-hidden="true" class="mt-0.5 text-green-800">✓</span><span>{item}</span>
 											</li>
@@ -314,7 +357,18 @@
 									</ul>
 								{/if}
 
-								{#if p.notes.trim()}
+								{#if excludeItems.length}
+									<h4 class="mt-5 mb-2 text-xs font-extrabold tracking-wider uppercase">Exclude</h4>
+									<ul class="space-y-1.5 text-[13px]">
+										{#each excludeItems as item (item)}
+											<li class="flex gap-2.5">
+												<span aria-hidden="true" class="mt-0.5 text-muted">−</span><span>{item}</span>
+											</li>
+										{/each}
+									</ul>
+								{/if}
+
+								{#if p.notes.trim() && !story}
 									<h4 class="mt-5 mb-2 text-xs font-extrabold tracking-wider uppercase">Catatan program</h4>
 									<p class="text-xs leading-[1.8] text-muted">{p.notes}</p>
 								{/if}

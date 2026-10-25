@@ -18,21 +18,33 @@ const html = (props: Record<string, unknown> = {}) =>
 	render(TripHarness, { props: { packages, ...props } }).body;
 const count = (s: string, re: RegExp) => (s.match(re) ?? []).length;
 
-describe('section Konsultasikan Tripmu (render server)', () => {
+describe('section Estimasi Budget & Booking Kegiatan (render server)', () => {
 	it('ada di HTML awal dengan judul dan keadaan kosong', () => {
 		const body = html();
 		expect(body).toContain('id="konsultasi"');
-		expect(body).toContain('Konsultasikan');
-		expect(body).toContain('Tripmu.');
+		expect(body).toContain('Estimasi Budget');
+		expect(body).toContain('Booking Kegiatan');
+		expect(body).toContain('Hitung estimasi budget kegiatanmu.');
 		expect(body).toContain('Pilih minimal satu paket');
 		expect(body).not.toContain('Total estimasi</div>');
+		expect(body).not.toContain('Konsultasikan');
 	});
 
 	it('muncul setelah #paket dan memuat satu checkbox per paket terbit', () => {
 		const body = html();
 		expect(body.indexOf('id="paket"')).toBeGreaterThan(-1);
 		expect(body.indexOf('id="konsultasi"')).toBeGreaterThan(body.indexOf('id="paket"'));
-		expect(count(body, /type="checkbox"/g)).toBe(4);
+		expect(count(body, /type="checkbox"/g)).toBe(7);
+		expect(body).toContain('Tambahan (opsional)');
+		expect(body).toContain('Makan siang Liwet di hutan');
+		expect(body).toContain('Dokumentasi Basic (Foto &amp; Video cinematic, 4 jam)');
+		expect(body).toContain('Dokumentasi Pro (Foto + Video + Drone, 4 jam)');
+		expect(body).toContain('Rp 50.000 / orang');
+		expect(body).toContain('Rp 700.000');
+		expect(body).toContain('Rp 1.500.000');
+		const beforeCalc = body.slice(0, body.indexOf('id="konsultasi"'));
+		expect(beforeCalc).not.toContain('Makan siang Liwet');
+		expect(beforeCalc).not.toContain('Dokumentasi Basic');
 	});
 
 	it('menampilkan harga per orang, "Harga menyusul", dan minimal peserta', () => {
@@ -46,44 +58,66 @@ describe('section Konsultasikan Tripmu (render server)', () => {
 		const body = html();
 		expect(body).not.toMatch(/>\s*Tujuan\s*</);
 		expect(body).not.toMatch(/Anggaran/);
-		expect(body).toContain('Nama tim / perusahaan');
+		expect(body).toContain('Nama PIC / Perusahaan');
 		expect(body).toContain('Jumlah peserta');
 		expect(body).toContain('Nomor WhatsApp');
 		expect(body).toContain('Tanggal rencana (opsional)');
 		expect(body).toContain('Catatan (opsional)');
+		const wa = body.indexOf('Nomor WhatsApp');
+		const pax = body.indexOf('Jumlah peserta');
+		const date = body.indexOf('Tanggal rencana (opsional)');
+		const paket = body.indexOf('Pilih paket (boleh lebih dari satu)');
+		expect(wa).toBeGreaterThan(-1);
+		expect(pax).toBeGreaterThan(wa);
+		expect(date).toBeGreaterThan(pax);
+		expect(paket).toBeGreaterThan(date);
 	});
 
 	it('tidak memuat tautan wa.me di HTML awal', () => {
 		expect(html({ waNumber: '6282120209900' })).not.toContain('wa.me');
 	});
 
-	it('tombol "Kirim ke WhatsApp" hanya ada bila nomor tujuan valid; tidak ada Simpan PDF', () => {
+	it('tombol "Booking via WhatsApp" hanya ada bila nomor tujuan valid; tidak ada Simpan PDF', () => {
 		const tanpa = html({ waNumber: null });
-		expect(tanpa).not.toContain('Kirim ke WhatsApp');
+		expect(tanpa).not.toContain('Booking via WhatsApp');
+		expect(tanpa).toContain('Hitung estimasi budget kegiatanmu.');
 		expect(tanpa).toContain('Pengiriman lewat WhatsApp sedang tidak aktif.');
 		expect(tanpa).not.toContain('Simpan PDF');
-		expect(html({ waNumber: '6282120209900' })).toContain('Kirim ke WhatsApp');
-		expect(html({ waNumber: '6282120209900' })).not.toContain('Simpan PDF');
-		expect(html({ waNumber: '6282120209900' })).not.toContain('PDF');
+		const dengan = html({ waNumber: '6282120209900' });
+		expect(dengan).toContain('Booking via WhatsApp');
+		expect(dengan).toContain('Hitung estimasi budget, lalu booking lewat WhatsApp.');
+		expect(dengan).not.toContain('Simpan PDF');
+		expect(dengan).not.toContain('PDF');
 	});
 
 	it('aksi disabled dan petunjuk menyebut yang kurang', () => {
 		const body = html({ waNumber: '6282120209900', selected: ['offroad'], pax: '40', team: '', whatsapp: '081234567890' });
-		expect(body).toContain('Lengkapi dulu: nama tim.');
+		expect(body).toContain('Lengkapi dulu: nama PIC / perusahaan.');
 		expect(body).toMatch(/<button[^>]*\sdisabled=""/);
 	});
 
 	it('petunjuk menyebut semua yang kurang', () => {
 		const body = html();
-		expect(body).toContain('Lengkapi dulu: nama tim, minimal satu paket, jumlah peserta yang valid, nomor WhatsApp yang valid.');
+		expect(body).toContain('Lengkapi dulu: nama PIC / perusahaan, minimal satu paket, jumlah peserta yang valid, nomor WhatsApp yang valid.');
+	});
+
+	it('tambahan masuk total; dokumentasi terakhir yang menang', () => {
+		const body = html({ selected: ['offroad'], pax: '40', team: 'x', addons: ['liwet', 'dok-basic', 'dok-pro'] });
+		expect(body).toContain('Rp 2.000.000');
+		expect(body).toContain('Rp 1.500.000');
+		expect(body).toContain('Rp 13.500.000');
+		expect(body).toContain('Harga tetap');
+		expect(body).toContain('40 × Rp 50.000');
+		expect(body).not.toContain('Rp 700.000</div>');
 	});
 
 	it('aksi aktif dan total tampil bila masukan lengkap', () => {
 		const body = html({ waNumber: '6282120209900', selected: ['offroad'], pax: '40', team: 'Tim Alfa', whatsapp: '081234567890' });
 		expect(body).toContain('Rp 10.000.000');
+		expect(body).toContain('Rp 250.000 / peserta');
 		expect(body).toContain('40 × Rp 250.000');
 		expect(body).not.toContain('Lengkapi dulu');
-		const button = body.match(/<button[^>]*>[\s\S]*?Kirim ke WhatsApp/)?.[0] ?? '';
+		const button = body.match(/<button[^>]*>[\s\S]*?Booking via WhatsApp/)?.[0] ?? '';
 		expect(button).not.toMatch(/\sdisabled(=|"|\s|>)/);
 	});
 
@@ -98,6 +132,7 @@ describe('section Konsultasikan Tripmu (render server)', () => {
 		const body = html({ selected: ['rafting'], pax: '4', team: 'x' });
 		expect(body).toContain('ditagihkan minimal 10 peserta');
 		expect(body).toContain('Rp 2.000.000');
+		expect(body).toContain('Rp 500.000 / peserta');
 	});
 
 	it('sebagian tanpa harga: catatan di samping total', () => {
@@ -109,6 +144,7 @@ describe('section Konsultasikan Tripmu (render server)', () => {
 	it('semua tanpa harga: "Dibahas via WhatsApp"', () => {
 		const body = html({ selected: ['fun-games'], pax: '40', team: 'x' });
 		expect(body).toContain('Dibahas via WhatsApp');
+		expect(body).not.toContain('/ peserta');
 	});
 
 	it.each(['0', '-3', '2.5', '10001', 'abc'])('peserta %j: pesan kesalahan dan tanpa total', (pax) => {

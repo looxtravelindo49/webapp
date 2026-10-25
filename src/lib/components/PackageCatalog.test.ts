@@ -7,7 +7,7 @@ const pkg = (slug: string, title: string, extra: Partial<Package> = {}): Package
 	id: 1,
 	slug,
 	title,
-	summary: '',
+	summary: `Ringkasan ${title} untuk tim.`,
 	body: '',
 	includes: '',
 	notes: '',
@@ -24,35 +24,54 @@ const pkg = (slug: string, title: string, extra: Partial<Package> = {}): Package
 const html = (packages: Package[]) => render(PackageCatalog, { props: { packages } }).body;
 
 describe('PackageCatalog', () => {
-	it('menampilkan tiga kartu dan menyembunyikan sisanya di dalam details', () => {
+	it('menampilkan kartu sesuai mockup: badge, harga, filter, dan tautan detail', () => {
 		const body = html([
-			pkg('offroad', 'Offroad Land Rover', { duration: '2-3 Jam', price_per_person: 249000, min_pax: 7 }),
-			pkg('team-building', 'Team Building', { min_pax: 20 }),
-			pkg('rafting', 'Rafting', { price_per_person: 125000, min_pax: 5 }),
-			pkg('paintball', 'Paintball', { duration: '   ', min_pax: 10 })
+			pkg('offroad', 'Offroad Cikole', {
+				duration: '2-3 Jam',
+				price_per_person: 249000,
+				min_pax: 7,
+				pricing_mode: 'per_unit',
+				kapasitas_per_unit: 7,
+				nama_unit: 'mobil'
+			}),
+			pkg('team-building', 'Team Building', { price_per_person: 125000, min_pax: 20 }),
+			pkg('fun-games', 'Fun Games', { min_pax: 20 }),
+			pkg('paintball', 'Paintball', { price_per_person: 125000, min_pax: 10 }),
+			pkg('rafting', 'Rafting', { price_per_person: 125000, min_pax: 5, image: '/media/river.svg' })
 		]);
-		expect(body).toContain('Katalog paket');
-		expect(body).toContain('>Offroad Land Rover<');
-		expect(body).toContain('by Loox Travel');
-		expect(body).toContain('>Lembang<');
-		expect(body).toContain('>Bandung<');
-		expect(body).toContain('>Jawa Barat<');
-		expect(body).toContain('2-3 Jam');
-		expect(body).toContain('Rp249rb/orang');
-		expect(body).toContain('Min. 7 orang');
-		expect(body).toContain('href="/paket/offroad"');
-		expect(body).toContain('Add Offroad');
-		expect(body).toContain('Add Team Building');
-		expect(body).toContain('Add Paintball');
-		expect(body).toContain('snap-x');
-		expect(body).toContain('w-[85%]');
-		expect(body).toContain('aria-expanded="false"');
-		expect(body).toContain('aria-controls="katalog-daftar"');
-		expect(body).toContain('aria-label="Tampilkan Paintball"');
-		expect(body).not.toContain('<details');
-		expect(body).not.toContain('Sembunyikan');
-		expect(body.indexOf('Lihat semua paket')).toBeGreaterThan(body.indexOf('Add Paintball'));
-		expect(body).toMatch(/md:hidden[\s\S]*?Add Paintball/);
+		expect(body).toContain('HANDPICKED EXPERIENCES');
+		expect(body).toContain('Aktivitas Pilihan di Lembang');
+		expect(body).toContain('Reset filter');
+		expect(body).toContain('>Semua<');
+		expect(body).toContain('>Adventure<');
+		expect(body).toContain('>Untuk Grup<');
+		expect(body).toContain('>Corporate<');
+		expect(body).toContain('Paling Dicari');
+		expect(body).toContain('Cikole, Lembang · Setengah hari');
+		expect(body).toContain('Cikole, Lembang · Termasuk 40 peluru');
+		expect(body).toContain('Ciater, Lembang');
+		expect(body).toContain('>Offroad Cikole<');
+		expect(body).toContain('Rp249.000');
+		expect(body).toContain('/pax*');
+		expect(body).toContain('Min. 7 peserta');
+		expect(body).toContain('Rp125.000');
+		expect(body).toContain('/orang');
+		expect(body).toContain('Minta penawaran');
+		expect(body).toContain('href="#kegiatan-offroad"');
+		expect(body).toContain('href="#kegiatan-team-building"');
+		expect(body).not.toContain('href="/paket/offroad"');
+		expect(body).toContain('Lihat Detail');
+		expect(body).toContain('grid-cols-2');
+		expect(body).toContain('md:grid-cols-3');
+		expect(body).toContain('lg:grid-cols-4');
+		expect(body).toContain('line-clamp-2');
+		expect(body).toContain('*Offroad dihitung per mobil (maks. 7 orang/mobil). Harga final dikonfirmasi via WhatsApp.');
+		expect(body).toContain('src="/media/rafting.webp"');
+		expect(body).toContain('alt="Peserta rafting memakai rompi pelampung di tepi sungai"');
+		expect(body).not.toContain('src="/media/river.svg"');
+		expect(body).not.toContain('Lihat semua paket');
+		expect(body).not.toContain('by Loox Travel');
+		expect(body).not.toContain('Add Offroad');
 	});
 
 	it('kartu memakai foto galeri pertama bila ada', () => {
@@ -79,9 +98,10 @@ describe('PackageCatalog', () => {
 		expect(body).toContain('alt="Utama"');
 	});
 
-	it('tanpa sisa tidak menampilkan tombol lihat semua', () => {
-		const body = html([pkg('offroad', 'Offroad', { duration: '' })]);
+	it('paket tanpa ringkasan tidak memaksa deskripsi', () => {
+		const body = html([pkg('lain', 'Lain', { summary: '   ', duration: '2 jam' })]);
+		expect(body).toContain('Lembang · 2 jam');
+		expect(body).not.toContain('line-clamp-2');
 		expect(body).not.toContain('Lihat semua paket');
-		expect(body).not.toContain('2-3 Jam');
 	});
 });

@@ -5,8 +5,9 @@
 	import { site } from '#lib/content/site.js';
 	import { formatRupiah } from '#lib/format.js';
 	import { packageMetaDescription, visibleDuration } from '#lib/package-display.js';
+	import { packageStory } from '#lib/package-story.js';
 	import { packageNodes, shareImage } from '#lib/seo.js';
-	import { paragraphs } from '#lib/text.js';
+	import { lines, paragraphs } from '#lib/text.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -15,11 +16,14 @@
 	const gallery = $derived(data.gallery ?? []);
 	const lead = $derived(gallery[0]);
 	const title = $derived(`${p.title} | ${site.name}`);
-	const description = $derived(packageMetaDescription(p.summary, p.body));
 	const duration = $derived(visibleDuration(p.duration));
 	const share = $derived(shareImage(data.siteUrl, lead?.src ?? p.image));
 	const imageAltText = $derived(lead?.alt?.trim() || p.image_alt || p.title);
-	const body = $derived(paragraphs(p.body));
+	const story = $derived(packageStory(p));
+	const body = $derived(story ? story.paragraphs : paragraphs(p.body));
+	const included = $derived(story ? story.includes : lines(p.includes));
+	const excluded = $derived(story?.excludes ?? []);
+	const description = $derived(packageMetaDescription(story?.paragraphs[0] ?? p.summary, story ? story.paragraphs.slice(1).join(' ') : p.body));
 </script>
 
 <Seo
@@ -29,7 +33,7 @@
 	{description}
 	image={share}
 	imageAlt={share.isDefault ? undefined : imageAltText}
-	nodes={packageNodes(data.siteUrl, site, { ...p, image: lead?.src ?? p.image })}
+	nodes={packageNodes(data.siteUrl, site, { ...p, summary: story?.paragraphs[0] ?? p.summary, image: lead?.src ?? p.image })}
 />
 
 <article class="wrap py-11 sm:py-16">
@@ -50,9 +54,9 @@
 		<div>
 			<p class="eyebrow text-signal">Paket aktivitas</p>
 			<h1 class="mt-2 text-[30px] leading-tight font-black tracking-tight sm:text-[38px]">{p.title}</h1>
-			{#if p.summary}<p class="mt-3 text-sm leading-[1.8] text-muted">{p.summary}</p>{/if}
+			{#if p.summary && !story}<p class="mt-3 text-sm leading-[1.8] text-muted">{p.summary}</p>{/if}
 			<dl class="mt-5 grid gap-3 text-xs sm:grid-cols-2">
-				{#if duration}
+				{#if duration && !story}
 					<div>
 						<dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Durasi</dt>
 						<dd class="font-bold">{duration}</dd>
@@ -72,6 +76,28 @@
 			</div>
 		</div>
 	</div>
+
+	{#if included.length > 0}
+		<div class="mt-10 max-w-3xl">
+			<h2 class="text-lg font-black">Include</h2>
+			<ul class="mt-3 space-y-1.5 text-sm">
+				{#each included as item (item)}
+					<li class="flex gap-2.5"><span aria-hidden="true" class="text-green-800">✓</span><span>{item}</span></li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
+
+	{#if excluded.length > 0}
+		<div class="mt-10 max-w-3xl">
+			<h2 class="text-lg font-black">Exclude</h2>
+			<ul class="mt-3 space-y-1.5 text-sm">
+				{#each excluded as item (item)}
+					<li class="flex gap-2.5"><span aria-hidden="true" class="text-muted">−</span><span>{item}</span></li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
 
 	{#if body.length > 0}
 		<div class="mt-10 max-w-3xl">

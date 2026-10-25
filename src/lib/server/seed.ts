@@ -1,4 +1,7 @@
+import { RAFTING_CARD_ALT, RAFTING_CARD_IMAGE } from '#lib/catalog.js';
 import { GOOGLE_RATING_SETTING, GOOGLE_REVIEW_COUNT_SETTING } from '#lib/content/reviews.js';
+import { CLIENTS_SETTING_KEY, DEFAULT_CLIENTS } from '#lib/clients.js';
+import { DEFAULT_PROMO, PROMO_SETTING_KEY } from '#lib/promo.js';
 import { all, run, scalar, transaction, type Db, type Queryable } from './db';
 
 type SeedPackage = {
@@ -12,13 +15,32 @@ type SeedPackage = {
 	image_alt: string;
 	/** `null` = admin yang mengisi. Hanya dipakai saat tabel package masih kosong. */
 	duration: string | null;
-	/** Hanya untuk database kosong. Situs yang sudah terisi memakai min_pax di admin. */
+	/** Hanya untuk database kosong. Situs yang sudah terisi memakai min_pax di admin, sampai pembaruan sekali jalan. */
 	min_pax: number;
+	/** Rupiah utuh. Database yang sudah terisi diperbarui sekali lewat `CONTENT_FIX_KEY`. */
+	price_per_person: number;
 	/** Hanya untuk database kosong. Situs yang sudah terisi memakai pengaturan di admin. */
 	pricing_mode?: 'per_person' | 'per_unit';
 	kapasitas_per_unit?: number | null;
 	nama_unit?: string | null;
 };
+
+/** Penanda pembaruan harga dan "40 peluru" yang dikonfirmasi pemilik. Sekali jalan, lalu admin yang mengatur. */
+export const CONTENT_FIX_KEY = 'owner_catalog_2026_10';
+
+/** Harga dan minimal peserta yang dikonfirmasi. Jangan tambah paket lain di sini. */
+export const CONFIRMED_PRICES: { slug: string; price: number; min_pax: number }[] = [
+	{ slug: 'offroad', price: 249_000, min_pax: 7 },
+	{ slug: 'team-building', price: 125_000, min_pax: 20 },
+	{ slug: 'fun-games', price: 80_000, min_pax: 20 },
+	{ slug: 'paintball', price: 125_000, min_pax: 10 },
+	{ slug: 'rafting', price: 125_000, min_pax: 5 }
+];
+
+/** "100 peluru" → "40 peluru". Idempoten. */
+export function withFortyBullets(text: string): string {
+	return text.replaceAll('100 peluru', '40 peluru');
+}
 
 // Teks Offroad, Team Building, Paintball, dan Fun Games disalin dari konten situs lama.
 // DRAFT: teks Rafting ditulis ulang mengikuti pola yang sama; pemilik perlu memeriksa dan
@@ -36,6 +58,7 @@ export const seedPackages: SeedPackage[] = [
 		image_alt: 'Ilustrasi jeep di hutan pinus; ganti dengan dokumentasi asli.',
 		duration: '2-3 Jam',
 		min_pax: 7,
+		price_per_person: 249_000,
 		pricing_mode: 'per_unit',
 		kapasitas_per_unit: 7,
 		nama_unit: 'mobil'
@@ -51,7 +74,8 @@ export const seedPackages: SeedPackage[] = [
 		image: '/media/camp.svg',
 		image_alt: 'Ilustrasi tenda di perbukitan; ganti dengan dokumentasi asli.',
 		duration: null,
-		min_pax: 20
+		min_pax: 20,
+		price_per_person: 125_000
 	},
 	{
 		slug: 'rafting',
@@ -61,23 +85,25 @@ export const seedPackages: SeedPackage[] = [
 		includes: 'Perahu, dayung, dan perlengkapan keselamatan\nPemandu berpengalaman\nBriefing sebelum mulai',
 		notes:
 			'Kegiatan mengikuti kondisi debit air dan cuaca. Peserta wajib mengikuti briefing dan memakai perlengkapan keselamatan.',
-		image: '/media/river.svg',
-		image_alt: 'Ilustrasi sungai di antara tebing hijau; ganti dengan dokumentasi asli.',
+		image: RAFTING_CARD_IMAGE,
+		image_alt: RAFTING_CARD_ALT,
 		duration: null,
-		min_pax: 5
+		min_pax: 5,
+		price_per_person: 125_000
 	},
 	{
 		slug: 'paintball',
 		title: 'Paintball',
 		summary: 'Permainan strategi untuk serunya adu kompak bersama teman satu tim.',
-		body: 'Paintball bisa menjadi pilihan untuk kelompok yang ingin mencoba permainan strategi bersama. Susun kegiatan sesuai karakter dan kondisi peserta.\n\nDurasi, jumlah peluru, perlengkapan, arena, serta pendamping dikonfirmasi saat meminta penawaran.',
-		includes: 'Pilihan arena\nPerlengkapan dan briefing\nOpsi durasi permainan',
+		body: 'Paintball bisa menjadi pilihan untuk kelompok yang ingin mencoba permainan strategi bersama. Susun kegiatan sesuai karakter dan kondisi peserta.\n\nDurasi, perlengkapan, arena, serta pendamping dikonfirmasi saat meminta penawaran. Harga sudah termasuk 40 peluru per orang.',
+		includes: 'Perlengkapan paintball dan pelindung\nIsi 40 peluru per orang\nBriefing aturan dan keselamatan',
 		notes:
-			'Persyaratan peserta, perlengkapan keselamatan, jumlah peluru, dan aturan permainan mengikuti ketentuan operator.',
+			'Persyaratan peserta, perlengkapan keselamatan, dan aturan permainan mengikuti ketentuan operator. Harga termasuk 40 peluru per orang.',
 		image: '/media/paintball.svg',
 		image_alt: 'Ilustrasi arena paintball di perbukitan; ganti dengan dokumentasi asli.',
 		duration: null,
-		min_pax: 10
+		min_pax: 10,
+		price_per_person: 125_000
 	},
 	{
 		slug: 'fun-games',
@@ -90,7 +116,8 @@ export const seedPackages: SeedPackage[] = [
 		image: '/media/camp.svg',
 		image_alt: 'Ilustrasi area berkumpul di alam terbuka; ganti dengan dokumentasi asli.',
 		duration: null,
-		min_pax: 20
+		min_pax: 20,
+		price_per_person: 80_000
 	}
 ];
 
@@ -179,7 +206,9 @@ const retiredSeedReviews = [
 export const seedSettings: Record<string, string> = {
 	whatsapp: '6282120209900',
 	[GOOGLE_RATING_SETTING]: '5.0',
-	[GOOGLE_REVIEW_COUNT_SETTING]: '41'
+	[GOOGLE_REVIEW_COUNT_SETTING]: '41',
+	[PROMO_SETTING_KEY]: JSON.stringify(DEFAULT_PROMO),
+	[CLIENTS_SETTING_KEY]: JSON.stringify(DEFAULT_CLIENTS)
 };
 
 /**
@@ -187,7 +216,10 @@ export const seedSettings: Record<string, string> = {
  * artikel bawaan tepat sekali (penanda `seeded_articles`, jadi tidak muncul lagi walau admin menghapusnya),
  * lima ulasan Google tepat sekali (penanda `seeded_google_reviews`; basis yang masih
  * menyimpan seed lama diganti sekali lewat `seeded_google_reviews_5`),
- * pengaturan hanya untuk kunci yang belum ada. Aman dijalankan di setiap start, juga bila
+ * pengaturan hanya untuk kunci yang belum ada.
+ * Sekali jalan (`owner_catalog_2026_10`): harga yang dikonfirmasi pemilik dan penggantian "100 peluru" → "40 peluru".
+ * Setelah penanda itu ada, seed tidak menimpa harga atau teks lagi.
+ * Aman dijalankan di setiap start, juga bila
  * beberapa instance menjalankannya bersamaan (transaksi tulis + `OR IGNORE` pada slug/kunci unik).
  */
 export async function seed(db: Db): Promise<void> {
@@ -200,9 +232,9 @@ export async function seed(db: Db): Promise<void> {
 					`INSERT OR IGNORE INTO package
 						(slug, title, summary, body, includes, notes, image, image_alt, duration, price_per_person, min_pax,
 						 pricing_mode, kapasitas_per_unit, nama_unit, published, sort_order)
-					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, 1, ?)`,
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
 					[
-						p.slug, p.title, p.summary, p.body, p.includes, p.notes, p.image, p.image_alt, p.duration, p.min_pax,
+						p.slug, p.title, p.summary, p.body, p.includes, p.notes, p.image, p.image_alt, p.duration, p.price_per_person, p.min_pax,
 						p.pricing_mode ?? 'per_person', p.kapasitas_per_unit ?? null, p.nama_unit ?? null, i + 1
 					]
 				);
@@ -234,7 +266,36 @@ export async function seed(db: Db): Promise<void> {
 		for (const [key, value] of Object.entries(seedSettings)) {
 			await run(tx, 'INSERT OR IGNORE INTO setting (key, value) VALUES (?, ?)', [key, value]);
 		}
+		if ((await scalar(tx, 'SELECT 1 FROM setting WHERE key = ?', [CONTENT_FIX_KEY])) === null) {
+			await applyConfirmedContent(tx);
+			await run(tx, 'INSERT OR IGNORE INTO setting (key, value) VALUES (?, ?)', [CONTENT_FIX_KEY, '1']);
+		}
 	});
+}
+
+/** Sekali jalan: harga yang dikonfirmasi dan "40 peluru". Tidak diulang, jadi ubahan admin berikutnya tetap. */
+async function applyConfirmedContent(tx: Queryable) {
+	for (const row of CONFIRMED_PRICES) {
+		await run(
+			tx,
+			`UPDATE package SET price_per_person = ?, min_pax = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE slug = ?`,
+			[row.price, row.min_pax, row.slug]
+		);
+	}
+	const texts = await all<{ id: number; summary: string; body: string; includes: string; notes: string }>(
+		tx,
+		'SELECT id, summary, body, includes, notes FROM package'
+	);
+	for (const row of texts) {
+		const summary = withFortyBullets(row.summary);
+		const body = withFortyBullets(row.body);
+		const includes = withFortyBullets(row.includes);
+		const notes = withFortyBullets(row.notes);
+		if (summary === row.summary && body === row.body && includes === row.includes && notes === row.notes) continue;
+		await run(tx, 'UPDATE package SET summary = ?, body = ?, includes = ?, notes = ? WHERE id = ?', [
+			summary, body, includes, notes, row.id
+		]);
+	}
 }
 
 async function insertReview(tx: Queryable, review: (typeof seedGoogleReviews)[number], order: number) {

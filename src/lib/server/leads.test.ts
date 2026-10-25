@@ -80,6 +80,7 @@ describe('submitLead', () => {
 
 	it('paket tanpa harga: estimasi dan DP kosong, bukan angka karangan', async () => {
 		const db = await fresh();
+		await run(db, "UPDATE package SET price_per_person = NULL WHERE slug = 'fun-games'");
 		const result = await submitLead(db, body({ paket: ['fun-games'], jumlahPeserta: 8 }), {
 			origin: 'http://localhost:3000',
 			userAgent: null,
@@ -108,6 +109,26 @@ describe('submitLead', () => {
 		});
 		expect(result.ok).toBe(false);
 		expect(await listLeads(db)).toEqual([]);
+	});
+
+	it('tambahan dihitung di server dan masuk pesan WhatsApp', async () => {
+		const db = await fresh();
+		const result = await submitLead(
+			db,
+			body({ jumlahPeserta: '10', tambahan: ['dok-pro', 'bukan', 'liwet', 'dok-basic'] }),
+			{ origin: 'http://localhost:3000', userAgent: null, random: () => new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]) }
+		);
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+		expect(result.lead.estimasi_total).toBe(2 * 7 * 249_000 + 10 * 50_000 + 700_000);
+		const text = decodeURIComponent(result.waUrl.split('text=')[1] ?? '');
+		expect(text).toContain('Paket: Offroad Cikole Lembang');
+		expect(text).not.toContain('Paket: Offroad Cikole Lembang, Makan');
+		expect(text).toContain('Tambahan: Makan siang Liwet di hutan — 10 x Rp 50.000 = Rp 500.000');
+		expect(text).toContain('Tambahan: Dokumentasi Basic (Foto & Video cinematic, 4 jam) — Rp 700.000');
+		expect(text).not.toContain('Dokumentasi Pro');
+		expect(text).toContain('Estimasi: Rp 4.686.000');
+		expect(text).toContain('Per peserta: Rp 468.600');
 	});
 
 	it('beberapa paket dijumlahkan di server', async () => {

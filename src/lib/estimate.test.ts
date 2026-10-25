@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { formatPlanDate, lineText, totalNote, totalText, unitBreakdown } from './estimate';
 import { buildConfirmationMessage } from './invoice';
+import { withAddons } from './addons';
 import { calculateEstimate } from './pricing';
 import type { Package } from './types';
 
@@ -81,12 +82,13 @@ describe('buildConfirmationMessage', () => {
 	it('memuat detail, estimasi, dan tautan invoice tanpa menyebut PDF', () => {
 		const text = msg(['offroad', 'rafting']);
 		expect(text).toContain('Halo Lembang Adventure, aku barusan hitung di kalkulator website.');
-		expect(text).toContain('Nama: Tim Alfa');
+		expect(text).toContain('Nama PIC / Perusahaan: Tim Alfa');
 		expect(text).toContain('Nomor WhatsApp: +6281234567890');
 		expect(text).toContain('Paket: Offroad, Rafting');
 		expect(text).toContain('Jumlah peserta: 40 orang');
 		expect(text).toContain('Tanggal: Belum ditentukan');
 		expect(text).toContain('Estimasi: Rp 18.000.000');
+		expect(text).toContain('Per peserta: Rp 450.000');
 		expect(text).toContain('Link invoice: https://www.lembangadventure.com/invoice/LA-20261020-ABCDEFGH');
 		expect(text).toContain('konfirmasi harga finalnya?');
 		expect(text.toLowerCase()).not.toContain('pdf');
@@ -104,6 +106,23 @@ describe('buildConfirmationMessage', () => {
 	});
 
 	it('semua tanpa harga: Dibahas via WhatsApp', () => {
-		expect(msg(['fun-games'])).toContain('Estimasi: Dibahas via WhatsApp');
+		const quote = msg(['fun-games']);
+		expect(quote).toContain('Estimasi: Dibahas via WhatsApp');
+		expect(quote).not.toContain('Per peserta:');
+	});
+
+	it('menyebut tambahan tanpa memasukkannya ke daftar paket', () => {
+		const pax = 10;
+		const estimate = withAddons(calculateEstimate(packages, ['offroad'], pax), ['liwet', 'dok-pro', 'dok-basic'], pax);
+		const text = msg(['offroad'], {
+			pax,
+			estimate,
+			titles: estimate.lines.filter((line) => !line.addon).map((line) => line.title)
+		});
+		expect(text).toContain('Paket: Offroad');
+		expect(text).toContain('Tambahan: Makan siang Liwet di hutan — 10 x Rp 50.000 = Rp 500.000');
+		expect(text).toContain('Tambahan: Dokumentasi Basic (Foto & Video cinematic, 4 jam) — Rp 700.000');
+		expect(text).not.toContain('Dokumentasi Pro');
+		expect(text).toContain('Estimasi: Rp 3.700.000');
 	});
 });

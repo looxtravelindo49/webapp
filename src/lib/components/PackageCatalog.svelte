@@ -1,164 +1,121 @@
 <script lang="ts">
-	import { CATALOG_PREVIEW, formatPriceTag, PACKAGE_PLACES, packageShortName, visibleDuration } from '#lib/package-display.js';
+	import { catalogAlt, catalogImage, catalogLocation, catalogMatches, catalogPrice, catalogProfile, CATALOG_FILTERS, unitPriceNote, type CatalogFilterId } from '#lib/catalog.js';
+	import { kegiatanHash, openKegiatan } from '#lib/kegiatan.js';
 	import type { Package } from '#lib/types.js';
+
+	function openDetail(event: MouseEvent, slug: string) {
+		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+		event.preventDefault();
+		openKegiatan(slug);
+	}
 
 	let { packages }: { packages: Package[] } = $props();
 
-	let open = $state(false);
-	let scroller = $state<HTMLUListElement | null>(null);
-	let dot = $state(0);
+	let filter = $state<CatalogFilterId>('all');
 
-	const restCount = $derived(Math.max(0, packages.length - CATALOG_PREVIEW));
-
-	function syncDot() {
-		const el = scroller;
-		if (!el) return;
-		const cards = [...el.children] as HTMLElement[];
-		const left = el.scrollLeft;
-		let best = 0;
-		let bestDist = Infinity;
-		for (const [i, card] of cards.entries()) {
-			const dist = Math.abs(card.offsetLeft - left);
-			if (dist < bestDist) {
-				best = i;
-				bestDist = dist;
-			}
-		}
-		dot = best;
-	}
-
-	function showCard(i: number) {
-		const el = scroller;
-		const card = el?.children[i] as HTMLElement | undefined;
-		if (!el || !card) return;
-		const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-		el.scrollTo({ left: card.offsetLeft, behavior: reduce ? 'auto' : 'smooth' });
-	}
-
-	function toggle() {
-		open = !open;
-		if (open) return;
-		const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-		document.getElementById('katalog')?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-	}
+	const notes = $derived(packages.map(unitPriceNote).filter((note): note is string => !!note));
 </script>
 
-{#snippet card(p: Package, hiddenOnGrid: boolean)}
-	{@const duration = visibleDuration(p.duration)}
-	{@const price = formatPriceTag(p.price_per_person)}
-	{@const src = p.cover_image || p.image || '/media/forest.svg'}
-	{@const alt = (p.cover_image ? p.cover_alt?.trim() : p.image_alt) || p.title}
-	<li class="flex w-[85%] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-line bg-white md:w-auto {hiddenOnGrid ? 'md:hidden' : ''}">
-		<img
-			src={src}
-			alt={alt}
-			width="640"
-			height="480"
-			class="aspect-[4/3] w-full bg-cream object-cover"
-		/>
-		<div class="flex flex-1 flex-col p-4">
-			<h3 class="text-base leading-snug font-black tracking-tight">{p.title}</h3>
-			<p class="mt-1.5 flex items-center gap-1.5 text-[11px] text-muted">
-				<svg class="size-3.5 shrink-0 text-signal" viewBox="0 0 16 16" aria-hidden="true">
-					<path
-						fill="currentColor"
-						d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 1.5c-2.7 0-6 1.35-6 3.5V15h12v-2c0-2.15-3.3-3.5-6-3.5Z"
-					/>
-				</svg>
-				by Loox Travel
-			</p>
-			<ul class="mt-3 flex flex-wrap gap-1.5">
-				{#each PACKAGE_PLACES as place (place)}
-					<li class="rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold text-green-900">{place}</li>
-				{/each}
-			</ul>
-			{#if duration || price}
-				<p class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold">
-					{#if duration}
-						<span class="inline-flex items-center gap-1">
-							<svg class="size-3.5 text-signal" viewBox="0 0 16 16" aria-hidden="true">
-								<path
-									fill="currentColor"
-									d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM8 4v4.2l2.6 1.5-.7 1.2L6.7 9V4H8Z"
-								/>
-							</svg>
-							{duration}
-						</span>
-					{/if}
-					{#if price}
-						<span class="inline-flex items-center gap-1">
-							<svg class="size-3.5 text-signal" viewBox="0 0 16 16" aria-hidden="true">
-								<path
-									fill="currentColor"
-									d="M2.2 3.2h7.2l4.4 4.4-5.2 5.2-4.4-4.4V3.2Zm2.3 2.1a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"
-								/>
-							</svg>
-							{price}
-						</span>
-					{/if}
-				</p>
+<section id="katalog" class="bg-cream" aria-labelledby="katalog-judul">
+	<div class="mx-auto w-full max-w-[1280px] px-3.5 py-8 sm:px-8 sm:py-14">
+		<p class="text-[13px] font-bold tracking-[0.18em] text-green-800">HANDPICKED EXPERIENCES</p>
+		<div class="mt-2 mb-5 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+			<div>
+				<h2 id="katalog-judul" class="text-2xl leading-tight font-black tracking-tight sm:text-4xl">Aktivitas Pilihan di Lembang</h2>
+				<p class="mt-2.5 max-w-xl text-sm leading-normal text-muted sm:text-base">Pilih kegiatan untuk trip tim kamu. Detail dan estimasi ada di tiap paket.</p>
+			</div>
+			{#if packages.length > 0}
+				<button type="button" class="text-sm font-bold text-green-800 underline" onclick={() => (filter = 'all')}>
+					Reset filter <span aria-hidden="true">↺</span>
+				</button>
 			{/if}
-			<p class="mt-2 text-[11px] font-semibold text-muted">Min. {p.min_pax.toLocaleString('id-ID')} orang</p>
-			<a
-				href="/paket/{p.slug}"
-				class="mt-4 inline-flex items-center justify-center rounded-lg bg-signal px-4 py-2.5 text-xs font-bold text-white hover:opacity-90"
-			>
-				Add {packageShortName(p.title)}
-			</a>
 		</div>
-	</li>
-{/snippet}
 
-<section id="katalog" class="wrap py-11 sm:py-16" aria-labelledby="katalog-judul">
-	<div class="mb-6 sm:mb-7">
-		<div class="eyebrow text-signal">Highlight produk</div>
-		<h2 id="katalog-judul" class="my-2 text-[26px] leading-tight font-black tracking-tight sm:text-[30px]">Katalog paket</h2>
-		<p class="max-w-xl text-[11px] text-muted sm:text-xs">Lihat kegiatan yang bisa kamu masukkan ke trip. Detailnya ada di tiap paket.</p>
-	</div>
-
-	{#if packages.length === 0}
-		<div class="rounded-[10px] bg-cream p-9 text-center">
-			<h3 class="text-lg font-bold">Paket sedang disiapkan</h3>
-			<p class="mt-2 text-xs text-muted">Segera hadir. Sementara itu, ceritakan rencanamu lewat tombol konsultasi.</p>
-		</div>
-	{:else}
-		<ul
-			id="katalog-daftar"
-			bind:this={scroller}
-			onscroll={syncDot}
-			class="flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-smooth pb-1 [scrollbar-width:none] motion-reduce:scroll-auto md:grid md:snap-none md:grid-cols-3 md:gap-5 md:overflow-visible md:pb-0 [&::-webkit-scrollbar]:hidden"
-		>
-			{#each packages as p, i (p.slug)}
-				{@render card(p, i >= CATALOG_PREVIEW && !open)}
-			{/each}
-		</ul>
-		{#if packages.length > 1}
-			<div class="mt-3 flex flex-wrap justify-center gap-1 pr-16 md:hidden">
-				{#each packages as p, i (p.slug)}
+		{#if packages.length === 0}
+			<div class="rounded-[10px] bg-white p-9 text-center">
+				<h3 class="text-lg font-bold">Paket sedang disiapkan</h3>
+				<p class="mt-2 text-xs text-muted">Segera hadir. Sementara itu, ceritakan rencanamu lewat tombol konsultasi.</p>
+			</div>
+		{:else}
+			<div class="mb-6 flex flex-wrap gap-2" role="group" aria-label="Filter paket">
+				{#each CATALOG_FILTERS as chip (chip.id)}
 					<button
 						type="button"
-						class="inline-flex size-8 items-center justify-center"
-						aria-label="Tampilkan {p.title}"
-						aria-current={dot === i ? 'true' : undefined}
-						onclick={() => showCard(i)}
+						class="cursor-pointer rounded-full border px-3.5 py-2 text-[13px] font-semibold {filter === chip.id
+							? 'border-green-900 bg-green-900 text-white'
+							: 'border-line bg-white text-green-900'}"
+						aria-pressed={filter === chip.id}
+						onclick={() => (filter = chip.id)}
 					>
-						<span class="block size-2 rounded-full {dot === i ? 'bg-signal' : 'bg-line'}"></span>
+						{chip.label}
 					</button>
 				{/each}
 			</div>
+
+			<ul id="katalog-daftar" class="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-5 lg:grid-cols-4">
+				{#each packages as p (p.slug)}
+					{@const profile = catalogProfile(p.slug)}
+					{@const price = catalogPrice(p)}
+					{@const show = catalogMatches(p.slug, filter)}
+					<li class="min-w-0 {show ? '' : 'hidden'}">
+						<article class="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-white">
+							<div class="relative aspect-[4/3] bg-green-100">
+								<img
+									src={catalogImage(p)}
+									alt={catalogAlt(p)}
+									width="800"
+									height="600"
+									loading="lazy"
+									decoding="async"
+									class="h-full w-full object-cover"
+								/>
+								{#if profile}
+									<span
+										class="absolute top-2 left-2 rounded-lg px-1.5 py-1 text-[10.5px] font-bold shadow-sm sm:top-3 sm:left-3 sm:px-2.5 sm:py-1.5 sm:text-xs {profile.hot
+											? 'bg-accent text-green-900'
+											: 'bg-white text-green-900'}"
+									>
+										{profile.badge}
+									</span>
+								{/if}
+							</div>
+							<div class="flex flex-1 flex-col p-2.5 sm:p-4">
+								<p class="mb-2 text-[11px] text-muted sm:text-xs">
+									<svg class="mr-1 inline-block size-2.5 align-[-1px] text-green-800" viewBox="0 0 24 24" aria-hidden="true">
+										<path
+											fill="currentColor"
+											d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"
+										/>
+									</svg>
+									{catalogLocation(p)}
+								</p>
+								<h3 class="text-sm leading-snug font-bold sm:text-[17px]">{p.title}</h3>
+								{#if p.summary.trim()}
+									<p class="mt-2 line-clamp-2 text-xs leading-normal text-muted sm:text-[13.5px]">{p.summary}</p>
+								{/if}
+								<div class="mt-auto border-t border-line pt-3">
+									<p class="text-[11px] text-muted sm:text-[12.5px]">Min. {p.min_pax.toLocaleString('id-ID')} peserta</p>
+									<p class="mt-1 mb-3 text-[15px] font-extrabold sm:text-lg">
+										{price.amount}{#if price.unit}<small class="text-xs font-semibold text-muted">{price.unit}</small>{/if}
+									</p>
+									<a
+										href={kegiatanHash(p.slug)}
+										class="block rounded-[10px] bg-green-100 px-2 py-2.5 text-center text-[12.5px] font-bold text-green-800 hover:bg-[#d6e5df] sm:py-[11px] sm:text-sm"
+										onclick={(event) => openDetail(event, p.slug)}
+									>
+										Lihat Detail <span aria-hidden="true">↗</span>
+									</a>
+								</div>
+							</div>
+						</article>
+					</li>
+				{/each}
+			</ul>
+			{#if notes.length > 0}
+				{#each notes as note (note)}
+					<p class="mt-4 text-xs text-muted">{note}</p>
+				{/each}
+			{/if}
 		{/if}
-		{#if restCount > 0}
-			<div class="mt-6 hidden justify-center md:flex">
-				<button
-					type="button"
-					class="inline-flex cursor-pointer items-center justify-center rounded-lg border border-signal bg-white px-5 py-3 text-xs font-bold text-signal hover:bg-cream"
-					aria-expanded={open}
-					aria-controls="katalog-daftar"
-					onclick={toggle}
-				>
-					{open ? 'Sembunyikan' : 'Lihat semua paket'}
-				</button>
-			</div>
-		{/if}
-	{/if}
+	</div>
 </section>

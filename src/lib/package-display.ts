@@ -1,11 +1,5 @@
 import { formatRupiah } from './format';
 
-/** Chip lokasi katalog. Sama untuk semua paket: kegiatan ini di Lembang. */
-export const PACKAGE_PLACES = ['Lembang', 'Bandung', 'Jawa Barat'] as const;
-
-/** Kartu pertama yang tampil sebelum "Lihat semua paket". */
-export const CATALOG_PREVIEW = 3;
-
 /**
  * Nama singkat untuk tombol "Add …".
  * Tiga kata atau lebih memakai kata pertama ("Offroad Land Rover" → "Offroad").

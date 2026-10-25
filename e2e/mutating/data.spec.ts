@@ -25,7 +25,7 @@ test.describe('[package-catalog] Hanya paket terbit yang tampil', () => {
 		await gotoReady(page, '/');
 		const labels = (await page.locator('#paket h3').allInnerTexts()).map((t) => t.trim());
 		expect(labels).toEqual(['Offroad', 'Team Building', 'Paintball', 'Fun Games']);
-		await expect(calc(page).root.getByRole('checkbox')).toHaveCount(4);
+		await expect(calc(page).packageBoxes).toHaveCount(4);
 		await expect(calc(page).root.getByRole('checkbox', { name: /^Rafting/ })).toHaveCount(0);
 		setPublished('rafting', true);
 	});
