@@ -163,10 +163,11 @@ test.describe('[package-catalog] Isi slide dan tampilan harga', () => {
 		await expect(activeSlide(page)).toContainText('/ orang');
 	});
 
-	test('paket tanpa harga menampilkan "Harga menyusul"', async ({ page }) => {
+	test('Team Building menampilkan harga Rp125.000 dan minimal 20 peserta', async ({ page }) => {
 		await gotoReady(page, '/');
 		await tab(page, 'Team Building').click();
-		await expect(activeSlide(page)).toContainText('Harga menyusul');
+		await expect(activeSlide(page)).toContainText('Rp 125.000');
+		await expect(activeSlide(page)).toContainText('Minimal 20 peserta');
 	});
 
 	test('Rafting: harga dan "Minimal 10 peserta"', async ({ page }) => {

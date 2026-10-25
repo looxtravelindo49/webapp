@@ -219,7 +219,7 @@ test.describe('[package-cms] Perubahan tampil langsung di situs publik', () => {
 		const title = uniqueTitle('Tes Mutasi TanpaHarga');
 		insertPackage(title, { published: 1 });
 		const expected = scalar<number>('SELECT COUNT(*) FROM package WHERE published = 1 AND price_per_person IS NULL');
-		expect(expected).toBeGreaterThanOrEqual(3); // Team Building, Fun Games, dan paket ini
+		expect(expected).toBeGreaterThanOrEqual(1);
 		await adminLogin(page, admin, PW);
 		await gotoReady(page, '/admin');
 		await expect(page.getByTestId('price-warning')).toContainText(`${expected} paket terbit belum berharga`);

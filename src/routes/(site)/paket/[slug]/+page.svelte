@@ -6,7 +6,7 @@
 	import { formatRupiah } from '#lib/format.js';
 	import { packageMetaDescription, visibleDuration } from '#lib/package-display.js';
 	import { packageNodes, shareImage } from '#lib/seo.js';
-	import { paragraphs } from '#lib/text.js';
+	import { lines, paragraphs } from '#lib/text.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -20,6 +20,7 @@
 	const share = $derived(shareImage(data.siteUrl, lead?.src ?? p.image));
 	const imageAltText = $derived(lead?.alt?.trim() || p.image_alt || p.title);
 	const body = $derived(paragraphs(p.body));
+	const included = $derived(lines(p.includes));
 </script>
 
 <Seo
@@ -72,6 +73,17 @@
 			</div>
 		</div>
 	</div>
+
+	{#if included.length > 0}
+		<div class="mt-10 max-w-3xl">
+			<h2 class="text-lg font-black">Pilihan yang dapat dibahas</h2>
+			<ul class="mt-3 space-y-1.5 text-sm">
+				{#each included as item (item)}
+					<li class="flex gap-2.5"><span aria-hidden="true" class="text-green-800">✓</span><span>{item}</span></li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
 
 	{#if body.length > 0}
 		<div class="mt-10 max-w-3xl">

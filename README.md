@@ -14,10 +14,11 @@ npm run check      # svelte-check
 npm run build && npm start   # build produksi (adapter-node)
 ```
 
-Migrasi (`migrations/*.sql`) dan seed berjalan otomatis saat server start. Seed hanya mengisi data jika tabel
-`package` kosong dan tidak pernah menimpa data yang sudah diedit. Pada database kosong, minimal peserta seed adalah
-Offroad 7, Team Building 20, Rafting 5, Paintball 10, Fun Games 20 (harga tetap kosong). Situs yang sudah terisi
-membaca `min_pax` dari admin, jadi angka itu tidak berubah sendiri.
+Migrasi (`migrations/*.sql`) dan seed berjalan otomatis saat server start. Seed hanya mengisi paket jika tabel
+`package` kosong. Sekali jalan (penanda `owner_catalog_2026_10`) harga yang dikonfirmasi pemilik ditulis ke lima paket
+bawaan: Offroad Rp249.000 min. 7 (per mobil), Team Building Rp125.000 min. 20, Rafting Rp125.000 min. 5,
+Paintball Rp125.000 min. 10 (termasuk 40 peluru), Fun Games Rp80.000 min. 20. Teks "100 peluru" diganti "40 peluru".
+Setelah penanda itu ada, ubahan admin tidak ditimpa lagi.
 
 ## Kalkulator trip → invoice → WhatsApp
 
@@ -47,7 +48,9 @@ Foto utama beranda adalah `static/media/hero-2.jpg` (foto natural, 1280×720, di
 
 ## Katalog paket
 
-Section **Katalog paket** (`#katalog`) ada di beranda, tepat sebelum "Satu tim, banyak cerita.". Kartu memakai foto, nama, durasi, harga, dan minimal peserta dari tabel `package`. Di layar di bawah 768px semua kartu digeser menyamping. Dari 768px, tiga kartu tampil; **Lihat semua paket** berada di bawah baris terakhir, membuka sisanya, dan berubah menjadi **Sembunyikan**. Tiap kartu menaut ke `/paket/<slug>`.
+Section **Aktivitas Pilihan di Lembang** (`#katalog`, eyebrow HANDPICKED EXPERIENCES) ada di beranda, tepat sebelum "Satu tim, banyak cerita.". Kartu memakai foto, nama, ringkasan, harga, dan minimal peserta dari tabel `package`. Badge, filter, dan baris lokasi lima paket bawaan mengikuti mockup yang disetujui. Sampul kartu Rafting adalah `/media/rafting.webp`. Grid: 2 kolom di bawah 768px, 3 kolom sampai 1023px, 4 kolom dari 1024px. Filter (Semua, Adventure, Untuk Grup, Corporate) dan **Reset filter** berjalan di browser. Harga kosong tampil "Minta penawaran". Offroad (per satuan) tampil `Rp…/pax*` plus catatan per mobil. Tiap kartu menaut ke `/paket/<slug>` lewat **Lihat Detail**.
+
+Popup promo muncul sekitar 1,5 detik setelah beranda dimuat, sekali per versi isi (localStorage). Sunting di **Admin → Pengaturan**: nyala/mati, label, judul, nominal, syarat, waktu berakhir WIB, teks tombol form, dan foto. Popup hilang sendiri setelah waktu berakhir. Tombol form menuju `#konsultasi`; tombol WhatsApp membuka `wa.me/6282120209900` dengan teks klaim promo.
 
 Halaman detail memuat foto, nama, durasi (disembunyikan bila kosong), harga, minimal peserta, dan deskripsi. **Tambah ke Trip** membuka kalkulator dengan paket itu sudah terpilih (`/?paket=<slug>#konsultasi`).
 

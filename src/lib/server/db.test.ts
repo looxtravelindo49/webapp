@@ -185,13 +185,17 @@ describe('target database dari environment', () => {
 });
 
 describe('seed', () => {
-	it('mengisi lima paket berurutan dengan harga NULL dan min_pax 1', async () => {
+	it('mengisi lima paket berurutan dengan harga yang dikonfirmasi', async () => {
 		const db = await open(':memory:');
 		await seed(db);
 		const rows = await listPublishedPackages(db);
 		expect(rows.map((r) => r.title)).toEqual(['Offroad', 'Team Building', 'Rafting', 'Paintball', 'Fun Games']);
-		expect(rows.every((r) => r.price_per_person === null)).toBe(true);
+		expect(rows.map((r) => r.price_per_person)).toEqual([249000, 125000, 125000, 125000, 80000]);
 		expect(rows.map((r) => r.min_pax)).toEqual([7, 20, 5, 10, 20]);
+		const paintball = rows.find((r) => r.slug === 'paintball')!;
+		expect(paintball.includes).toContain('40 peluru');
+		expect(paintball.includes).not.toContain('100 peluru');
+		expect(rows.find((r) => r.slug === 'rafting')!.image).toBe('/media/rafting.webp');
 		expect(rows.map((r) => r.pricing_mode)).toEqual(['per_unit', 'per_person', 'per_person', 'per_person', 'per_person']);
 		expect(rows[0]).toMatchObject({ kapasitas_per_unit: 7, nama_unit: 'mobil' });
 		expect(rows[1].kapasitas_per_unit).toBeNull();
@@ -204,6 +208,20 @@ describe('seed', () => {
 		await seed(db);
 		expect(await getSetting(db, 'whatsapp')).toBe('6282120209900');
 		expect(await getSetting(db, 'tidak-ada')).toBeNull();
+	});
+
+	it('sekali jalan mengganti 100 peluru dan harga, lalu tidak menimpa ubahan berikutnya', async () => {
+		const db = await open(':memory:');
+		await seed(db);
+		await run(db, "UPDATE package SET includes = 'Isi 100 peluru per orang', price_per_person = 1 WHERE slug = 'paintball'");
+		await run(db, "DELETE FROM setting WHERE key = 'owner_catalog_2026_10'");
+		await seed(db);
+		expect(await scalar(db, "SELECT includes FROM package WHERE slug = 'paintball'")).toBe('Isi 40 peluru per orang');
+		expect(await scalar(db, "SELECT price_per_person FROM package WHERE slug = 'paintball'")).toBe(125000);
+		await run(db, "UPDATE package SET price_per_person = 99000, includes = 'Isi 100 peluru per orang' WHERE slug = 'paintball'");
+		await seed(db);
+		expect(await scalar(db, "SELECT price_per_person FROM package WHERE slug = 'paintball'")).toBe(99000);
+		expect(await scalar(db, "SELECT includes FROM package WHERE slug = 'paintball'")).toBe('Isi 100 peluru per orang');
 	});
 
 	it('tidak menimpa data yang sudah diedit saat dijalankan ulang', async () => {

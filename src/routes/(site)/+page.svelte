@@ -7,6 +7,7 @@
 	import TripCalculator from '#lib/components/TripCalculator.svelte';
 	import TripToggle from '#lib/components/TripToggle.svelte';
 	import Planner from '#lib/components/Planner.svelte';
+	import PromoPopup from '#lib/components/PromoPopup.svelte';
 	import Seo from '#lib/components/Seo.svelte';
 	import { site } from '#lib/content/site.js';
 	import { organizationNode, shareImage, websiteNode } from '#lib/seo.js';
@@ -41,6 +42,7 @@
 
 <Hero />
 <PackageCatalog packages={data.packages} />
+<PromoPopup promo={data.promo} />
 <PackageTabs packages={data.packages}>
 	{#snippet action(p)}<TripToggle pkg={p} />{/snippet}
 </PackageTabs>

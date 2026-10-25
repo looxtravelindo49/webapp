@@ -53,7 +53,7 @@ test.describe('[package-cms] Daftar paket di admin', () => {
 		await expect(rowOf(page, slugOf(noPrice))).toContainText('Harga menyusul');
 		await expect(rowOf(page, 'offroad')).toContainText('Terbit');
 		await expect(rowOf(page, 'offroad')).toContainText('Rp 250.000 / orang');
-		await expect(rowOf(page, 'team-building')).toContainText('Harga menyusul');
+		await expect(rowOf(page, 'team-building')).toContainText('Rp 125.000 / orang');
 		await expect(rowOf(page, 'rafting')).toContainText('min. 10 peserta');
 	});
 

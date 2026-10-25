@@ -58,6 +58,14 @@ describe('halaman detail paket', () => {
 		expect(body).not.toContain('src="/media/forest.svg"');
 	});
 
+	it('menampilkan fasilitas, termasuk 40 peluru, dan tidak menampilkan daftar bila kosong', () => {
+		const withBullets = html({ includes: 'Perlengkapan\nIsi 40 peluru per orang' });
+		expect(withBullets).toContain('Pilihan yang dapat dibahas');
+		expect(withBullets).toContain('Isi 40 peluru per orang');
+		expect(withBullets).not.toContain('100 peluru');
+		expect(html()).not.toContain('Pilihan yang dapat dibahas');
+	});
+
 	it('menyembunyikan durasi yang kosong', () => {
 		expect(html({ duration: '  ' })).not.toContain('Durasi');
 		expect(html({ duration: null })).not.toContain('2-3 Jam');

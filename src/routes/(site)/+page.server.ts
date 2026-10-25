@@ -4,6 +4,8 @@ import { getDb } from '#lib/server/database.js';
 import { packageGalleries } from '#lib/server/package-photos.js';
 import { listPublishedPackages } from '#lib/server/packages.js';
 import { loadGoogleSummary, loadPublicReviews } from '#lib/server/public-reviews.js';
+import { getSetting } from '#lib/server/settings.js';
+import { PROMO_SETTING_KEY, promoFromStored } from '#lib/promo.js';
 import type { PageServerLoad } from './$types';
 
 const PACKAGE_QUERY = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -30,6 +32,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		popularArticles: await listPopularArticles(db),
 		reviews: await loadPublicReviews(db),
 		googleSummary: await loadGoogleSummary(db),
-		preselect
+		preselect,
+		promo: promoFromStored(await getSetting(db, PROMO_SETTING_KEY))
 	};
 };

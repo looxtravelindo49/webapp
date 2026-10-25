@@ -32,6 +32,14 @@ export const test = base.extend<Fixtures, WorkerFixtures>({
 	],
 	// Hermetik: permintaan ke luar server uji (mis. wa.me) tidak keluar jaringan; dijawab 200 kosong.
 	context: async ({ context }, use) => {
+		// Harus sama dengan PROMO_SUPPRESS_KEY di src/lib/promo.ts. Tes promo sendiri yang menghapusnya.
+		await context.addInitScript(() => {
+			try {
+				localStorage.setItem('la_promo_suppress', '1');
+			} catch {
+				// abaikan
+			}
+		});
 		const own = new URL(BASE_URL).hostname;
 		await context.route(
 			(url) => url.hostname !== own,

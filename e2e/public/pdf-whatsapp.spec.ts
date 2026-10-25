@@ -77,19 +77,20 @@ test.describe('[estimate-sharing] Kirim ke WhatsApp membuat invoice', () => {
 		expect(query('SELECT id FROM lead WHERE nama = ?', 'Tim Popup')).toHaveLength(1);
 	});
 
-	test('semua paket tanpa harga: invoice tanpa nominal DP karangan', async ({ page, context }) => {
+	test('Fun Games di bawah minimal: tagihan 20 orang dan DP 30% dari angka itu', async ({ page, context }) => {
 		const popups = await capturePopups(context);
 		await gotoReady(page, '/');
 		const c = await fillValid(page, { packages: ['Fun Games'], team: 'Tim Nol', pax: '8' });
 		await c.send.click();
 		await expect(page).toHaveURL(/\/invoice\/LA-/);
-		await expect(page.getByText('Dibahas via WhatsApp')).toBeVisible();
-		await expect(page.getByText('Nominal DP 30% muncul setelah estimasinya berupa angka.')).toBeVisible();
+		await expect(page.getByText('Rp 1.600.000').first()).toBeVisible();
+		await expect(page.getByText('Rp 480.000').first()).toBeVisible();
+		await expect(page.getByText('Dibahas via WhatsApp')).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Bayar DP 30% (segera)' })).toBeDisabled();
 		const nomor = new URL(page.url()).pathname.split('/').pop()!;
 		const rows = query<{ estimasi_total: number | null; dp_nominal: number | null }>('SELECT estimasi_total, dp_nominal FROM lead WHERE nomor_invoice = ?', nomor);
-		expect(rows[0].estimasi_total).toBeNull();
-		expect(rows[0].dp_nominal).toBeNull();
+		expect(rows[0].estimasi_total).toBe(1_600_000);
+		expect(rows[0].dp_nominal).toBe(480_000);
 		expect(popups.length).toBeGreaterThan(0);
 	});
 

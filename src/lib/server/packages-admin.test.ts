@@ -200,6 +200,8 @@ describe('movePackage', () => {
 describe('countPublishedWithoutPrice', () => {
 	it('menghitung paket terbit tanpa harga saja', async () => {
 		const db = await fresh();
+		expect(await countPublishedWithoutPrice(db)).toBe(0);
+		await run(db, 'UPDATE package SET price_per_person = NULL');
 		expect(await countPublishedWithoutPrice(db)).toBe(5);
 		await run(db, "UPDATE package SET price_per_person = 1000 WHERE slug = 'offroad'");
 		await setPublished(db, (await listAllPackages(db)).find((p) => p.slug === 'rafting')!.id, false);

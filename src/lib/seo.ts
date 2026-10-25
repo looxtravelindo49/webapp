@@ -162,7 +162,7 @@ export function packageNodes(base: string, site: Site, p: PackageMeta): Node[] {
 		service,
 		breadcrumbNode(base, [
 			{ name: 'Beranda', path: '/' },
-			{ name: 'Katalog paket', path: '/#katalog' },
+			{ name: 'Aktivitas Pilihan di Lembang', path: '/#katalog' },
 			{ name: p.title, path: `/paket/${p.slug}` }
 		])
 	];

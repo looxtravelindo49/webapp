@@ -80,6 +80,7 @@ describe('submitLead', () => {
 
 	it('paket tanpa harga: estimasi dan DP kosong, bukan angka karangan', async () => {
 		const db = await fresh();
+		await run(db, "UPDATE package SET price_per_person = NULL WHERE slug = 'fun-games'");
 		const result = await submitLead(db, body({ paket: ['fun-games'], jumlahPeserta: 8 }), {
 			origin: 'http://localhost:3000',
 			userAgent: null,

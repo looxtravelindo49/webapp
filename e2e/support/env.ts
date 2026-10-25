@@ -9,7 +9,7 @@ export const DEFAULT_ADMIN_LOGIN = 'admin@looxtravel';
 export const DEFAULT_ADMIN_PASSWORD = '12345678';
 export const WA_NUMBER = '6282120209900';
 
-/** Harga fixture (rupiah per orang). Team Building dan Fun Games sengaja tanpa harga (NULL). */
+/** Harga fixture (rupiah per orang). Menimpa harga seed Offroad, Rafting, dan Paintball. Team Building dan Fun Games tetap harga seed. */
 export const PRICES = {
 	offroad: { price: 250_000, minPax: 1 },
 	rafting: { price: 200_000, minPax: 10 },
