@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import { formatRupiah } from '#lib/format.js';
 import { formatDateTime } from '#lib/format.js';
 import { formatPlanDate, perPaxText, totalNote, totalText, unitBreakdown } from '#lib/estimate.js';
-import { buildPaymentProofMessage, displayedDp, DP_PERCENT, estimateFromStored, invoiceChrome, settlement, type StoredLine } from '#lib/invoice.js';
+import { buildPaymentProofMessage, displayedDp, dpInvoiceLabel, dpPayLabel, estimateFromStored, feeDetail, includeLines, invoiceChrome, settlement, type StoredLine } from '#lib/invoice.js';
 import { getDb } from '#lib/server/database.js';
 import { getLeadByNomor, leadLines, leadMessage } from '#lib/server/leads.js';
 import { getSetting } from '#lib/server/settings.js';
@@ -12,6 +12,7 @@ import type { PageServerLoad } from './$types';
 export const prerender = false;
 
 const lineDetail = (line: StoredLine, pax: number) => {
+	if (line.kind === 'fee') return feeDetail(line);
 	if (line.price === null) return 'Harga menyusul';
 	if (line.flat) return 'Harga tetap';
 	if (line.pricingMode === 'per_unit' && line.units && line.unitPrice !== undefined && line.capacity && line.unitName) {
@@ -36,13 +37,16 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 	if (!lead) error(404, 'Invoice ini tidak ada.');
 
 	const lines = leadLines(lead);
+	const items = lines.filter((line) => line.kind !== 'fee');
+	const fee = lines.find((line) => line.kind === 'fee') ?? null;
 	const estimate = estimateFromStored(lines, lead.estimasi_total);
 	const destination = normalizeWhatsapp(await getSetting(db, 'whatsapp'));
 	const chrome = invoiceChrome(lead.status);
 	const money = settlement(lead.estimasi_total, lead.dp_nominal, lead.jumlah_diterima);
-	const dpShown = displayedDp(lead.estimasi_total, lead.dp_nominal, lead.dp_persen);
+	const dpShown = displayedDp(lead.estimasi_total, lead.dp_nominal, lead.dp_persen, lead.dp_mode);
 	const diskon = lead.diskon ?? 0;
-	const lineSum = lines.every((l) => l.subtotal !== null) ? lines.reduce((sum, l) => sum + (l.subtotal ?? 0), 0) : null;
+	const itemSum = items.every((l) => l.subtotal !== null) ? items.reduce((sum, l) => sum + (l.subtotal ?? 0), 0) : null;
+	const showSubtotal = itemSum !== null && (diskon > 0 || (fee?.subtotal != null && fee.subtotal > 0));
 
 	return {
 		nomor: lead.nomor_invoice,
@@ -55,11 +59,12 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 		nama: lead.nama,
 		perusahaan: lead.perusahaan,
 		whatsapp: `+${lead.whatsapp}`,
-		lines: lines.map((l, index) => ({
+		lines: items.map((l, index) => ({
 			key: `${index}-${l.title}`,
 			title: l.title,
 			detail: lineDetail(l, lead.jumlah_peserta),
-			amount: l.subtotal === null ? 'Harga menyusul' : formatRupiah(l.subtotal)
+			amount: l.subtotal === null ? 'Harga menyusul' : formatRupiah(l.subtotal),
+			includes: includeLines(l.includes)
 		})),
 		pax: lead.jumlah_peserta,
 		tanggalLabel: lead.tanggal_acara ? formatPlanDate(lead.tanggal_acara) : 'Belum ditentukan',
@@ -68,9 +73,13 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 		estimasiLabel: totalText(estimate),
 		perPaxLabel: perPaxText(lead.estimasi_total, lead.jumlah_peserta),
 		estimasiNote: lead.status === 'baru' ? totalNote(estimate) : '',
-		subtotalLabel: diskon > 0 && lineSum !== null ? formatRupiah(lineSum) : null,
+		subtotalLabel: showSubtotal && itemSum !== null ? formatRupiah(itemSum) : null,
 		diskonLabel: diskon > 0 ? formatRupiah(diskon) : null,
-		dpPercent: DP_PERCENT,
+		fee: fee && fee.subtotal !== null && fee.subtotal > 0
+			? { label: fee.title, detail: feeDetail(fee), amount: formatRupiah(fee.subtotal) }
+			: null,
+		dpHeading: dpInvoiceLabel(lead.dp_mode, lead.dp_persen),
+		payLabel: dpPayLabel(lead.dp_mode, lead.dp_persen),
 		dpLabel: dpShown === null ? null : formatRupiah(dpShown),
 		paidLabel: money.paid === null ? null : formatRupiah(money.paid),
 		remainingLabel: money.remaining === null ? null : formatRupiah(money.remaining),

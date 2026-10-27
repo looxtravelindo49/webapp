@@ -9,10 +9,17 @@ import {
 	isIsoDate,
 	isLeadStatus,
 	manualQuote,
+	normalizeFeeLabel,
+	normalizeIncludeText,
+	parsePercentHundredths,
+	parsePercentPoints,
 	parseReceivedAmount,
 	parseStoredLines,
 	storedLinesFromEstimate,
 	todayInJakarta,
+	type DpMode,
+	type DpSpec,
+	type FeeSpec,
 	type LeadStatus,
 	type StoredLine
 } from '#lib/invoice.js';
@@ -50,12 +57,13 @@ export type Lead = {
 	diterima_pada: string | null;
 	perusahaan: string | null;
 	diskon: number | null;
+	dp_mode: DpMode | null;
 };
 
 const COLUMNS = `id, nomor_invoice, created_at, nama, whatsapp, paket, jumlah_peserta, tanggal_acara, catatan,
 	estimasi_total, dp_persen, dp_nominal, currency, status, invoice_url, wa_opened,
 	xendit_invoice_id, xendit_status, paid_at, user_agent, source, catatan_admin,
-	jumlah_diterima, diterima_pada, perusahaan, diskon`;
+	jumlah_diterima, diterima_pada, perusahaan, diskon, dp_mode`;
 
 function num(value: unknown): number | null {
 	if (value === null || value === undefined || value === '') return null;
@@ -90,7 +98,8 @@ function mapLead(row: Record<string, unknown>): Lead {
 		jumlah_diterima: num(row.jumlah_diterima),
 		diterima_pada: row.diterima_pada == null || row.diterima_pada === '' ? null : String(row.diterima_pada),
 		perusahaan: row.perusahaan == null || String(row.perusahaan).trim() === '' ? null : String(row.perusahaan),
-		diskon: num(row.diskon)
+		diskon: num(row.diskon),
+		dp_mode: row.dp_mode === 'persen' || row.dp_mode === 'nominal' ? row.dp_mode : null
 	};
 }
 
@@ -103,7 +112,7 @@ export function leadMessage(lead: Lead): string {
 	return buildConfirmationMessage({
 		nama: lead.nama,
 		whatsapp: lead.whatsapp,
-		titles: lines.filter((l) => l.kind !== 'addon').map((l) => l.title),
+		titles: lines.filter((l) => l.kind !== 'addon' && l.kind !== 'fee').map((l) => l.title),
 		pax: lead.jumlah_peserta,
 		planDate: lead.tanggal_acara ?? '',
 		estimate: estimateFromStored(lines, lead.estimasi_total),
@@ -285,11 +294,35 @@ export async function submitLead(db: Db, raw: Record<string, unknown>, ctx: Subm
 
 const MAX_LINES = 30;
 
+type ManualBody = {
+	nama: string;
+	perusahaan: string | null;
+	whatsapp: string;
+	pax: number;
+	tanggal: string | null;
+	catatan: string;
+	lines: StoredLine[];
+	diskon: number;
+	total: number;
+	dpPersen: number;
+	dp: number;
+	dpMode: DpMode | null;
+};
+
+function fieldList(raw: unknown): unknown[] {
+	return Array.isArray(raw) ? raw : [];
+}
+
+function textAt(list: unknown[], index: number): string {
+	const value = list[index];
+	return typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+}
+
 /**
- * Invoice yang diisi admin, bukan kalkulator. Total dan DP dihitung ulang di server.
- * Sumber lead: `manual`. Status awal Baru, nomor sama dengan invoice kalkulator.
+ * Baca form invoice manual / edit. Total, fee, dan DP dihitung di sini, bukan dari angka klien.
+ * Tanpa field DP, hasilnya DP bawaan. Tanpa fee, tidak ada baris jasa.
  */
-export async function createManualLead(db: Db, raw: Record<string, unknown>, ctx: SubmitContext): Promise<SubmitResult> {
+function readManualInvoice(raw: Record<string, unknown>): { ok: true; data: ManualBody } | SubmitFail {
 	const nama = typeof raw.nama === 'string' ? raw.nama.trim() : '';
 	if (!nama) return FAIL(400, 'Isi nama klien.');
 	if (nama.length > 100) return FAIL(400, 'Nama klien terlalu panjang.');
@@ -313,34 +346,63 @@ export async function createManualLead(db: Db, raw: Record<string, unknown>, ctx
 	const catatan = typeof raw.catatan === 'string' ? raw.catatan.trim() : '';
 	if (catatan.length > 1500) return FAIL(400, 'Catatan terlalu panjang.');
 
-	const deskripsi = Array.isArray(raw.deskripsi) ? raw.deskripsi : [];
-	const qty = Array.isArray(raw.qty) ? raw.qty : [];
-	const harga = Array.isArray(raw.harga) ? raw.harga : [];
-	const satuan = Array.isArray(raw.satuan) ? raw.satuan : [];
-	const kapasitas = Array.isArray(raw.kapasitas) ? raw.kapasitas : [];
-	const count = Math.max(deskripsi.length, qty.length, harga.length);
+	const deskripsi = fieldList(raw.deskripsi);
+	const qty = fieldList(raw.qty);
+	const harga = fieldList(raw.harga);
+	const satuan = fieldList(raw.satuan);
+	const kapasitas = fieldList(raw.kapasitas);
+	const include = fieldList(raw.include);
+	const slugList = fieldList(raw.slug);
+	const kindList = fieldList(raw.kind);
+	const flatList = fieldList(raw.flat);
+	const minList = fieldList(raw.min_pax);
+	const count = Math.max(deskripsi.length, qty.length, harga.length, include.length);
 	if (count > MAX_LINES) return FAIL(400, `Maksimal ${MAX_LINES} baris.`);
 
-	const priced: { qty: number; harga: number; title: string; unitName: string; capacity: number | null }[] = [];
+	const priced: {
+		qty: number;
+		harga: number;
+		title: string;
+		unitName: string;
+		capacity: number | null;
+		includes: string;
+		slug: string;
+		kind: 'paket' | 'bebas' | 'addon';
+		flat: boolean;
+		minPax: number;
+	}[] = [];
 	for (let i = 0; i < count; i++) {
-		const title = typeof deskripsi[i] === 'string' ? deskripsi[i].trim() : '';
-		const qtyRaw = typeof qty[i] === 'string' || typeof qty[i] === 'number' ? String(qty[i]).trim() : '';
-		const hargaRaw = typeof harga[i] === 'string' || typeof harga[i] === 'number' ? String(harga[i]) : '';
-		if (title === '' && qtyRaw === '' && hargaRaw.trim() === '') continue;
+		const title = textAt(deskripsi, i).trim();
+		const qtyRaw = textAt(qty, i).trim();
+		const hargaRaw = textAt(harga, i);
+		const includeRaw = textAt(include, i);
+		if (title === '' && qtyRaw === '' && hargaRaw.trim() === '' && includeRaw.trim() === '') continue;
 		if (!title || title.length > 200) return FAIL(400, 'Setiap baris perlu deskripsi, paling panjang 200 karakter.');
 		if (!/^\d+$/.test(qtyRaw)) return FAIL(400, 'Qty perlu bilangan bulat, minimal 1.');
 		const q = Number(qtyRaw);
 		const price = parseReceivedAmount(hargaRaw);
 		if (!price.ok || price.value === null) return FAIL(400, 'Harga satuan perlu angka bulat, misalnya 249000 atau 249.000.');
-		const unitName = typeof satuan[i] === 'string' ? satuan[i].trim().replace(/\s+/g, ' ') : '';
-		const capRaw = typeof kapasitas[i] === 'string' || typeof kapasitas[i] === 'number' ? String(kapasitas[i]).trim() : '';
+		const notes = normalizeIncludeText(includeRaw);
+		if (!notes.ok) return FAIL(400, 'Include paling panjang 2000 karakter.');
+		const unitName = textAt(satuan, i).trim().replace(/\s+/g, ' ');
+		const capRaw = textAt(kapasitas, i).trim();
 		const capacity = /^\d+$/.test(capRaw) ? Number(capRaw) : null;
+		const kindRaw = textAt(kindList, i);
+		const kind = kindRaw === 'paket' || kindRaw === 'addon' || kindRaw === 'bebas' ? kindRaw : 'bebas';
+		const slugRaw = textAt(slugList, i).trim();
+		const minRaw = textAt(minList, i).trim();
+		const minParsed = /^\d+$/.test(minRaw) ? Number(minRaw) : 1;
 		priced.push({
 			qty: q,
 			harga: price.value,
 			title,
 			unitName: unitName.length > 0 && unitName.length <= 40 ? unitName : '',
-			capacity: capacity !== null && capacity >= 1 && capacity <= 10_000 ? capacity : null
+			capacity: capacity !== null && capacity >= 1 && capacity <= 10_000 ? capacity : null,
+			includes: notes.value,
+			slug: /^[a-z0-9-]{1,80}$/.test(slugRaw) ? slugRaw : '',
+			kind,
+			flat: textAt(flatList, i) === '1',
+			minPax: minParsed >= 1 && minParsed <= 10_000 ? minParsed : 1
 		});
 	}
 	if (priced.length === 0) return FAIL(400, 'Tambah minimal satu baris.');
@@ -348,28 +410,111 @@ export async function createManualLead(db: Db, raw: Record<string, unknown>, ctx
 	const diskonParsed = parseReceivedAmount(typeof raw.diskon === 'string' || typeof raw.diskon === 'number' ? String(raw.diskon) : '');
 	if (!diskonParsed.ok) return FAIL(400, 'Diskon perlu angka bulat, atau dikosongkan.');
 	const diskon = diskonParsed.value ?? 0;
-	const quote = manualQuote(priced, diskon);
-	if (!quote) return FAIL(400, 'Diskon tidak boleh lebih besar dari subtotal, dan qty paling banyak 10.000.');
+
+	let fee: FeeSpec | null = null;
+	let feeLabel = '';
+	if (raw.fee_aktif === '1' || raw.fee_aktif === true) {
+		const label = normalizeFeeLabel(typeof raw.fee_label === 'string' ? raw.fee_label : '');
+		if (!label.ok) return FAIL(400, 'Judul Fee Services terlalu panjang.');
+		feeLabel = label.value;
+		if (raw.fee_mode === 'nominal') {
+			const amount = parseReceivedAmount(typeof raw.fee_nilai === 'string' || typeof raw.fee_nilai === 'number' ? String(raw.fee_nilai) : '');
+			if (!amount.ok || amount.value === null || amount.value < 1) {
+				return FAIL(400, 'Nominal Fee Services perlu angka bulat, misalnya 150000.');
+			}
+			fee = { mode: 'nominal', value: amount.value };
+		} else {
+			const percent = parsePercentHundredths(typeof raw.fee_nilai === 'string' ? raw.fee_nilai : String(raw.fee_nilai ?? ''));
+			if (!percent.ok || percent.value < 1) return FAIL(400, 'Persen Fee Services perlu angka, misalnya 10 atau 10,5.');
+			fee = { mode: 'persen', value: percent.value };
+		}
+	}
+
+	let dp: DpSpec | null = null;
+	if (raw.dp_mode === 'nominal') {
+		const amount = parseReceivedAmount(typeof raw.dp_nilai === 'string' || typeof raw.dp_nilai === 'number' ? String(raw.dp_nilai) : '');
+		if (!amount.ok || amount.value === null) return FAIL(400, 'Nominal DP perlu angka bulat.');
+		dp = { mode: 'nominal', value: amount.value };
+	} else if (raw.dp_mode === 'persen') {
+		const percent = parsePercentPoints(typeof raw.dp_nilai === 'string' || typeof raw.dp_nilai === 'number' ? String(raw.dp_nilai) : '');
+		if (!percent.ok) return FAIL(400, 'DP persen perlu bilangan bulat dari 0 sampai 100.');
+		dp = { mode: 'persen', value: percent.value };
+	}
+
+	const quote = manualQuote(
+		priced.map((line) => ({ qty: line.qty, harga: line.harga })),
+		diskon,
+		{ fee, dp }
+	);
+	if (!quote) {
+		if (dp?.mode === 'nominal') return FAIL(400, 'Nominal DP tidak boleh lebih besar dari total.');
+		return FAIL(400, 'Diskon tidak boleh lebih besar dari subtotal, dan qty paling banyak 10.000.');
+	}
 
 	const lines: StoredLine[] = priced.map((line) => {
 		const row: StoredLine = {
-			slug: '',
+			slug: line.slug,
 			title: line.title,
 			price: line.harga,
-			minPax: 1,
+			minPax: line.minPax,
 			billedPax: line.qty,
 			subtotal: line.qty * line.harga,
-			kind: 'bebas'
+			kind: line.kind
 		};
+		if (line.includes) row.includes = line.includes;
+		if (line.flat && line.qty === 1) row.flat = true;
 		if (line.unitName && line.capacity) {
 			row.pricingMode = 'per_unit';
 			row.units = line.qty;
 			row.unitPrice = line.harga;
 			row.capacity = line.capacity;
 			row.unitName = line.unitName;
+			row.billedPax = line.qty * line.capacity;
 		}
 		return row;
 	});
+	if (fee) {
+		lines.push({
+			slug: '',
+			title: feeLabel,
+			price: null,
+			minPax: 1,
+			billedPax: 1,
+			subtotal: quote.fee,
+			kind: 'fee',
+			flat: true,
+			feeMode: fee.mode,
+			feeRate: fee.value
+		});
+	}
+
+	return {
+		ok: true,
+		data: {
+			nama,
+			perusahaan,
+			whatsapp,
+			pax,
+			tanggal,
+			catatan,
+			lines,
+			diskon: quote.diskon,
+			total: quote.total,
+			dpPersen: quote.dpPersen,
+			dp: quote.dp,
+			dpMode: quote.dpMode
+		}
+	};
+}
+
+/**
+ * Invoice yang diisi admin, bukan kalkulator. Total dan DP dihitung ulang di server.
+ * Sumber lead: `manual`. Status awal Baru, nomor sama dengan invoice kalkulator.
+ */
+export async function createManualLead(db: Db, raw: Record<string, unknown>, ctx: SubmitContext): Promise<SubmitResult> {
+	const parsed = readManualInvoice(raw);
+	if (!parsed.ok) return parsed;
+	const data = parsed.data;
 
 	const now = ctx.now ?? new Date();
 	const random = ctx.random ?? ((n: number) => randomBytes(n));
@@ -386,9 +531,25 @@ export async function createManualLead(db: Db, raw: Record<string, unknown>, ctx
 					tx,
 					`INSERT INTO lead
 						(nomor_invoice, nama, whatsapp, perusahaan, paket, jumlah_peserta, tanggal_acara, catatan,
-						 estimasi_total, diskon, dp_persen, dp_nominal, currency, status, invoice_url, wa_opened, user_agent, source)
-					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'IDR', 'baru', ?, 0, ?, 'manual')`,
-					[nomor, nama, whatsapp, perusahaan, JSON.stringify(lines), pax, tanggal, catatan, quote.total, quote.diskon, DP_PERCENT, quote.dp, invoiceUrl, userAgent]
+						 estimasi_total, diskon, dp_persen, dp_nominal, dp_mode, currency, status, invoice_url, wa_opened, user_agent, source)
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'IDR', 'baru', ?, 0, ?, 'manual')`,
+					[
+						nomor,
+						data.nama,
+						data.whatsapp,
+						data.perusahaan,
+						JSON.stringify(data.lines),
+						data.pax,
+						data.tanggal,
+						data.catatan,
+						data.total,
+						data.diskon,
+						data.dpPersen,
+						data.dp,
+						data.dpMode,
+						invoiceUrl,
+						userAgent
+					]
 				);
 				const row = await one(tx, `SELECT ${COLUMNS} FROM lead WHERE nomor_invoice = ?`, [nomor]);
 				if (!row) throw new Error('lead hilang setelah disimpan');
@@ -399,6 +560,43 @@ export async function createManualLead(db: Db, raw: Record<string, unknown>, ctx
 			throw err;
 		}
 	}
+	if (!lead) return FAIL(500, 'Invoice belum tersimpan. Coba lagi, ya.');
+	return { ok: true, lead, waUrl: '' };
+}
+
+/**
+ * Ubah invoice yang sudah terbit. Nomor, tautan, status bayar, dan nominal diterima tidak berubah.
+ */
+export async function updateIssuedInvoice(db: Db, nomor: string, raw: Record<string, unknown>): Promise<SubmitResult> {
+	if (!INVOICE_NUMBER.test(nomor)) return FAIL(404, 'Invoice tidak ditemukan.');
+	const existing = await getLeadByNomor(db, nomor);
+	if (!existing) return FAIL(404, 'Invoice tidak ditemukan.');
+	const parsed = readManualInvoice(raw);
+	if (!parsed.ok) return parsed;
+	const data = parsed.data;
+	await run(
+		db,
+		`UPDATE lead SET
+			nama = ?, whatsapp = ?, perusahaan = ?, paket = ?, jumlah_peserta = ?, tanggal_acara = ?, catatan = ?,
+			estimasi_total = ?, diskon = ?, dp_persen = ?, dp_nominal = ?, dp_mode = ?
+		 WHERE nomor_invoice = ?`,
+		[
+			data.nama,
+			data.whatsapp,
+			data.perusahaan,
+			JSON.stringify(data.lines),
+			data.pax,
+			data.tanggal,
+			data.catatan,
+			data.total,
+			data.diskon,
+			data.dpPersen,
+			data.dp,
+			data.dpMode,
+			nomor
+		]
+	);
+	const lead = await getLeadByNomor(db, nomor);
 	if (!lead) return FAIL(500, 'Invoice belum tersimpan. Coba lagi, ya.');
 	return { ok: true, lead, waUrl: '' };
 }

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DP_PERCENT, INVOICE_NUMBER } from '#lib/invoice.js';
 import { all, migrate, migrations, openDatabase, run, type Db } from './db';
-import { createManualLead, getLeadByNomor, listLeads, setLeadStatus, submitLead } from './leads';
+import { createManualLead, getLeadByNomor, listLeads, setLeadStatus, submitLead, updateIssuedInvoice } from './leads';
 import { seed } from './seed';
 
 const dbs: Db[] = [];
@@ -228,6 +228,123 @@ describe('createManualLead', () => {
 		const lines = JSON.parse(result.lead.paket) as { title: string; kind: string; subtotal: number }[];
 		expect(lines).toEqual([{ slug: '', title: 'Offroad', price: 249000, minPax: 1, billedPax: 2, subtotal: 498000, kind: 'bebas' }]);
 		expect(await createManualLead(db, { nama: 'Sari', whatsapp: '0812', deskripsi: ['A'], qty: ['1'], harga: ['1000'], jumlahPeserta: '1' }, { origin: 'http://localhost', userAgent: null })).toMatchObject({ ok: false });
+		expect(result.lead.dp_mode).toBeNull();
+	});
+
+	it('menyimpan Include, Fee Services, dan DP nominal', async () => {
+		const db = await fresh();
+		const result = await createManualLead(
+			db,
+			{
+				nama: 'Sari',
+				whatsapp: '081234567890',
+				jumlahPeserta: '8',
+				deskripsi: ['Jeep'],
+				qty: ['2'],
+				harga: ['249000'],
+				include: ['Pemandu\nMakan'],
+				diskon: '49000',
+				fee_aktif: '1',
+				fee_label: 'Jasa',
+				fee_mode: 'persen',
+				fee_nilai: '10',
+				dp_mode: 'nominal',
+				dp_nilai: '200000'
+			},
+			{ origin: 'https://lembangadventure.com', userAgent: null, random: () => Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 9]) }
+		);
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+		expect(result.lead.estimasi_total).toBe(493_900);
+		expect(result.lead.dp_nominal).toBe(200_000);
+		expect(result.lead.dp_mode).toBe('nominal');
+		expect(JSON.parse(result.lead.paket)).toMatchObject([
+			{ title: 'Jeep', includes: 'Pemandu\nMakan', subtotal: 498_000, kind: 'bebas' },
+			{ title: 'Jasa', kind: 'fee', feeMode: 'persen', feeRate: 1000, subtotal: 44_900 }
+		]);
+	});
+});
+
+describe('updateIssuedInvoice', () => {
+	it('menyimpan perubahan dan tidak mengubah status bayar atau nomor', async () => {
+		const db = await fresh();
+		const created = await submitLead(db, body(), {
+			origin: 'https://lembangadventure.com',
+			userAgent: null,
+			now: new Date('2026-10-20T02:00:00.000Z'),
+			random: () => Uint8Array.from([4, 4, 4, 4, 4, 4, 4, 4])
+		});
+		if (!created.ok) throw new Error('lead gagal');
+		const nomor = created.lead.nomor_invoice;
+		const totalAwal = created.lead.estimasi_total;
+		expect(await setLeadStatus(db, nomor, { status: 'dp_diterima', diterimaPada: '2026-10-20', jumlah: 1_500_000 })).toBe('ok');
+		const updated = await updateIssuedInvoice(db, nomor, {
+			nama: 'Tim Baru',
+			perusahaan: 'PT Edit',
+			whatsapp: '081234567890',
+			jumlahPeserta: '40',
+			tanggal: '2026-11-21',
+			catatan: 'Catatan baru',
+			deskripsi: ['Offroad diubah'],
+			qty: ['6'],
+			harga: [String(7 * 249_000)],
+			satuan: ['mobil'],
+			kapasitas: ['7'],
+			include: ['Helm'],
+			slug: ['offroad'],
+			kind: ['paket'],
+			min_pax: ['7'],
+			diskon: '',
+			dp_mode: 'persen',
+			dp_nilai: '30'
+		});
+		expect(updated.ok).toBe(true);
+		if (!updated.ok) return;
+		expect(updated.lead.nomor_invoice).toBe(nomor);
+		expect(updated.lead.invoice_url).toBe(created.lead.invoice_url);
+		expect(updated.lead.status).toBe('dp_diterima');
+		expect(updated.lead.jumlah_diterima).toBe(1_500_000);
+		expect(updated.lead.diterima_pada).toBe('2026-10-20');
+		expect(updated.lead.nama).toBe('Tim Baru');
+		expect(updated.lead.perusahaan).toBe('PT Edit');
+		expect(updated.lead.tanggal_acara).toBe('2026-11-21');
+		expect(updated.lead.catatan).toBe('Catatan baru');
+		expect(updated.lead.estimasi_total).toBe(totalAwal);
+		expect(updated.lead.dp_mode).toBeNull();
+		expect(JSON.parse(updated.lead.paket)[0]).toMatchObject({
+			title: 'Offroad diubah',
+			includes: 'Helm',
+			pricingMode: 'per_unit',
+			units: 6,
+			subtotal: totalAwal
+		});
+
+		const priced = await updateIssuedInvoice(db, nomor, {
+			nama: 'Tim Baru',
+			whatsapp: '081234567890',
+			jumlahPeserta: '40',
+			deskripsi: ['Offroad diubah'],
+			qty: ['6'],
+			harga: [String(7 * 249_000)],
+			include: ['Helm'],
+			diskon: '0',
+			fee_aktif: '1',
+			fee_label: 'Fee Services',
+			fee_mode: 'nominal',
+			fee_nilai: '100000',
+			dp_mode: 'persen',
+			dp_nilai: '15'
+		});
+		expect(priced.ok).toBe(true);
+		if (!priced.ok) return;
+		expect(priced.lead.status).toBe('dp_diterima');
+		expect(priced.lead.estimasi_total).toBe((totalAwal ?? 0) + 100_000);
+		expect(priced.lead.dp_mode).toBe('persen');
+		expect(priced.lead.dp_persen).toBe(15);
+		expect(priced.lead.dp_nominal).toBe(Math.round((((totalAwal ?? 0) + 100_000) * 15) / 100));
+		const again = await getLeadByNomor(db, nomor);
+		expect(again?.estimasi_total).toBe(priced.lead.estimasi_total);
+		expect(again?.nama).toBe('Tim Baru');
 	});
 });
 
@@ -248,7 +365,7 @@ describe('migrasi status lama', () => {
 			`INSERT INTO lead (nomor_invoice, nama, whatsapp, paket, jumlah_peserta, invoice_url, status, paid_at)
 			 VALUES ('LA-20261019-BBBBBBBB', 'Lunas', '628111111112', '[]', 2, 'http://local/b', 'lunas_dp', '2026-10-01T00:00:00.000Z')`
 		);
-		expect(await migrate(db)).toEqual(['0007_lead_payment', '0008_lead_manual', '0009_package_pricing', '0010_package_photo', '0011_portfolio_testimonial', '0012_portfolio_photos']);
+		expect(await migrate(db)).toEqual(['0007_lead_payment', '0008_lead_manual', '0009_package_pricing', '0010_package_photo', '0011_portfolio_testimonial', '0012_portfolio_photos', '0013_invoice_dp_mode']);
 		const rows = await all<{ id: number; status: string; diterima_pada: string | null }>(
 			db,
 			'SELECT id, status, diterima_pada FROM lead ORDER BY id'
