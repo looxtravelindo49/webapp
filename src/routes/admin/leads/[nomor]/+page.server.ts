@@ -1,10 +1,11 @@
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { formatRupiah } from '#lib/format.js';
 import { formatDateTime } from '#lib/format.js';
 import { formatPlanDate } from '#lib/estimate.js';
 import { buildClientInvoiceMessage, displayedDp, dpCaption, isLeadStatus, parseReceivedAmount, parseStoredLines, paymentBadge, statusLabel } from '#lib/invoice.js';
+import { validitySnapshot } from '#lib/invoice-validity.js';
 import { getDb } from '#lib/server/database.js';
-import { getLeadByNomor, setLeadStatus, updateAdminNote } from '#lib/server/leads.js';
+import { duplicateLead, getLeadByNomor, setLeadStatus, updateAdminNote, updateLeadValidity } from '#lib/server/leads.js';
 import { requireUser } from '#lib/server/require-user.js';
 import { waLink } from '#lib/whatsapp.js';
 import type { Actions, PageServerLoad } from './$types';
@@ -43,6 +44,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		lead: view(lead),
 		justCreated: url.searchParams.get('baru') === '1',
 		justUpdated: url.searchParams.get('ubah') === '1',
+		validity: validitySnapshot(lead.berlaku_hingga),
 		clientWaUrl: waLink(
 			lead.whatsapp,
 			buildClientInvoiceMessage({
@@ -97,5 +99,27 @@ export const actions: Actions = {
 					? 'Invoice ditandai lunas.'
 					: 'Invoice dibatalkan.';
 		return { ok: true as const, kind: 'status' as const, notice };
+	},
+
+	duplikat: async ({ request, locals, params, url }) => {
+		requireUser(locals);
+		const result = await duplicateLead(await getDb(), params.nomor, {
+			origin: url.origin,
+			userAgent: request.headers.get('user-agent')
+		});
+		if (!result.ok) return fail(result.status, { duplicateError: result.message });
+		redirect(303, `/admin/leads/${result.lead.nomor_invoice}/ubah?dari=${params.nomor}`);
+	},
+
+	berlaku: async ({ request, locals, params }) => {
+		requireUser(locals);
+		const form = await request.formData();
+		const result = await updateLeadValidity(await getDb(), params.nomor, {
+			action: String(form.get('masa_aksi') ?? ''),
+			mode: String(form.get('masa_mode') ?? ''),
+			nilai: String(form.get('masa_nilai') ?? '')
+		});
+		if (!result.ok) return fail(result.status, { validityError: result.message });
+		return { ok: true as const, validityNotice: result.notice };
 	}
 };

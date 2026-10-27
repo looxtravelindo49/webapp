@@ -374,6 +374,44 @@
 	border-top: 1px solid var(--inv-line);
 }
 
+.invoice-valid-until {
+	display: none;
+}
+
+.invoice-countdown,
+.invoice-expired {
+	margin: 0 0 1rem;
+	padding: 0.75rem 0.9rem;
+	border-radius: 10px;
+	font-weight: 800;
+	letter-spacing: -0.02em;
+	line-height: 1.35;
+}
+
+.invoice-countdown {
+	border: 2px solid var(--inv-blue);
+	background: var(--inv-lime);
+	color: var(--inv-blue);
+}
+
+.invoice-countdown p,
+.invoice-expired p,
+.invoice-valid-until {
+	margin: 0;
+}
+
+.invoice-expired {
+	background: var(--inv-blue);
+	color: #fff;
+}
+
+.invoice-expired a {
+	color: var(--inv-lime);
+	font-weight: 800;
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+
 @media (min-width: 640px) {
 	.invoice-body {
 		padding: 1.4rem 1.6rem 1.6rem;
@@ -456,10 +494,19 @@
 	.invoice-head,
 	.invoice-parties,
 	.invoice-keep,
+	.invoice-valid-until,
 	.invoice-table tr,
 	.invoice-line {
 		break-inside: avoid;
 		page-break-inside: avoid;
+	}
+
+	.invoice-valid-until {
+		display: block !important;
+		margin: 0 0 0.75rem;
+		color: var(--inv-blue);
+		font-size: 12px;
+		font-weight: 700;
 	}
 
 	.invoice-table {

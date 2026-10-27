@@ -133,7 +133,7 @@ type FailedForm = {
 	kapasitas?: string[];
 	include?: string[];
 	slug?: string[];
-	kind?: string[];
+	kind?: string[] | string;
 	flat?: string[];
 	min_pax?: string[];
 	fee_aktif?: string;
@@ -174,6 +174,7 @@ export function invoiceFieldsFromForm(form: FormData) {
 
 export function seedFromFailedForm(form: FailedForm): InvoiceFormSeed {
 	const deskripsi = form.deskripsi ?? [];
+	const kinds = Array.isArray(form.kind) ? form.kind : [];
 	const count = Math.max(deskripsi.length, form.qty?.length ?? 0, form.harga?.length ?? 0, 1);
 	const rows = Array.from({ length: count }, (_, i) => ({
 		deskripsi: deskripsi[i] ?? '',
@@ -183,7 +184,7 @@ export function seedFromFailedForm(form: FailedForm): InvoiceFormSeed {
 		capacity: form.kapasitas?.[i] ?? '',
 		include: form.include?.[i] ?? '',
 		slug: form.slug?.[i] ?? '',
-		kind: form.kind?.[i] ?? 'bebas',
+		kind: kinds[i] ?? 'bebas',
 		flat: form.flat?.[i] ?? '',
 		minPax: form.min_pax?.[i] ?? '1'
 	}));

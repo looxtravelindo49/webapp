@@ -215,6 +215,9 @@ describe('cetak invoice', () => {
 		expect(css).toContain('.print-hide');
 		expect(css).toContain('.no-print');
 		expect(css).toContain('print-color-adjust: exact');
+		expect(css).toContain('.invoice-valid-until');
+		expect(css).toContain('.invoice-countdown');
+		expect(css).toMatch(/\.invoice-valid-until\s*\{[^}]*display:\s*none/);
 	});
 });
 
