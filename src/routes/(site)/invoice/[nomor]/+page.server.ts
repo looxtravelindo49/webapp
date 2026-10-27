@@ -3,10 +3,11 @@ import { formatRupiah } from '#lib/format.js';
 import { formatDateTime } from '#lib/format.js';
 import { formatPlanDate, perPaxText, totalNote, totalText, unitBreakdown } from '#lib/estimate.js';
 import { buildPaymentProofMessage, displayedDp, dpInvoiceLabel, dpPayLabel, estimateFromStored, feeDetail, includeLines, invoiceChrome, settlement, type StoredLine } from '#lib/invoice.js';
+import { validitySnapshot } from '#lib/invoice-validity.js';
 import { getDb } from '#lib/server/database.js';
 import { getLeadByNomor, leadLines, leadMessage } from '#lib/server/leads.js';
 import { getSetting } from '#lib/server/settings.js';
-import { normalizeWhatsapp, waLink } from '#lib/whatsapp.js';
+import { FLOAT_WA_NUMBER, normalizeWhatsapp, waLink } from '#lib/whatsapp.js';
 import type { PageServerLoad } from './$types';
 
 export const prerender = false;
@@ -42,6 +43,7 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 	const estimate = estimateFromStored(lines, lead.estimasi_total);
 	const destination = normalizeWhatsapp(await getSetting(db, 'whatsapp'));
 	const chrome = invoiceChrome(lead.status);
+	const validity = lead.status === 'lunas' ? null : validitySnapshot(lead.berlaku_hingga);
 	const money = settlement(lead.estimasi_total, lead.dp_nominal, lead.jumlah_diterima);
 	const dpShown = displayedDp(lead.estimasi_total, lead.dp_nominal, lead.dp_persen, lead.dp_mode);
 	const diskon = lead.diskon ?? 0;
@@ -55,7 +57,18 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 		title: chrome.title,
 		badge: chrome.badge,
 		stamp: chrome.stamp,
-		showPayCta: chrome.showPayCta,
+		showPayCta: chrome.showPayCta && !validity?.expired,
+		validity: validity
+			? {
+					expiresAt: validity.iso,
+					untilLabel: validity.label,
+					contactUrl: waLink(
+						FLOAT_WA_NUMBER,
+						`Halo Lembang Adventure, invoice ${lead.nomor_invoice} sudah kedaluwarsa. Mohon dibantu.`
+					),
+					serverNow: Date.now()
+				}
+			: null,
 		nama: lead.nama,
 		perusahaan: lead.perusahaan,
 		whatsapp: `+${lead.whatsapp}`,
@@ -85,6 +98,6 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 		remainingLabel: money.remaining === null ? null : formatRupiah(money.remaining),
 		paidDateLabel: lead.diterima_pada ? formatPlanDate(lead.diterima_pada) : null,
 		waUrl: destination ? waLink(destination, leadMessage(lead)) : null,
-		proofUrl: chrome.showPayCta && destination ? waLink(destination, buildPaymentProofMessage(lead.nomor_invoice)) : null
+		proofUrl: chrome.showPayCta && !validity?.expired && destination ? waLink(destination, buildPaymentProofMessage(lead.nomor_invoice)) : null
 	};
 };

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from '#lib/components/Button.svelte';
+	import ValidityForm from '#lib/components/admin/ValidityForm.svelte';
 	import { unitBreakdown } from '#lib/estimate.js';
 	import { formatRupiah } from '#lib/format.js';
 	import { feeDetail, includeLines } from '#lib/invoice.js';
@@ -38,6 +39,9 @@
 	</div>
 	<div class="flex flex-wrap gap-2">
 		<Button href="/admin/leads/{lead.nomor_invoice}/ubah" variant="primary">Edit invoice</Button>
+		<form method="POST" action="?/duplikat" class="inline-flex">
+			<Button type="submit" variant="outline">Duplikat invoice</Button>
+		</form>
 		<Button href="/invoice/{lead.nomor_invoice}" variant="accent" target="_blank" rel="noopener">Buka invoice ↗</Button>
 	</div>
 </div>
@@ -48,6 +52,16 @@
 {#if data.justUpdated}
 	<p role="status" class="mt-4 rounded-lg bg-cream px-4 py-3 text-xs font-semibold">Perubahan invoice disimpan. Halaman publik memakai data terbaru.</p>
 {/if}
+{#if form && 'duplicateError' in form && form.duplicateError}
+	<p role="alert" class="mt-4 text-[11px] font-semibold text-danger">{form.duplicateError}</p>
+{/if}
+
+<ValidityForm
+	label={data.validity?.label ?? null}
+	expired={data.validity?.expired ?? false}
+	error={form && 'validityError' in form && typeof form.validityError === 'string' ? form.validityError : ''}
+	notice={form && 'validityNotice' in form && typeof form.validityNotice === 'string' ? form.validityNotice : ''}
+/>
 
 <div class="mt-4 grid max-w-xl gap-3 rounded-xl border border-line bg-white p-5">
 	<label class="grid gap-1 text-[10px] font-bold tracking-wide uppercase" for="tautan-invoice">

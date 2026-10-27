@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DP_PERCENT, INVOICE_NUMBER } from '#lib/invoice.js';
 import { all, migrate, migrations, openDatabase, run, type Db } from './db';
-import { createManualLead, getLeadByNomor, listLeads, setLeadStatus, submitLead, updateIssuedInvoice } from './leads';
+import { createManualLead, duplicateLead, getLeadByNomor, listLeads, setLeadStatus, submitLead, updateIssuedInvoice, updateLeadValidity } from './leads';
 import { seed } from './seed';
 
 const dbs: Db[] = [];
@@ -348,6 +348,110 @@ describe('updateIssuedInvoice', () => {
 	});
 });
 
+describe('duplicateLead', () => {
+	it('menyalin harga, Include, fee, dan DP ke nomor baru yang belum dibayar', async () => {
+		const db = await fresh();
+		const created = await createManualLead(
+			db,
+			{
+				nama: 'Raka',
+				perusahaan: 'PT Raka',
+				whatsapp: '081200011122',
+				jumlahPeserta: '10',
+				tanggal: '2026-12-02',
+				catatan: 'Pagi',
+				deskripsi: ['Jeep'],
+				qty: ['2'],
+				harga: ['249000'],
+				include: ['Pemandu\nMakan'],
+				diskon: '49000',
+				fee_aktif: '1',
+				fee_label: 'Fee Services',
+				fee_mode: 'persen',
+				fee_nilai: '10',
+				dp_mode: 'nominal',
+				dp_nilai: '200000'
+			},
+			{ origin: 'https://lembangadventure.com', userAgent: 'uji', now: new Date('2026-10-20T02:00:00.000Z'), random: () => Uint8Array.from([1, 1, 1, 1, 1, 1, 1, 1]) }
+		);
+		if (!created.ok) throw new Error('invoice gagal');
+		expect(await setLeadStatus(db, created.lead.nomor_invoice, { status: 'lunas', diterimaPada: '2026-10-21', jumlah: 493_900 })).toBe('ok');
+		await run(db, 'UPDATE lead SET catatan_admin = ?, berlaku_hingga = ? WHERE nomor_invoice = ?', [
+			'catatan dalam',
+			'2026-10-21T09:00:00.000Z',
+			created.lead.nomor_invoice
+		]);
+		const copy = await duplicateLead(db, created.lead.nomor_invoice, {
+			origin: 'https://lembangadventure.com',
+			userAgent: null,
+			now: new Date('2026-10-22T02:00:00.000Z'),
+			random: () => Uint8Array.from([2, 2, 2, 2, 2, 2, 2, 2])
+		});
+		expect(copy.ok).toBe(true);
+		if (!copy.ok) return;
+		expect(copy.lead.nomor_invoice).not.toBe(created.lead.nomor_invoice);
+		expect(copy.lead.nomor_invoice).toMatch(INVOICE_NUMBER);
+		expect(copy.lead.invoice_url).toBe(`https://lembangadventure.com/invoice/${copy.lead.nomor_invoice}`);
+		expect(copy.lead.status).toBe('baru');
+		expect(copy.lead.source).toBe('duplikat');
+		expect(copy.lead.nama).toBe('Raka');
+		expect(copy.lead.perusahaan).toBe('PT Raka');
+		expect(copy.lead.whatsapp).toBe(created.lead.whatsapp);
+		expect(copy.lead.jumlah_peserta).toBe(10);
+		expect(copy.lead.tanggal_acara).toBe('2026-12-02');
+		expect(copy.lead.catatan).toBe('Pagi');
+		expect(copy.lead.estimasi_total).toBe(493_900);
+		expect(copy.lead.diskon).toBe(49_000);
+		expect(copy.lead.dp_mode).toBe('nominal');
+		expect(copy.lead.dp_nominal).toBe(200_000);
+		expect(copy.lead.paket).toBe(created.lead.paket);
+		expect(copy.lead.jumlah_diterima).toBeNull();
+		expect(copy.lead.diterima_pada).toBeNull();
+		expect(copy.lead.catatan_admin).toBeNull();
+		expect(copy.lead.berlaku_hingga).toBeNull();
+		const original = await getLeadByNomor(db, created.lead.nomor_invoice);
+		expect(original?.status).toBe('lunas');
+		expect(original?.jumlah_diterima).toBe(493_900);
+		expect(original?.berlaku_hingga).toBe('2026-10-21T09:00:00.000Z');
+		expect(original?.catatan_admin).toBe('catatan dalam');
+	});
+});
+
+describe('updateLeadValidity', () => {
+	it('menerapkan, memperpanjang, menghapus, dan tidak ikut terhapus saat invoice diedit', async () => {
+		const db = await fresh();
+		const created = await createManualLead(
+			db,
+			{ nama: 'Sari', whatsapp: '081234567890', jumlahPeserta: '4', deskripsi: ['Jeep'], qty: ['1'], harga: ['100000'] },
+			{ origin: 'https://lembangadventure.com', userAgent: null, now: new Date('2026-10-20T02:00:00.000Z'), random: () => Uint8Array.from([3, 3, 3, 3, 3, 3, 3, 3]) }
+		);
+		if (!created.ok) throw new Error('invoice gagal');
+		const nomor = created.lead.nomor_invoice;
+		const now = new Date('2026-10-27T02:00:00.000Z');
+		const set = await updateLeadValidity(db, nomor, { action: 'terapkan', mode: 'jam', nilai: '2' }, now);
+		expect(set).toMatchObject({ ok: true });
+		expect((await getLeadByNomor(db, nomor))?.berlaku_hingga).toBe('2026-10-27T04:00:00.000Z');
+		const extended = await updateLeadValidity(db, nomor, { action: 'perpanjang', mode: 'hari', nilai: '1' }, now);
+		expect(extended).toMatchObject({ ok: true, notice: 'Masa berlaku diperpanjang.' });
+		expect((await getLeadByNomor(db, nomor))?.berlaku_hingga).toBe('2026-10-28T04:00:00.000Z');
+		const edited = await updateIssuedInvoice(db, nomor, {
+			nama: 'Sari Baru',
+			whatsapp: '081234567890',
+			jumlahPeserta: '4',
+			deskripsi: ['Jeep'],
+			qty: ['1'],
+			harga: ['120000']
+		});
+		expect(edited.ok).toBe(true);
+		expect((await getLeadByNomor(db, nomor))?.berlaku_hingga).toBe('2026-10-28T04:00:00.000Z');
+		expect((await getLeadByNomor(db, nomor))?.nama).toBe('Sari Baru');
+		const cleared = await updateLeadValidity(db, nomor, { action: 'reset', mode: '', nilai: '' }, now);
+		expect(cleared).toMatchObject({ ok: true });
+		expect((await getLeadByNomor(db, nomor))?.berlaku_hingga).toBeNull();
+		expect((await updateLeadValidity(db, nomor, { action: 'terapkan', mode: 'jam', nilai: '' }, now)).ok).toBe(false);
+	});
+});
+
 describe('migrasi status lama', () => {
 	it('menjadi Baru atau Lunas dan id berikutnya tidak mulai dari 1', async () => {
 		const dir = mkdtempSync(join(tmpdir(), 'lead-mig-'));
@@ -365,7 +469,16 @@ describe('migrasi status lama', () => {
 			`INSERT INTO lead (nomor_invoice, nama, whatsapp, paket, jumlah_peserta, invoice_url, status, paid_at)
 			 VALUES ('LA-20261019-BBBBBBBB', 'Lunas', '628111111112', '[]', 2, 'http://local/b', 'lunas_dp', '2026-10-01T00:00:00.000Z')`
 		);
-		expect(await migrate(db)).toEqual(['0007_lead_payment', '0008_lead_manual', '0009_package_pricing', '0010_package_photo', '0011_portfolio_testimonial', '0012_portfolio_photos', '0013_invoice_dp_mode']);
+		expect(await migrate(db)).toEqual([
+			'0007_lead_payment',
+			'0008_lead_manual',
+			'0009_package_pricing',
+			'0010_package_photo',
+			'0011_portfolio_testimonial',
+			'0012_portfolio_photos',
+			'0013_invoice_dp_mode',
+			'0014_invoice_berlaku'
+		]);
 		const rows = await all<{ id: number; status: string; diterima_pada: string | null }>(
 			db,
 			'SELECT id, status, diterima_pada FROM lead ORDER BY id'
@@ -374,6 +487,8 @@ describe('migrasi status lama', () => {
 			{ id: 1, status: 'baru', diterima_pada: null },
 			{ id: 2, status: 'lunas', diterima_pada: '2026-10-01' }
 		]);
+		const expiry = await all<{ berlaku_hingga: string | null }>(db, 'SELECT berlaku_hingga FROM lead ORDER BY id');
+		expect(expiry).toEqual([{ berlaku_hingga: null }, { berlaku_hingga: null }]);
 		await run(
 			db,
 			`INSERT INTO lead (nomor_invoice, nama, whatsapp, paket, jumlah_peserta, invoice_url)

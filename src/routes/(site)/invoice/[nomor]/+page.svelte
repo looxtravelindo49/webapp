@@ -5,6 +5,7 @@
 	import '@fontsource/urbanist/latin-800.css';
 	import '#lib/invoice-print.css';
 	import BankAccount from '#lib/components/BankAccount.svelte';
+	import InvoiceValidity from '#lib/components/InvoiceValidity.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import { paymentPolicyPath, paymentPolicySummary } from '#lib/content/payment-policy.js';
 	import { site } from '#lib/content/site.js';
@@ -32,6 +33,14 @@
 	</div>
 
 	<div class="invoice-body">
+		{#if data.validity}
+			<InvoiceValidity
+				expiresAt={data.validity.expiresAt}
+				untilLabel={data.validity.untilLabel}
+				contactUrl={data.validity.contactUrl}
+				serverNow={data.validity.serverNow}
+			/>
+		{/if}
 		<header class="invoice-head invoice-keep">
 			<div>
 				<p class="invoice-kicker">{site.name}</p>

@@ -25,6 +25,7 @@ import {
 } from '#lib/invoice.js';
 import { calculateEstimate, parsePax } from '#lib/pricing.js';
 import { withAddons } from '#lib/addons.js';
+import { resolveValidity } from '#lib/invoice-validity.js';
 import { normalizeWhatsapp, waLink } from '#lib/whatsapp.js';
 import { all, one, run, scalar, transaction, type Db, type Queryable } from './db';
 import { listPublishedPackages } from './packages';
@@ -58,12 +59,14 @@ export type Lead = {
 	perusahaan: string | null;
 	diskon: number | null;
 	dp_mode: DpMode | null;
+	/** ISO-8601 UTC. `null` = tanpa penghitung waktu. */
+	berlaku_hingga: string | null;
 };
 
 const COLUMNS = `id, nomor_invoice, created_at, nama, whatsapp, paket, jumlah_peserta, tanggal_acara, catatan,
 	estimasi_total, dp_persen, dp_nominal, currency, status, invoice_url, wa_opened,
 	xendit_invoice_id, xendit_status, paid_at, user_agent, source, catatan_admin,
-	jumlah_diterima, diterima_pada, perusahaan, diskon, dp_mode`;
+	jumlah_diterima, diterima_pada, perusahaan, diskon, dp_mode, berlaku_hingga`;
 
 function num(value: unknown): number | null {
 	if (value === null || value === undefined || value === '') return null;
@@ -99,7 +102,8 @@ function mapLead(row: Record<string, unknown>): Lead {
 		diterima_pada: row.diterima_pada == null || row.diterima_pada === '' ? null : String(row.diterima_pada),
 		perusahaan: row.perusahaan == null || String(row.perusahaan).trim() === '' ? null : String(row.perusahaan),
 		diskon: num(row.diskon),
-		dp_mode: row.dp_mode === 'persen' || row.dp_mode === 'nominal' ? row.dp_mode : null
+		dp_mode: row.dp_mode === 'persen' || row.dp_mode === 'nominal' ? row.dp_mode : null,
+		berlaku_hingga: row.berlaku_hingga == null || String(row.berlaku_hingga).trim() === '' ? null : String(row.berlaku_hingga)
 	};
 }
 
@@ -565,7 +569,7 @@ export async function createManualLead(db: Db, raw: Record<string, unknown>, ctx
 }
 
 /**
- * Ubah invoice yang sudah terbit. Nomor, tautan, status bayar, dan nominal diterima tidak berubah.
+ * Ubah invoice yang sudah terbit. Nomor, tautan, status bayar, nominal diterima, dan masa berlaku tidak berubah.
  */
 export async function updateIssuedInvoice(db: Db, nomor: string, raw: Record<string, unknown>): Promise<SubmitResult> {
 	if (!INVOICE_NUMBER.test(nomor)) return FAIL(404, 'Invoice tidak ditemukan.');
@@ -599,4 +603,89 @@ export async function updateIssuedInvoice(db: Db, nomor: string, raw: Record<str
 	const lead = await getLeadByNomor(db, nomor);
 	if (!lead) return FAIL(500, 'Invoice belum tersimpan. Coba lagi, ya.');
 	return { ok: true, lead, waUrl: '' };
+}
+
+/**
+ * Invoice baru dari data yang sudah tersimpan. Nomor, tautan, dan waktu buat baru.
+ * Status belum dibayar. Pembayaran, catatan internal, dan masa berlaku tidak disalin.
+ */
+export async function duplicateLead(db: Db, nomor: string, ctx: SubmitContext): Promise<SubmitResult> {
+	if (!INVOICE_NUMBER.test(nomor)) return FAIL(404, 'Invoice tidak ditemukan.');
+	const existing = await getLeadByNomor(db, nomor);
+	if (!existing) return FAIL(404, 'Invoice tidak ditemukan.');
+
+	const now = ctx.now ?? new Date();
+	const random = ctx.random ?? ((n: number) => randomBytes(n));
+	const origin = ctx.origin.replace(/\/$/, '');
+	const userAgent = ctx.userAgent?.slice(0, 300) || null;
+
+	let lead: Lead | null = null;
+	for (let attempt = 0; attempt < 5 && !lead; attempt++) {
+		const nextNomor = buildInvoiceNumber(now, random(8));
+		const invoiceUrl = `${origin}/invoice/${nextNomor}`;
+		try {
+			lead = await transaction(db, async (tx) => {
+				await run(
+					tx,
+					`INSERT INTO lead
+						(nomor_invoice, nama, whatsapp, perusahaan, paket, jumlah_peserta, tanggal_acara, catatan,
+						 estimasi_total, diskon, dp_persen, dp_nominal, dp_mode, currency, status, invoice_url, wa_opened, user_agent, source)
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'IDR', 'baru', ?, 0, ?, 'duplikat')`,
+					[
+						nextNomor,
+						existing.nama,
+						existing.whatsapp,
+						existing.perusahaan,
+						existing.paket,
+						existing.jumlah_peserta,
+						existing.tanggal_acara,
+						existing.catatan,
+						existing.estimasi_total,
+						existing.diskon,
+						existing.dp_persen,
+						existing.dp_nominal,
+						existing.dp_mode,
+						invoiceUrl,
+						userAgent
+					]
+				);
+				const row = await one(tx, `SELECT ${COLUMNS} FROM lead WHERE nomor_invoice = ?`, [nextNomor]);
+				if (!row) throw new Error('lead hilang setelah disimpan');
+				return mapLead(row);
+			});
+		} catch (err) {
+			if (isUniqueError(err)) continue;
+			throw err;
+		}
+	}
+	if (!lead) return FAIL(500, 'Duplikat belum tersimpan. Coba lagi, ya.');
+	return { ok: true, lead, waUrl: '' };
+}
+
+export async function updateLeadValidity(
+	db: Queryable,
+	nomor: string,
+	raw: { action: string; mode: string; nilai: string },
+	now = new Date()
+): Promise<{ ok: true; notice: string } | SubmitFail> {
+	if (!INVOICE_NUMBER.test(nomor)) return FAIL(404, 'Invoice tidak ditemukan.');
+	const existing = await getLeadByNomor(db, nomor);
+	if (!existing) return FAIL(404, 'Invoice tidak ditemukan.');
+	const resolved = resolveValidity({
+		action: raw.action,
+		mode: raw.mode,
+		nilai: raw.nilai,
+		current: existing.berlaku_hingga,
+		now
+	});
+	if (!resolved.ok) return FAIL(400, resolved.message);
+	const result = await run(db, 'UPDATE lead SET berlaku_hingga = ? WHERE nomor_invoice = ?', [resolved.iso, nomor]);
+	if (result.rowsAffected < 1) return FAIL(404, 'Invoice tidak ditemukan.');
+	const notice =
+		raw.action === 'reset'
+			? 'Masa berlaku dihapus. Halaman publik tidak menampilkan penghitung waktu.'
+			: raw.action === 'perpanjang'
+				? 'Masa berlaku diperpanjang.'
+				: 'Masa berlaku disimpan.';
+	return { ok: true, notice };
 }
