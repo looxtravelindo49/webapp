@@ -5,6 +5,15 @@ import type { Estimate, EstimateLine } from './pricing';
 /** Persen uang muka. Satu sumber untuk hitungan, label, dan teks. Bukan biaya gateway. */
 export const DP_PERCENT = 30;
 
+/** Judul bawaan baris jasa. Admin boleh menggantinya. */
+export const DEFAULT_FEE_LABEL = 'Fee Services';
+
+export const MAX_FEE_LABEL = 80;
+export const MAX_INCLUDES = 2000;
+
+/** `persen` = persen dikunci. `nominal` = rupiah dikunci. `null` = aturan lama (boleh diselaraskan ke DP_PERCENT). */
+export type DpMode = 'persen' | 'nominal';
+
 /** Huruf tanpa 0/O/1/I supaya nomor mudah dibacakan. Panjang 32, habis membagi 256. */
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -17,8 +26,8 @@ export type StoredLine = {
 	minPax: number;
 	billedPax: number;
 	subtotal: number | null;
-	/** `bebas` = baris invoice manual. `addon` = tambahan kalkulator. Selain itu baris paket. */
-	kind?: 'paket' | 'bebas' | 'addon';
+	/** `bebas` = baris invoice manual. `addon` = tambahan kalkulator. `fee` = jasa (bukan paket). Selain itu baris paket. */
+	kind?: 'paket' | 'bebas' | 'addon' | 'fee';
 	/** Harga tetap, tidak dikali peserta. */
 	flat?: boolean;
 	/** Cuplikan mode per satuan, supaya rincian invoice tidak bergantung pada pengaturan paket yang berubah. */
@@ -27,6 +36,11 @@ export type StoredLine = {
 	unitPrice?: number;
 	capacity?: number;
 	unitName?: string;
+	/** Catatan Include, satu butir per baris. Kosong pada invoice lama. */
+	includes?: string;
+	/** Cara hitung baris fee. `feeRate` persen = perseratus persen (1000 = 10,00%). Nominal = rupiah. */
+	feeMode?: 'persen' | 'nominal';
+	feeRate?: number;
 };
 
 /** Tanggal kalender WIB `YYYYMMDD` untuk nomor invoice. */
@@ -62,8 +76,19 @@ export function dpNominal(total: number | null): number | null {
  * Nominal DP yang ditampilkan. Lead lama boleh masih menyimpan hasil persen sebelumnya;
  * kalau angka itu persis turunan `storedPercent` × total, hitung ulang dengan DP_PERCENT.
  * Nominal yang bukan turunan, dan semua jumlah yang sudah dibayar, tidak diubah di sini.
+ * `dpMode` yang dikunci admin tidak diselaraskan: persen dihitung ulang dari total, nominal tetap.
  */
-export function displayedDp(total: number | null, storedDp: number | null, storedPercent: number | null): number | null {
+export function displayedDp(
+	total: number | null,
+	storedDp: number | null,
+	storedPercent: number | null,
+	dpMode: DpMode | null = null
+): number | null {
+	if (dpMode === 'nominal') return storedDp;
+	if (dpMode === 'persen') {
+		if (total === null || storedPercent === null || !Number.isInteger(storedPercent)) return storedDp;
+		return Math.round((total * storedPercent) / 100);
+	}
 	if (total === null) return storedDp;
 	const current = dpNominal(total);
 	if (storedDp === null || storedDp === current) return current;
@@ -71,6 +96,90 @@ export function displayedDp(total: number | null, storedDp: number | null, store
 		return current;
 	}
 	return storedDp;
+}
+
+/** Label singkat DP untuk pesan dan ringkasan admin. */
+export function dpCaption(mode: DpMode | null, persen: number | null): string {
+	if (mode === 'nominal') return 'DP';
+	const percent = mode === 'persen' && persen !== null ? persen : DP_PERCENT;
+	return `DP ${percent}%`;
+}
+
+/** Label uang muka di invoice publik. */
+export function dpInvoiceLabel(mode: DpMode | null, persen: number | null): string {
+	if (mode === 'nominal') return 'Uang muka (DP)';
+	const percent = mode === 'persen' && persen !== null ? persen : DP_PERCENT;
+	return `Uang muka (DP) ${percent}%`;
+}
+
+/** Teks tombol bayar yang masih nonaktif. Invoice bawaan tetap "Bayar DP 30% (segera)". */
+export function dpPayLabel(mode: DpMode | null, persen: number | null): string {
+	if (mode === 'nominal') return 'Bayar DP (segera)';
+	const percent = mode === 'persen' && persen !== null ? persen : DP_PERCENT;
+	return `Bayar DP ${percent}% (segera)`;
+}
+
+/** "10", "10,5", atau "10.50" → perseratus persen (1050 = 10,50%). Di atas 100% ditolak. */
+export function parsePercentHundredths(raw: string): { ok: true; value: number } | { ok: false } {
+	const text = raw.trim().replace(',', '.');
+	if (!/^\d{1,3}(\.\d{1,2})?$/.test(text)) return { ok: false };
+	const [whole, frac = ''] = text.split('.');
+	const value = Number(whole) * 100 + Number(frac.padEnd(2, '0'));
+	if (!Number.isInteger(value) || value < 0 || value > 10_000) return { ok: false };
+	return { ok: true, value };
+}
+
+/** 1050 → "10.5", 1000 → "10", 1001 → "10.01". */
+export function formatHundredthsInput(hundredths: number): string {
+	const n = Math.abs(Math.trunc(hundredths));
+	const whole = Math.floor(n / 100);
+	const frac = n % 100;
+	if (frac === 0) return String(whole);
+	if (frac % 10 === 0) return `${whole}.${frac / 10}`;
+	return `${whole}.${String(frac).padStart(2, '0')}`;
+}
+
+/** Persen bulat 0–100 untuk DP. */
+export function parsePercentPoints(raw: string): { ok: true; value: number } | { ok: false } {
+	const text = raw.trim();
+	if (!/^\d{1,3}$/.test(text)) return { ok: false };
+	const value = Number(text);
+	if (value > 100) return { ok: false };
+	return { ok: true, value };
+}
+
+/** Satu butir Include per baris. Kosong → []. */
+export function includeLines(raw: string | null | undefined): string[] {
+	if (!raw) return [];
+	return raw.split('\n').map((line) => line.trim()).filter(Boolean);
+}
+
+/** Rapikan catatan Include. `ok: false` bila melewati batas. */
+export function normalizeIncludeText(raw: string): { ok: true; value: string } | { ok: false } {
+	const value = raw
+		.replace(/\r\n/g, '\n')
+		.split('\n')
+		.map((line) => line.trim())
+		.filter(Boolean)
+		.join('\n');
+	if (value.length > MAX_INCLUDES) return { ok: false };
+	return { ok: true, value };
+}
+
+/** Judul baris fee. Kosong menjadi DEFAULT_FEE_LABEL. */
+export function normalizeFeeLabel(raw: string): { ok: true; value: string } | { ok: false } {
+	const value = raw.trim().replace(/\s+/g, ' ');
+	if (!value) return { ok: true, value: DEFAULT_FEE_LABEL };
+	if (value.length > MAX_FEE_LABEL) return { ok: false };
+	return { ok: true, value };
+}
+
+/** Rincian baris fee di invoice. */
+export function feeDetail(line: Pick<StoredLine, 'feeMode' | 'feeRate'>): string {
+	if (line.feeMode === 'persen' && line.feeRate != null) {
+		return `${formatHundredthsInput(line.feeRate)}% dari subtotal setelah diskon`;
+	}
+	return 'Nominal tetap';
 }
 
 export function storedLinesFromEstimate(lines: readonly EstimateLine[]): StoredLine[] {
@@ -120,9 +229,18 @@ export function parseStoredLines(raw: string): StoredLine[] {
 			minPax: Number(row.minPax) || 1,
 			billedPax: Number(row.billedPax) || 0,
 			subtotal: subtotal === null || Number.isFinite(subtotal) ? subtotal : null,
-			kind: row.kind === 'bebas' ? 'bebas' : row.kind === 'addon' ? 'addon' : 'paket',
+			kind: row.kind === 'bebas' ? 'bebas' : row.kind === 'addon' ? 'addon' : row.kind === 'fee' ? 'fee' : 'paket',
 			...(row.flat === true ? { flat: true } : {})
 		};
+		if (typeof row.includes === 'string') {
+			const includes = row.includes.replace(/\r\n/g, '\n').trim();
+			if (includes) line.includes = includes.slice(0, 4000);
+		}
+		if (line.kind === 'fee' && (row.feeMode === 'persen' || row.feeMode === 'nominal')) {
+			line.feeMode = row.feeMode;
+			const rate = Number(row.feeRate);
+			if (Number.isInteger(rate) && rate >= 0) line.feeRate = rate;
+		}
 		const units = Number(row.units);
 		const unitPrice = Number(row.unitPrice);
 		const capacity = Number(row.capacity);
@@ -206,10 +324,39 @@ export function settlement(
 	return { paid, remaining: Math.max(0, total - paid) };
 }
 
-export type ManualQuote = { subtotal: number; diskon: number; total: number; dp: number };
+export type ManualQuote = {
+	subtotal: number;
+	diskon: number;
+	fee: number;
+	total: number;
+	dp: number;
+	dpPersen: number;
+	/** `null` = DP bawaan DP_PERCENT, bukan kunci admin. */
+	dpMode: DpMode | null;
+};
 
-/** Total invoice manual dari qty × harga satuan, dikurangi diskon. `null` bila angkanya tidak sah. */
-export function manualQuote(lines: readonly { qty: number; harga: number }[], diskon: number): ManualQuote | null {
+export type FeeSpec = {
+	mode: 'persen' | 'nominal';
+	/** Persen: perseratus persen (1000 = 10,00%). Nominal: rupiah bulat. */
+	value: number;
+};
+
+export type DpSpec = {
+	mode: 'persen' | 'nominal';
+	/** Persen: bilangan bulat 0–100. Nominal: rupiah bulat. */
+	value: number;
+};
+
+/**
+ * Total invoice manual dari qty × harga satuan, dikurangi diskon, ditambah fee.
+ * Fee persen dihitung dari subtotal setelah diskon. DP persen dihitung dari total akhir.
+ * `null` bila angkanya tidak sah. Tanpa `extras`, fee 0 dan DP = DP_PERCENT.
+ */
+export function manualQuote(
+	lines: readonly { qty: number; harga: number }[],
+	diskon: number,
+	extras?: { fee?: FeeSpec | null; dp?: DpSpec | null }
+): ManualQuote | null {
 	if (lines.length === 0) return null;
 	let subtotal = 0;
 	for (const line of lines) {
@@ -221,8 +368,36 @@ export function manualQuote(lines: readonly { qty: number; harga: number }[], di
 		if (subtotal > MAX_RECEIVED) return null;
 	}
 	if (!Number.isInteger(diskon) || diskon < 0 || diskon > subtotal) return null;
-	const total = subtotal - diskon;
-	return { subtotal, diskon, total, dp: dpNominal(total) ?? 0 };
+	const net = subtotal - diskon;
+	const fee = feeAmount(net, extras?.fee ?? null);
+	if (fee === null) return null;
+	const total = net + fee;
+	if (!Number.isSafeInteger(total) || total > MAX_RECEIVED) return null;
+	const dp = resolveDp(total, extras?.dp ?? null);
+	if (!dp) return null;
+	return { subtotal, diskon, fee, total, dp: dp.dp, dpPersen: dp.dpPersen, dpMode: dp.dpMode };
+}
+
+function feeAmount(net: number, fee: FeeSpec | null): number | null {
+	if (!fee) return 0;
+	if (fee.mode === 'persen') {
+		if (!Number.isInteger(fee.value) || fee.value < 1 || fee.value > 10_000) return null;
+		return Math.round((net * fee.value) / 10_000);
+	}
+	if (!Number.isInteger(fee.value) || fee.value < 1 || fee.value > MAX_RECEIVED) return null;
+	return fee.value;
+}
+
+function resolveDp(total: number, dp: DpSpec | null): { dp: number; dpPersen: number; dpMode: DpMode | null } | null {
+	if (!dp || (dp.mode === 'persen' && dp.value === DP_PERCENT)) {
+		return { dp: Math.round((total * DP_PERCENT) / 100), dpPersen: DP_PERCENT, dpMode: null };
+	}
+	if (dp.mode === 'persen') {
+		if (!Number.isInteger(dp.value) || dp.value < 0 || dp.value > 100) return null;
+		return { dp: Math.round((total * dp.value) / 100), dpPersen: dp.value, dpMode: 'persen' };
+	}
+	if (!Number.isInteger(dp.value) || dp.value < 0 || dp.value > total || dp.value > MAX_RECEIVED) return null;
+	return { dp: dp.value, dpPersen: DP_PERCENT, dpMode: 'nominal' };
 }
 
 /** Pesan ke WhatsApp klien, nomor invoice dan tautannya sudah terisi. */
@@ -232,13 +407,16 @@ export function buildClientInvoiceMessage(input: {
 	total: string;
 	dp: string;
 	invoiceUrl: string;
+	/** Contoh `DP 30%` atau `DP` bila nominal dikunci. Default mengikuti DP_PERCENT. */
+	dpHeading?: string;
 }): string {
+	const dpHeading = input.dpHeading ?? `DP ${DP_PERCENT}%`;
 	return [
 		`Halo ${input.nama.trim()}, ini invoice dari Lembang Adventure.`,
 		'',
 		`Nomor invoice: ${input.nomor}`,
 		`Total: ${input.total}`,
-		`DP ${DP_PERCENT}%: ${input.dp}`,
+		`${dpHeading}: ${input.dp}`,
 		'',
 		`Link invoice: ${input.invoiceUrl}`,
 		'',

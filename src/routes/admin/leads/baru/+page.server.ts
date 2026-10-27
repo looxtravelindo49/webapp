@@ -1,4 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { invoiceFieldsFromForm } from '#lib/invoice-form.js';
 import { getDb } from '#lib/server/database.js';
 import { createManualLead } from '#lib/server/leads.js';
 import { listAllPackages } from '#lib/server/packages.js';
@@ -23,21 +24,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 export const actions: Actions = {
 	default: async ({ request, locals, url }) => {
 		requireUser(locals);
-		const form = await request.formData();
-		const raw = {
-			nama: String(form.get('nama') ?? ''),
-			perusahaan: String(form.get('perusahaan') ?? ''),
-			whatsapp: String(form.get('whatsapp') ?? ''),
-			tanggal: String(form.get('tanggal') ?? ''),
-			jumlahPeserta: String(form.get('jumlahPeserta') ?? ''),
-			catatan: String(form.get('catatan') ?? ''),
-			diskon: String(form.get('diskon') ?? ''),
-			deskripsi: form.getAll('deskripsi').map(String),
-			qty: form.getAll('qty').map(String),
-			harga: form.getAll('harga').map(String),
-			satuan: form.getAll('satuan').map(String),
-			kapasitas: form.getAll('kapasitas').map(String)
-		};
+		const raw = invoiceFieldsFromForm(await request.formData());
 		const result = await createManualLead(await getDb(), raw, {
 			origin: url.origin,
 			userAgent: request.headers.get('user-agent')

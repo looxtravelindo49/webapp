@@ -2,6 +2,7 @@
 	import Button from '#lib/components/Button.svelte';
 	import { unitBreakdown } from '#lib/estimate.js';
 	import { formatRupiah } from '#lib/format.js';
+	import { feeDetail, includeLines } from '#lib/invoice.js';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -35,11 +36,17 @@
 		<p class="mt-1 text-xs text-muted">{lead.createdLabel}</p>
 		<p class="mt-2 inline-block rounded-full bg-cream px-2.5 py-1 text-[10px] font-bold">{lead.badge}</p>
 	</div>
-	<Button href="/invoice/{lead.nomor_invoice}" variant="accent" target="_blank" rel="noopener">Buka invoice ↗</Button>
+	<div class="flex flex-wrap gap-2">
+		<Button href="/admin/leads/{lead.nomor_invoice}/ubah" variant="primary">Edit invoice</Button>
+		<Button href="/invoice/{lead.nomor_invoice}" variant="accent" target="_blank" rel="noopener">Buka invoice ↗</Button>
+	</div>
 </div>
 
 {#if data.justCreated}
 	<p role="status" class="mt-4 rounded-lg bg-cream px-4 py-3 text-xs font-semibold">Invoice tersimpan.</p>
+{/if}
+{#if data.justUpdated}
+	<p role="status" class="mt-4 rounded-lg bg-cream px-4 py-3 text-xs font-semibold">Perubahan invoice disimpan. Halaman publik memakai data terbaru.</p>
 {/if}
 
 <div class="mt-4 grid max-w-xl gap-3 rounded-xl border border-line bg-white p-5">
@@ -64,7 +71,7 @@
 	<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Tanggal acara</dt><dd>{lead.tanggalLabel}</dd></div>
 	<div><dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Total estimasi</dt><dd class="font-semibold">{lead.estimasiLabel}</dd></div>
 	<div>
-		<dt class="text-[10px] font-bold tracking-wide text-muted uppercase">DP {lead.dpPercent}%</dt>
+		<dt class="text-[10px] font-bold tracking-wide text-muted uppercase">{lead.dpCaption}</dt>
 		<dd>{lead.dpLabel ?? 'Menyusul (estimasi belum berupa angka)'}</dd>
 	</div>
 	<div>
@@ -86,8 +93,18 @@
 						<li class="flex justify-between gap-3 py-1.5">
 							<span>
 								{line.title}
-								{#if line.pricingMode === 'per_unit' && line.units && line.unitPrice !== undefined && line.capacity && line.unitName}
+								{#if line.kind === 'fee'}
+									<span class="mt-0.5 block text-[11px] font-normal text-muted">{feeDetail(line)}</span>
+								{:else if line.pricingMode === 'per_unit' && line.units && line.unitPrice !== undefined && line.capacity && line.unitName}
 									<span class="mt-0.5 block text-[11px] font-normal text-muted">{unitBreakdown(line.units, line.unitPrice, line.capacity, line.unitName)}</span>
+								{/if}
+								{#if includeLines(line.includes).length > 0}
+									<span class="mt-1 block text-[10px] font-bold tracking-wide text-muted uppercase">Include</span>
+									<ul class="mt-0.5 list-disc pl-4 text-[11px] font-normal">
+										{#each includeLines(line.includes) as item, index (`${line.title}-${index}`)}
+											<li>{item}</li>
+										{/each}
+									</ul>
 								{/if}
 							</span>
 							<span class="font-semibold">{line.subtotal === null ? 'Harga menyusul' : formatRupiah(line.subtotal)}</span>

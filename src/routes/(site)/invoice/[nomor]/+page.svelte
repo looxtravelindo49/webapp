@@ -1,4 +1,9 @@
 <script lang="ts">
+	import '@fontsource/urbanist/latin-400.css';
+	import '@fontsource/urbanist/latin-600.css';
+	import '@fontsource/urbanist/latin-700.css';
+	import '@fontsource/urbanist/latin-800.css';
+	import '#lib/invoice-print.css';
 	import BankAccount from '#lib/components/BankAccount.svelte';
 	import Button from '#lib/components/Button.svelte';
 	import { paymentPolicyPath, paymentPolicySummary } from '#lib/content/payment-policy.js';
@@ -15,179 +20,188 @@
 <svelte:head>
 	<title>{data.title} {data.nomor} | {site.name}</title>
 	<meta name="robots" content="noindex, nofollow" />
-	<style>
-		@media print {
-			.print-hide,
-			.no-print {
-				display: none !important;
-			}
-			body {
-				background: #fff !important;
-			}
-			.invoice-sheet {
-				border: 0 !important;
-				box-shadow: none !important;
-			}
-		}
-	</style>
 </svelte:head>
 
-<article class="invoice-sheet wrap relative my-8 max-w-3xl rounded-xl border border-line bg-white p-5 text-green-900 sm:my-12 sm:p-8">
-	<header class="flex flex-wrap items-start justify-between gap-4 border-b border-line pb-5">
+<article class="invoice-sheet">
+	<div class="invoice-brand-bar">
 		<div>
-			<p class="text-[11px] font-bold tracking-[0.14em] uppercase text-muted">{site.name}</p>
-			<h1 class="mt-1 text-2xl font-black tracking-tight">{data.title}</h1>
-			<p class="mt-1 text-sm font-bold">{data.nomor}</p>
+			<p class="invoice-brand-name">{site.name}</p>
+			<p class="invoice-brand-byline">{site.byline}</p>
 		</div>
-		<div class="text-left sm:text-right">
-			<p class="text-[11px] text-muted">Dibuat {data.createdLabel}</p>
-			{#if data.stamp}
-				<p
-					class="mt-2 inline-block rounded-md border-4 border-green-900 px-3 py-1 text-3xl leading-none font-black tracking-[0.18em] text-green-900 sm:text-4xl"
-				>
-					LUNAS
-				</p>
-				{#if data.paidDateLabel}
-					<p class="mt-2 text-xs font-bold">Dibayar {data.paidDateLabel}</p>
-				{/if}
-			{:else}
-				<p class="mt-1 inline-block rounded-full bg-cream px-2.5 py-1 text-[10px] font-bold">{data.badge}</p>
-				{#if data.status === 'dp_diterima' && data.paidDateLabel}
-					<p class="mt-1 text-[11px] text-muted">Diterima {data.paidDateLabel}</p>
-				{/if}
-			{/if}
-		</div>
-	</header>
+		<p class="invoice-brand-mark">Invoice</p>
+	</div>
 
-	{#if data.status === 'baru'}
-		<p class="mt-5 text-xs leading-[1.8] text-muted">
-			Ini estimasi, bukan tagihan final. Harga finalnya kami konfirmasi lewat WhatsApp.
-		</p>
-	{:else if data.status === 'batal'}
-		<p class="mt-5 text-xs leading-[1.8] text-muted">Invoice ini dibatalkan.</p>
-	{:else if data.status === 'lunas'}
-		<p class="mt-5 text-xs leading-[1.8] text-muted">Pembayaran invoice ini sudah lunas.</p>
-	{:else}
-		<p class="mt-5 text-xs leading-[1.8] text-muted">DP sudah kami terima. Sisa tagihannya ada di samping total.</p>
-	{/if}
-
-	<dl class="mt-5 grid gap-3 text-xs sm:grid-cols-2">
-		<div>
-			<dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Nama PIC / Perusahaan</dt>
-			<dd class="font-bold">{data.nama}</dd>
-		</div>
-		{#if data.perusahaan}
+	<div class="invoice-body">
+		<header class="invoice-head invoice-keep">
 			<div>
-				<dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Perusahaan</dt>
-				<dd class="font-bold">{data.perusahaan}</dd>
+				<p class="invoice-kicker">{site.name}</p>
+				<h1>{data.title}</h1>
+				<p class="invoice-number">{data.nomor}</p>
 			</div>
-		{/if}
-		<div>
-			<dt class="text-[10px] font-bold tracking-wide text-muted uppercase">WhatsApp</dt>
-			<dd class="font-bold">{data.whatsapp}</dd>
-		</div>
-		<div>
-			<dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Peserta</dt>
-			<dd class="font-bold">{data.pax.toLocaleString('id-ID')} orang</dd>
-		</div>
-		<div>
-			<dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Tanggal acara</dt>
-			<dd class="font-bold">{data.tanggalLabel}</dd>
-		</div>
-		{#if data.catatan}
-			<div class="sm:col-span-2">
-				<dt class="text-[10px] font-bold tracking-wide text-muted uppercase">Catatan</dt>
-				<dd class="whitespace-pre-wrap">{data.catatan}</dd>
-			</div>
-		{/if}
-	</dl>
-
-	<ul class="mt-6 divide-y divide-line border-y border-line">
-		{#each data.lines as line (line.key)}
-			<li class="flex items-start justify-between gap-4 py-3">
-				<div class="min-w-0">
-					<p class="text-xs font-bold">{line.title}</p>
-					<p class="text-[11px] text-muted">{line.detail}</p>
-				</div>
-				<p class="shrink-0 text-xs font-bold">{line.amount}</p>
-			</li>
-		{/each}
-	</ul>
-
-	<div class="mt-4 flex flex-wrap items-end justify-between gap-3">
-		<div>
-			{#if data.subtotalLabel}
-				<p class="text-[11px] text-muted">Subtotal {data.subtotalLabel}</p>
-				<p class="text-[11px] text-muted">Diskon − {data.diskonLabel}</p>
-			{/if}
-			<p class="text-[10px] font-bold tracking-wider text-muted uppercase">{data.totalLabel}</p>
-			<p class="text-2xl font-black tracking-tight">{data.estimasiLabel}</p>
-			{#if data.perPaxLabel}<p class="text-[11px] font-bold text-muted">{data.perPaxLabel}</p>{/if}
-			{#if data.estimasiNote}<p class="text-[11px] text-muted">{data.estimasiNote}</p>{/if}
-		</div>
-		{#if data.status === 'dp_diterima'}
-			<div class="text-left sm:text-right">
-				<p class="text-[10px] font-bold tracking-wider text-muted uppercase">DP diterima</p>
-				<p class="text-lg font-black">{data.paidLabel ?? 'Nominal menyusul'}</p>
-				<p class="mt-2 text-[10px] font-bold tracking-wider text-muted uppercase">Sisa tagihan</p>
-				<p class="text-lg font-black">{data.remainingLabel ?? 'Menyusul'}</p>
-			</div>
-		{:else if data.showPayCta}
-			<div class="text-left sm:text-right">
-				<p class="text-[10px] font-bold tracking-wider text-muted uppercase">Uang muka (DP) {data.dpPercent}%</p>
-				{#if data.dpLabel}
-					<p class="text-lg font-black">{data.dpLabel}</p>
+			<div class="invoice-meta-side">
+				<p class="invoice-date">Dibuat {data.createdLabel}</p>
+				{#if data.stamp}
+					<p class="invoice-stamp">LUNAS</p>
+					{#if data.paidDateLabel}
+						<p class="invoice-paid-date">Dibayar {data.paidDateLabel}</p>
+					{/if}
 				{:else}
-					<p class="max-w-xs text-[11px] text-muted">
-						Nominal DP {data.dpPercent}% muncul setelah estimasinya berupa angka.
-					</p>
+					<p class="invoice-badge rounded-full">{data.badge}</p>
+					{#if data.status === 'dp_diterima' && data.paidDateLabel}
+						<p class="invoice-paid-date">Diterima {data.paidDateLabel}</p>
+					{/if}
 				{/if}
 			</div>
-		{:else if data.status === 'lunas' && data.paidLabel}
-			<div class="text-left sm:text-right">
-				<p class="text-[10px] font-bold tracking-wider text-muted uppercase">Jumlah diterima</p>
-				<p class="text-lg font-black">{data.paidLabel}</p>
+		</header>
+
+		{#if data.status === 'baru'}
+			<p class="invoice-note">Ini estimasi, bukan tagihan final. Harga finalnya kami konfirmasi lewat WhatsApp.</p>
+		{:else if data.status === 'batal'}
+			<p class="invoice-note">Invoice ini dibatalkan.</p>
+		{:else if data.status === 'lunas'}
+			<p class="invoice-note">Pembayaran invoice ini sudah lunas.</p>
+		{:else}
+			<p class="invoice-note">DP sudah kami terima. Sisa tagihannya ada di samping total.</p>
+		{/if}
+
+		<dl class="invoice-parties invoice-keep">
+			<div>
+				<dt>Nama PIC / Perusahaan</dt>
+				<dd>{data.nama}</dd>
+			</div>
+			{#if data.perusahaan}
+				<div>
+					<dt>Perusahaan</dt>
+					<dd>{data.perusahaan}</dd>
+				</div>
+			{/if}
+			<div>
+				<dt>WhatsApp</dt>
+				<dd>{data.whatsapp}</dd>
+			</div>
+			<div>
+				<dt>Peserta</dt>
+				<dd>{data.pax.toLocaleString('id-ID')} orang</dd>
+			</div>
+			<div>
+				<dt>Tanggal acara</dt>
+				<dd>{data.tanggalLabel}</dd>
+			</div>
+			{#if data.catatan}
+				<div>
+					<dt>Catatan</dt>
+					<dd class="whitespace-pre-wrap font-normal">{data.catatan}</dd>
+				</div>
+			{/if}
+		</dl>
+
+		<table class="invoice-table">
+			<thead>
+				<tr>
+					<th>Deskripsi</th>
+					<th class="num">Jumlah</th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each data.lines as line (line.key)}
+					<tr class="invoice-line">
+						<td>
+							<p class="invoice-line-title">{line.title}</p>
+							{#if line.detail}<p class="invoice-line-detail">{line.detail}</p>{/if}
+							{#if line.includes.length > 0}
+								<p class="invoice-include-label">Include</p>
+								<ul class="invoice-include">
+									{#each line.includes as item, index (`${line.key}-${index}`)}
+										<li>{item}</li>
+									{/each}
+								</ul>
+							{/if}
+						</td>
+						<td>
+							<p class="invoice-amount">{line.amount}</p>
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+
+		<div class="invoice-totals invoice-keep">
+			<div>
+				{#if data.subtotalLabel}<p class="invoice-sum">Subtotal {data.subtotalLabel}</p>{/if}
+				{#if data.diskonLabel}<p class="invoice-sum">Diskon − {data.diskonLabel}</p>{/if}
+				{#if data.fee}
+					<p class="invoice-fee">{data.fee.label} <span>{data.fee.detail}</span> {data.fee.amount}</p>
+				{/if}
+				<p class="invoice-total-label">{data.totalLabel}</p>
+				<p class="invoice-total-figure">{data.estimasiLabel}</p>
+				{#if data.perPaxLabel}<p class="invoice-per">{data.perPaxLabel}</p>{/if}
+				{#if data.estimasiNote}<p class="invoice-sum">{data.estimasiNote}</p>{/if}
+			</div>
+			{#if data.status === 'dp_diterima'}
+				<div>
+					<p class="invoice-dp-label">DP diterima</p>
+					<p class="invoice-dp-figure">{data.paidLabel ?? 'Nominal menyusul'}</p>
+					<p class="invoice-dp-label" style="margin-top: 0.6rem">Sisa tagihan</p>
+					<p class="invoice-dp-figure">{data.remainingLabel ?? 'Menyusul'}</p>
+				</div>
+			{:else if data.showPayCta}
+				<div>
+					<p class="invoice-dp-label">{data.dpHeading}</p>
+					{#if data.dpLabel}
+						<p class="invoice-dp-figure">{data.dpLabel}</p>
+					{:else}
+						<p class="invoice-sum">Nominal DP muncul setelah estimasinya berupa angka.</p>
+					{/if}
+				</div>
+			{:else if data.status === 'lunas' && data.paidLabel}
+				<div>
+					<p class="invoice-dp-label">Jumlah diterima</p>
+					<p class="invoice-dp-figure">{data.paidLabel}</p>
+				</div>
+			{/if}
+		</div>
+
+		<p class="invoice-policy">
+			{paymentPolicySummary}{' '}
+			<a href={paymentPolicyPath} class="invoice-link">Kebijakan pembayaran</a>
+		</p>
+
+		{#if data.showPayCta}
+			<div class="invoice-pay invoice-keep">
+				<p><strong>Cara bayar sekarang</strong></p>
+				<p>
+					Transfer ke rekening PT: CIMB Niaga Syariah 860025788700 a/n Loox Travel Luxury. Setelah kamu transfer, kirim bukti lewat WhatsApp dan cantumkan nomor invoice {data.nomor}.
+				</p>
 			</div>
 		{/if}
-	</div>
 
-	<p class="mt-4 text-[11px] leading-[1.8] text-muted">
-		{paymentPolicySummary}{' '}
-		<a href={paymentPolicyPath} class="font-bold text-green-900 underline">Kebijakan pembayaran</a>
-	</p>
-
-	{#if data.showPayCta}
-		<div class="mt-6 rounded-lg bg-cream px-4 py-3 text-xs leading-[1.8]">
-			<p class="font-bold">Cara bayar sekarang</p>
-			<p class="mt-1">
-				Transfer ke rekening PT: CIMB Niaga Syariah 860025788700 a/n Loox Travel Luxury. Setelah kamu transfer, kirim bukti lewat WhatsApp dan cantumkan nomor invoice {data.nomor}.
-			</p>
+		<div class="invoice-actions no-print">
+			<Button type="button" variant="primary" onclick={printInvoice}>Export PDF</Button>
+			{#if data.proofUrl}
+				<Button href={data.proofUrl} variant="accent" target="_blank" rel="noopener noreferrer">
+					Kirim bukti transfer <span aria-hidden="true">↗</span>
+				</Button>
+			{/if}
+			{#if data.waUrl}
+				<Button href={data.waUrl} variant="outline" target="_blank" rel="noopener noreferrer">
+					Konfirmasi via WhatsApp <span aria-hidden="true">↗</span>
+				</Button>
+			{/if}
+			{#if data.showPayCta}
+				<Button type="button" variant="outline" disabled>{data.payLabel}</Button>
+			{/if}
 		</div>
-	{/if}
-
-	<div class="no-print mt-6 flex flex-wrap gap-2.5">
-		<Button type="button" variant="outline" onclick={printInvoice}>Cetak atau simpan</Button>
-		{#if data.proofUrl}
-			<Button href={data.proofUrl} variant="accent" target="_blank" rel="noopener noreferrer">
-				Kirim bukti transfer <span aria-hidden="true">↗</span>
-			</Button>
-		{/if}
-		{#if data.waUrl}
-			<Button href={data.waUrl} variant="outline" target="_blank" rel="noopener noreferrer">
-				Konfirmasi via WhatsApp <span aria-hidden="true">↗</span>
-			</Button>
-		{/if}
 		{#if data.showPayCta}
-			<Button type="button" variant="outline" disabled>Bayar DP {data.dpPercent}% (segera)</Button>
+			<p class="invoice-hint no-print">
+				Estimasi kamu sudah kami simpan. Pembayaran DP online segera hadir. Untuk sekarang, transfer ke rekening PT lalu kirim buktinya lewat WhatsApp.
+				Untuk PDF, pilih Simpan sebagai PDF, ukuran A4, dan matikan header serta footer peramban.
+			</p>
+		{:else}
+			<p class="invoice-hint no-print">Untuk PDF, pilih Simpan sebagai PDF, ukuran A4, dan matikan header serta footer peramban.</p>
 		{/if}
-	</div>
-	{#if data.showPayCta}
-		<p class="no-print mt-3 text-[11px] text-muted">
-			Estimasi kamu sudah kami simpan. Pembayaran DP online segera hadir. Untuk sekarang, transfer ke rekening PT lalu kirim buktinya lewat WhatsApp.
-		</p>
-	{/if}
 
-	<div class="mt-8 border-t border-line pt-6">
-		<BankAccount />
+		<div class="invoice-bank invoice-keep">
+			<BankAccount />
+		</div>
 	</div>
 </article>

@@ -7,15 +7,23 @@ import {
 	buildInvoiceNumber,
 	buildPaymentProofMessage,
 	displayedDp,
+	dpCaption,
 	dpNominal,
+	dpPayLabel,
+	feeDetail,
+	formatHundredthsInput,
 	invoiceChrome,
 	manualQuote,
+	normalizeFeeLabel,
+	normalizeIncludeText,
+	parsePercentHundredths,
+	parseStoredLines,
 	settlement,
+	DEFAULT_FEE_LABEL,
 	DP_PERCENT,
 	INVOICE_NUMBER,
 	invoiceStamp,
 	parseReceivedAmount,
-	parseStoredLines,
 	paymentBadge,
 	suffixFromBytes,
 	todayInJakarta
@@ -52,6 +60,17 @@ describe('DP 30%', () => {
 		expect(displayedDp(null, null, 20)).toBeNull();
 		expect(displayedDp(null, 200_000, 20)).toBe(200_000);
 	});
+
+	it('DP yang dikunci admin tidak diselaraskan ke 30%', () => {
+		expect(displayedDp(1_000_000, 200_000, 20, 'persen')).toBe(200_000);
+		expect(displayedDp(1_000_000, 250_000, 25, 'nominal')).toBe(250_000);
+		expect(displayedDp(null, 250_000, 25, 'nominal')).toBe(250_000);
+		expect(dpCaption(null, 20)).toBe('DP 30%');
+		expect(dpCaption('persen', 15)).toBe('DP 15%');
+		expect(dpCaption('nominal', 30)).toBe('DP');
+		expect(dpPayLabel(null, 20)).toBe('Bayar DP 30% (segera)');
+		expect(dpPayLabel('nominal', 30)).toBe('Bayar DP (segera)');
+	});
 });
 
 describe('tampilan invoice menurut status', () => {
@@ -74,10 +93,68 @@ describe('invoice manual', () => {
 		expect(manualQuote([{ qty: 2, harga: 249_000 }, { qty: 1, harga: 100_000 }], 49_000)).toEqual({
 			subtotal: 598_000,
 			diskon: 49_000,
+			fee: 0,
 			total: 549_000,
-			dp: Math.round((549_000 * DP_PERCENT) / 100)
+			dp: Math.round((549_000 * DP_PERCENT) / 100),
+			dpPersen: DP_PERCENT,
+			dpMode: null
 		});
 		expect(manualQuote([{ qty: 1, harga: 1000 }], 1001)).toBeNull();
+	});
+
+	it('fee persen atau nominal masuk total, dan DP bisa dikunci', () => {
+		const net = 598_000 - 49_000;
+		const fee = Math.round((net * 1050) / 10_000);
+		const withFee = manualQuote([{ qty: 2, harga: 249_000 }, { qty: 1, harga: 100_000 }], 49_000, {
+			fee: { mode: 'persen', value: 1050 }
+		});
+		expect(withFee).toMatchObject({ fee, total: net + fee, dpMode: null, dp: Math.round(((net + fee) * DP_PERCENT) / 100) });
+		expect(
+			manualQuote([{ qty: 1, harga: 500_000 }], 0, {
+				fee: { mode: 'nominal', value: 25_000 },
+				dp: { mode: 'nominal', value: 200_000 }
+			})
+		).toMatchObject({ subtotal: 500_000, fee: 25_000, total: 525_000, dp: 200_000, dpMode: 'nominal' });
+		expect(manualQuote([{ qty: 1, harga: 100_000 }], 0, { dp: { mode: 'persen', value: 30 } })?.dpMode).toBeNull();
+		expect(manualQuote([{ qty: 1, harga: 100_000 }], 0, { dp: { mode: 'persen', value: 10 } })).toMatchObject({
+			dp: 10_000,
+			dpPersen: 10,
+			dpMode: 'persen'
+		});
+		expect(manualQuote([{ qty: 1, harga: 100_000 }], 0, { dp: { mode: 'nominal', value: 100_001 } })).toBeNull();
+		expect(manualQuote([{ qty: 1, harga: 100_000 }], 0, { fee: { mode: 'persen', value: 10_001 } })).toBeNull();
+	});
+
+	it('Include dan judul fee dinormalisasi, baris lama tanpa field baru tetap terbaca', () => {
+		expect(parsePercentHundredths('10,5')).toEqual({ ok: true, value: 1050 });
+		expect(formatHundredthsInput(1050)).toBe('10.5');
+		expect(formatHundredthsInput(1000)).toBe('10');
+		expect(normalizeIncludeText('  Jeep \n\n  Pemandu  ')).toEqual({ ok: true, value: 'Jeep\nPemandu' });
+		expect(normalizeIncludeText('x'.repeat(2001)).ok).toBe(false);
+		expect(normalizeFeeLabel('  ')).toEqual({ ok: true, value: DEFAULT_FEE_LABEL });
+		expect(normalizeFeeLabel('x'.repeat(81)).ok).toBe(false);
+		const lines = parseStoredLines(
+			JSON.stringify([
+				{ title: 'Lama', price: 1000, minPax: 1, billedPax: 2, subtotal: 2000 },
+				{
+					title: 'Fee Services',
+					price: null,
+					minPax: 1,
+					billedPax: 1,
+					subtotal: 200,
+					kind: 'fee',
+					flat: true,
+					feeMode: 'persen',
+					feeRate: 1000
+				},
+				{ title: 'Offroad', price: 249000, minPax: 1, billedPax: 2, subtotal: 498000, kind: 'bebas', includes: 'Jeep\nPemandu' }
+			])
+		);
+		expect(lines[0]).toMatchObject({ title: 'Lama', kind: 'paket' });
+		expect(lines[0].includes).toBeUndefined();
+		expect(lines[1]).toMatchObject({ kind: 'fee', feeMode: 'persen', feeRate: 1000, subtotal: 200 });
+		expect(feeDetail(lines[1])).toBe('10% dari subtotal setelah diskon');
+		expect(lines[2].includes).toBe('Jeep\nPemandu');
 	});
 
 	it('pesan ke klien memuat nomor dan tautan', () => {
@@ -123,6 +200,21 @@ describe('baris tersimpan', () => {
 	it('mengabaikan JSON rusak', () => {
 		expect(parseStoredLines('bukan')).toEqual([]);
 		expect(parseStoredLines('{"title":"x"}')).toEqual([]);
+	});
+});
+
+describe('cetak invoice', () => {
+	it('CSS cetak memakai A4, Urbanist, warna merek, dan tidak memotong baris', () => {
+		const css = readFileSync(new URL('./invoice-print.css', import.meta.url), 'utf8');
+		expect(css).toContain('size: A4 portrait');
+		expect(css).toContain('margin: 16mm 14mm 18mm');
+		expect(css).toMatch(/font-family:\s*Urbanist/);
+		expect(css.toLowerCase()).toContain('#0d01ff');
+		expect(css.toLowerCase()).toContain('#e5ff00');
+		expect(css).toContain('break-inside: avoid');
+		expect(css).toContain('.print-hide');
+		expect(css).toContain('.no-print');
+		expect(css).toContain('print-color-adjust: exact');
 	});
 });
 
