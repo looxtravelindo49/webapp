@@ -19,12 +19,15 @@
 		packages,
 		seed,
 		message = '',
-		submitLabel = 'Simpan invoice'
+		submitLabel = 'Simpan invoice',
+		formAction
 	}: {
 		packages: PackageOption[];
 		seed: InvoiceFormSeed;
 		message?: string;
 		submitLabel?: string;
+		/** Kosong memakai aksi bawaan halaman. Halaman dengan aksi bernama wajib mengisi ini. */
+		formAction?: string;
 	} = $props();
 
 	type Row = InvoiceFormRow & { id: number };
@@ -171,7 +174,7 @@
 
 </script>
 
-<form method="POST" class="mt-6 grid max-w-3xl gap-4">
+<form method="POST" action={formAction} class="mt-6 grid max-w-3xl gap-4">
 	<div class="grid gap-4 rounded-xl border border-line bg-white p-5 sm:grid-cols-2 sm:p-6">
 		<label class="grid gap-1 text-[11px] font-semibold" for="nama">
 			Nama klien

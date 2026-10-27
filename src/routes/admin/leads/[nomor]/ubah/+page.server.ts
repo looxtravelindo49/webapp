@@ -44,7 +44,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, locals, params }) => {
+	simpan: async ({ request, locals, params }) => {
 		requireUser(locals);
 		const raw = invoiceFieldsFromForm(await request.formData());
 		const result = await updateIssuedInvoice(await getDb(), params.nomor, raw);

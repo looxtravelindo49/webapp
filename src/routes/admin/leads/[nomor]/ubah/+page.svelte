@@ -29,4 +29,10 @@
 	notice={form && 'validityNotice' in form && typeof form.validityNotice === 'string' ? form.validityNotice : ''}
 />
 
-<InvoiceEditor packages={data.packages} {seed} message={failed && 'message' in failed ? failed.message : ''} submitLabel="Simpan perubahan" />
+<InvoiceEditor
+	packages={data.packages}
+	{seed}
+	formAction="?/simpan"
+	message={failed && 'message' in failed ? failed.message : ''}
+	submitLabel="Simpan perubahan"
+/>
