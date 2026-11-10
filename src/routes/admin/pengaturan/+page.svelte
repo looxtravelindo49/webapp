@@ -48,7 +48,7 @@
 <svelte:head><title>Pengaturan | Admin Lembang Adventure</title></svelte:head>
 
 <h1 class="text-2xl font-black tracking-tight">Pengaturan</h1>
-<p class="mt-2 max-w-2xl text-xs leading-[1.8] text-muted">Perubahan langsung dipakai di situs publik tanpa perlu build ulang.</p>
+<p class="mt-2 max-w-2xl text-xs leading-[1.8] text-muted">Perubahan tampil di situs dalam ±1 menit, tanpa perlu build ulang.</p>
 
 {#if form && 'ok' in form && form.ok}
 	<p role="status" class="mt-5 max-w-lg rounded-md border border-green-900 bg-white px-4 py-3 text-xs font-semibold">{form.notice}</p>

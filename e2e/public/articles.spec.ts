@@ -65,6 +65,20 @@ test.describe('[article-pages] Halaman artikel', () => {
 		await expect.poll(() => top(page, '#konsultasi')).toBeGreaterThanOrEqual((await navHeight(page)) - 2);
 		await expect.poll(() => top(page, '#konsultasi')).toBeLessThan(200);
 	});
+
+	test('section "Pilihan paket" menautkan kelima paket dengan judulnya', async ({ page }) => {
+		await gotoReady(page, `/artikel/${SEEDED[0].slug}`);
+		const links = page.getByRole('navigation', { name: 'Pilihan paket' }).getByRole('link');
+		await expect(links).toHaveCount(5);
+		const pairs = await links.evaluateAll((els) => els.map((a) => [a.getAttribute('href'), a.textContent?.trim()]));
+		expect(pairs).toEqual([
+			['/paket/offroad', 'Offroad'],
+			['/paket/team-building', 'Team Building'],
+			['/paket/rafting', 'Rafting'],
+			['/paket/paintball', 'Paintball'],
+			['/paket/fun-games', 'Fun Games']
+		]);
+	});
 });
 
 test.describe('[site-shell] Navigasi dari halaman selain beranda', () => {

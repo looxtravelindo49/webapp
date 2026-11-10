@@ -14,9 +14,10 @@ const ARTICLE = `/artikel/${SEEDED[0]}`;
 const content = (page: Page, selector: string) => page.locator(selector).getAttribute('content');
 type Node = Record<string, unknown> & { '@type': string };
 async function graph(page: Page): Promise<Node[]> {
+	// Tepat satu blok JSON-LD per halaman publik.
 	const scripts = page.locator('script[type="application/ld+json"]');
 	const count = await scripts.count();
-	expect(count).toBeGreaterThan(0);
+	expect(count).toBe(1);
 	const nodes: Node[] = [];
 	for (let i = 0; i < count; i++) {
 		const ld = JSON.parse((await scripts.nth(i).textContent())!);
@@ -27,6 +28,12 @@ async function graph(page: Page): Promise<Node[]> {
 }
 const node = (nodes: Node[], type: string) => nodes.find((n) => n['@type'] === type)!;
 const typesExceptBusiness = (nodes: Node[]) => nodes.map((n) => n['@type']).filter((t) => t !== 'TravelAgency');
+/** Satu node bisnis bertipe TravelAgency, tanpa node Organization terpisah. */
+function business(nodes: Node[]): Node {
+	expect(nodes.filter((n) => n['@type'] === 'TravelAgency')).toHaveLength(1);
+	expect(nodes.some((n) => n['@type'] === 'Organization')).toBe(false);
+	return node(nodes, 'TravelAgency');
+}
 
 async function expectSingleTags(page: Page) {
 	for (const sel of [
@@ -45,7 +52,7 @@ async function expectSingleTags(page: Page) {
 }
 
 test.describe('[seo-metadata] Beranda', () => {
-	test('metadata lengkap tanpa duplikasi, gambar bawaan 1200x630, dan JSON-LD Organization + WebSite', async ({ page }) => {
+	test('metadata lengkap tanpa duplikasi, gambar bawaan 1200x630, dan JSON-LD TravelAgency + WebSite dalam satu blok', async ({ page }) => {
 		await gotoReady(page, '/');
 		await expectSingleTags(page);
 		await expect(page.locator('meta[property="og:type"]')).toHaveAttribute('content', 'website');
@@ -55,12 +62,16 @@ test.describe('[seo-metadata] Beranda', () => {
 		await expect(page.locator('meta[property="og:image:height"]')).toHaveAttribute('content', '630');
 
 		const nodes = await graph(page);
-		expect(typesExceptBusiness(nodes)).toEqual(['Organization', 'WebSite']);
-		expect((node(nodes, 'Organization').contactPoint as { telephone: string }).telephone).toBe(`+${WA_NUMBER}`);
-		expect(node(nodes, 'WebSite')).toMatchObject({ inLanguage: 'id', name: 'Lembang Adventure' });
-		const agency = node(nodes, 'TravelAgency');
+		expect(typesExceptBusiness(nodes)).toEqual(['WebSite']);
+		const agency = business(nodes);
+		expect((agency.contactPoint as { telephone: string }).telephone).toBe(`+${WA_NUMBER}`);
+		expect(node(nodes, 'WebSite')).toMatchObject({ inLanguage: 'id', name: 'Lembang Adventure', publisher: { '@id': agency['@id'] } });
+		expect(String(agency['@id'])).toMatch(new RegExp(`^${ORIGIN.source}/#organization$`));
 		expect(agency).toMatchObject({
 			name: 'Lembang Adventure',
+			alternateName: 'Lembang Adventure by Loox Travel',
+			legalName: 'PT Loox Travel Luxury',
+			geo: { '@type': 'GeoCoordinates', latitude: -6.810069, longitude: 107.6206394 },
 			telephone: '+6282120209900',
 			address: {
 				'@type': 'PostalAddress',
@@ -70,9 +81,12 @@ test.describe('[seo-metadata] Beranda', () => {
 				postalCode: '40391',
 				addressCountry: 'ID'
 			},
-			areaServed: ['Lembang', 'Bandung']
+			areaServed: [{ '@type': 'City', name: 'Lembang' }, { '@type': 'City', name: 'Bandung' }]
 		});
-		expect(String(agency.url)).toMatch(new RegExp(`^${ORIGIN.source}$`));
+		expect(String(agency.url)).toMatch(new RegExp(`^${ORIGIN.source}/$`));
+		expect(String(agency.hasMap)).toMatch(/^https:\/\/www\.google\.com\/maps\/place\//);
+		expect(agency.sameAs).toEqual([agency.hasMap]);
+		expect((agency.logo as { url: string }).url).toMatch(new RegExp(`^${ORIGIN.source}/apple-touch-icon\\.png$`));
 		expect(agency).not.toHaveProperty('aggregateRating');
 		expect(agency).not.toHaveProperty('review');
 		expect(agency).not.toHaveProperty('openingHours');
@@ -97,7 +111,7 @@ test.describe('[seo-metadata] Daftar dan halaman artikel', () => {
 		await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', new RegExp(`${ORIGIN.source}/artikel$`));
 		const nodes = await graph(page);
 		expect(typesExceptBusiness(nodes)).toEqual(['CollectionPage', 'BreadcrumbList']);
-		expect(node(nodes, 'TravelAgency').name).toBe('Lembang Adventure');
+		expect(business(nodes).name).toBe('Lembang Adventure');
 		expect((node(nodes, 'BreadcrumbList').itemListElement as unknown[]).length).toBe(2);
 	});
 
@@ -112,7 +126,10 @@ test.describe('[seo-metadata] Daftar dan halaman artikel', () => {
 
 		const nodes = await graph(page);
 		expect(typesExceptBusiness(nodes)).toEqual(['BlogPosting', 'BreadcrumbList']);
+		const org = { '@id': business(nodes)['@id'] };
 		expect(node(nodes, 'BlogPosting')).toMatchObject({
+			author: org,
+			publisher: org,
 			headline: 'Mau gathering kantor? Sepakati 5 hal ini dulu.',
 			datePublished: '2026-09-15T00:00:00.000Z',
 			inLanguage: 'id'
@@ -121,6 +138,17 @@ test.describe('[seo-metadata] Daftar dan halaman artikel', () => {
 		expect(crumbs.map((c) => c.name)).toEqual(['Beranda', 'Artikel', 'Mau gathering kantor? Sepakati 5 hal ini dulu.']);
 		expect(crumbs.map((c) => c.position)).toEqual([1, 2, 3]);
 		expect(crumbs[2].item).toMatch(new RegExp(`${ORIGIN.source}${ARTICLE}$`));
+	});
+});
+
+test.describe('[seo-metadata] Halaman paket', () => {
+	test('Service merujuk bisnis lewat @id dan remah roti dua butir tanpa fragmen', async ({ page }) => {
+		await gotoReady(page, '/paket/rafting');
+		const nodes = await graph(page);
+		expect(typesExceptBusiness(nodes)).toEqual(['Service', 'BreadcrumbList']);
+		expect(node(nodes, 'Service').provider).toEqual({ '@id': business(nodes)['@id'] });
+		const crumbs = node(nodes, 'BreadcrumbList').itemListElement as { item: string }[];
+		expect(crumbs.map((c) => c.item.replace(ORIGIN, ''))).toEqual(['/', '/paket/rafting']);
 	});
 });
 
@@ -146,6 +174,35 @@ test.describe('[seo-metadata] Respons galat tidak diindeks', () => {
 	});
 });
 
+test.describe('[response-headers] Header keamanan dan cache CDN', () => {
+	const SECURITY = {
+		'x-content-type-options': 'nosniff',
+		'referrer-policy': 'strict-origin-when-cross-origin',
+		'permissions-policy': 'camera=(), microphone=(), geolocation=()'
+	};
+
+	test('halaman publik: header keamanan dan s-maxage=60', async ({ request }) => {
+		for (const path of ['/', '/paket/offroad', '/artikel']) {
+			const headers = (await request.get(path)).headers();
+			expect(headers).toMatchObject({ ...SECURITY, 'x-frame-options': 'SAMEORIGIN' });
+			expect(headers['cache-control']).toBe('public, max-age=0, s-maxage=60, stale-while-revalidate=60');
+		}
+	});
+
+	test('admin tetap DENY dan no-store, tanpa s-maxage', async ({ request }) => {
+		const headers = (await request.get('/admin/login')).headers();
+		expect(headers).toMatchObject({ ...SECURITY, 'x-frame-options': 'DENY' });
+		expect(headers['cache-control']).toBe('no-store');
+	});
+
+	test('404 publik membawa header keamanan tanpa s-maxage', async ({ request }) => {
+		const res = await request.get('/paket/tidak-ada');
+		expect(res.status()).toBe(404);
+		expect(res.headers()).toMatchObject(SECURITY);
+		expect(res.headers()['cache-control'] ?? '').not.toContain('s-maxage');
+	});
+});
+
 test.describe('[sitemap-feeds] Sitemap', () => {
 	test('memuat beranda, /artikel, dan artikel terbit dengan lastmod; tanpa draf dan admin', async ({ request }) => {
 		const draft = insertArticle(uniqueTitle('Tes Publik Sitemap'));
@@ -161,9 +218,13 @@ test.describe('[sitemap-feeds] Sitemap', () => {
 		for (const slug of SEEDED) expect(locs).toContain(`/artikel/${slug}`);
 		expect(locs).not.toContain(`/artikel/${draft.slug}`);
 		expect(locs.some((l) => l.startsWith('/admin'))).toBe(false);
+		// lastmod wajib untuk beranda, daftar artikel, artikel, dan paket; halaman statis tanpa tanggal boleh tanpa lastmod.
+		const W3C = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 		for (const u of urls) {
 			expect(u.loc).toMatch(ORIGIN);
-			expect(u.lastmod, u.loc).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+			const path = u.loc.replace(ORIGIN, '');
+			if (path === '/' || path === '/artikel' || /^\/(artikel|paket)\//.test(path)) expect(u.lastmod, u.loc).toMatch(W3C);
+			else if (u.lastmod) expect(u.lastmod, u.loc).toMatch(W3C);
 		}
 	});
 });

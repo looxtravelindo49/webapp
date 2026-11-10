@@ -9,6 +9,7 @@
 
 <Seo
 	siteUrl={data.siteUrl}
+	waNumber={data.waNumber}
 	path="/kebijakan-pembayaran"
 	title={paymentPolicy.title}
 	description={paymentPolicy.description}

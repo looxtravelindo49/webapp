@@ -9,7 +9,7 @@ const article = (over: Record<string, unknown> = {}) => ({
 	published: 1, featured: 0, published_at: '2026-09-15T00:00:00.000Z', created_at: '2026-09-15T00:00:00.000Z', updated_at: '2026-09-15T00:00:00.000Z', ...over
 });
 const out = (a: Record<string, unknown>, utmSource = 'lembang_adventures') =>
-	render(Page, { props: { data: { article: a, html: '<p>Isi</p>', siteUrl: 'https://contoh.id', waNumber: null, utmSource } as never, params: { slug: 'tips' } } as never });
+	render(Page, { props: { data: { article: a, html: '<p>Isi</p>', siteUrl: 'https://contoh.id', waNumber: null, utmSource, packages: [] } as never, params: { slug: 'tips' } } as never });
 const html = (a: Record<string, unknown>, utmSource?: string) => out(a, utmSource).body;
 const figure = (body: string) => body.match(/<figure[\s\S]*?<\/figure>/)?.[0] ?? '';
 

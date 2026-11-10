@@ -14,10 +14,10 @@ test.describe('[e2e-testing] Penanda hidrasi', () => {
 });
 
 test.describe('[site-shell] Urutan section beranda', () => {
-	test('paket → konsultasi → ulasan → artikel-populer → rencanakan, diapit Navbar dan Footer', async ({ page }) => {
+	test('paket → konsultasi → klien → ulasan → artikel-populer → rencanakan, diapit Navbar dan Footer', async ({ page }) => {
 		await gotoReady(page, '/');
 		const ids = await page.$$eval('main > section[id]', (s) => s.map((x) => x.id));
-		expect(ids).toEqual(['katalog', 'paket', 'konsultasi', 'ulasan', 'artikel-populer', 'rencanakan']);
+		expect(ids).toEqual(['katalog', 'paket', 'konsultasi', 'klien', 'ulasan', 'artikel-populer', 'rencanakan']);
 		await expect(page.locator('#destinasi')).toHaveCount(0);
 		await expect(page.getByRole('heading', { name: 'Mau suasana yang mana?' })).toHaveCount(0);
 		await expect(page.locator('header').first()).toBeVisible();
@@ -117,20 +117,20 @@ test.describe('[site-shell] Aksesibilitas dasar', () => {
 });
 
 test.describe('[site-shell] SEO dasar', () => {
-	test('title, description, canonical, Open Graph, dan JSON-LD Organization + WebSite + TravelAgency', async ({ page }) => {
+	test('title, description, canonical, Open Graph, dan JSON-LD TravelAgency + WebSite dalam satu blok', async ({ page }) => {
 		await gotoReady(page, '/');
 		await expect(page).toHaveTitle(/Lembang Adventure/);
 		await expect(page.locator('meta[name=description]')).toHaveAttribute('content', /.{40,}/);
 		await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', /^http:\/\/127\.0\.0\.1:\d+\/$/);
 		await expect(page.locator('meta[property="og:title"]')).toHaveCount(1);
 		const scripts = page.locator('script[type="application/ld+json"]');
+		await expect(scripts).toHaveCount(1);
 		const types: string[] = [];
 		for (let i = 0; i < (await scripts.count()); i++) {
 			const ld = JSON.parse((await scripts.nth(i).textContent())!) as { '@graph': { '@type': string }[] };
 			types.push(...ld['@graph'].map((n) => n['@type']));
 		}
-		expect(types.filter((t) => t !== 'TravelAgency')).toEqual(['Organization', 'WebSite']);
-		expect(types).toContain('TravelAgency');
+		expect(types).toEqual(['TravelAgency', 'WebSite']);
 		await expect(page.locator('footer')).toContainText('Jl. Laksana II No. 59, Jayagiri, Lembang, Kabupaten Bandung Barat, Jawa Barat 40391');
 	});
 
@@ -151,7 +151,8 @@ test.describe('[site-shell] SEO dasar', () => {
 	test('situs publik tanpa header khusus area admin', async ({ request }) => {
 		const res = await request.get('/');
 		expect(res.headers()['x-robots-tag'] ?? '').not.toContain('noindex');
-		expect(res.headers()['x-frame-options']).toBeUndefined();
+		expect(res.headers()['x-frame-options']).toBe('SAMEORIGIN');
+		expect(res.headers()['cache-control'] ?? '').not.toContain('no-store');
 	});
 });
 

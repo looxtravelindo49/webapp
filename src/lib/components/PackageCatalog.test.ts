@@ -47,9 +47,10 @@ describe('PackageCatalog', () => {
 		expect(body).toContain('>Untuk Grup<');
 		expect(body).toContain('>Corporate<');
 		expect(body).toContain('Paling Dicari');
-		expect(body).toContain('Cikole, Lembang · Setengah hari');
+		expect(body).toContain('Cikole, Lembang · 1–3 jam');
 		expect(body).toContain('Cikole, Lembang · Termasuk 40 peluru');
-		expect(body).toContain('Ciater, Lembang');
+		expect(body).toContain('Ciater, Subang');
+		expect(body).not.toContain('Ciater, Lembang');
 		expect(body).toContain('>Offroad Cikole<');
 		expect(body).toContain('Rp249.000');
 		expect(body).toContain('/pax*');
@@ -57,9 +58,10 @@ describe('PackageCatalog', () => {
 		expect(body).toContain('Rp125.000');
 		expect(body).toContain('/orang');
 		expect(body).toContain('Minta penawaran');
-		expect(body).toContain('href="#kegiatan-offroad"');
-		expect(body).toContain('href="#kegiatan-team-building"');
-		expect(body).not.toContain('href="/paket/offroad"');
+		// Tautan asli ke halaman paket (dirayapi mesin pencari); klik biasa dengan JS tetap membuka tab beranda.
+		expect(body).toContain('href="/paket/offroad"');
+		expect(body).toContain('href="/paket/team-building"');
+		expect(body).not.toContain('href="#kegiatan-');
 		expect(body).toContain('Lihat Detail');
 		expect(body).toContain('grid-cols-2');
 		expect(body).toContain('md:grid-cols-3');

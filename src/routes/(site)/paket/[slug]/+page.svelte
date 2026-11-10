@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Button from '#lib/components/Button.svelte';
 	import PackageGallery from '#lib/components/PackageGallery.svelte';
+	import PackageLinks from '#lib/components/PackageLinks.svelte';
 	import Seo from '#lib/components/Seo.svelte';
 	import { site } from '#lib/content/site.js';
 	import { formatRupiah } from '#lib/format.js';
@@ -28,12 +29,13 @@
 
 <Seo
 	siteUrl={data.siteUrl}
+	waNumber={data.waNumber}
 	path="/paket/{p.slug}"
 	{title}
 	{description}
 	image={share}
 	imageAlt={share.isDefault ? undefined : imageAltText}
-	nodes={packageNodes(data.siteUrl, site, { ...p, summary: story?.paragraphs[0] ?? p.summary, image: lead?.src ?? p.image })}
+	nodes={packageNodes(data.siteUrl, { ...p, summary: story?.paragraphs[0] ?? p.summary, image: lead?.src ?? p.image })}
 />
 
 <article class="wrap py-11 sm:py-16">
@@ -107,4 +109,6 @@
 			{/each}
 		</div>
 	{/if}
+
+	<PackageLinks heading="Paket lain" packages={data.otherPackages} />
 </article>

@@ -10,6 +10,7 @@
 
 <Seo
 	siteUrl={data.siteUrl}
+	waNumber={data.waNumber}
 	path="/artikel"
 	title={p.title}
 	description={p.description}

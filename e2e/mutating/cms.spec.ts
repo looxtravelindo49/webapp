@@ -63,6 +63,16 @@ const contiguous = () => dbOrder().map((r) => r.sort_order).every((n, i) => n ==
 const click = (page: Page, slug: string, name: string) =>
 	submit(page, () => rowOf(page, slug).getByRole('button', { name, exact: false }).click());
 
+test.describe('[response-headers] Catatan jeda cache di admin', () => {
+	test('halaman paket dan pengaturan menyebut perubahan tampil dalam ±1 menit', async ({ page }) => {
+		await adminLogin(page, admin, PW);
+		for (const path of ['/admin/paket', '/admin/pengaturan']) {
+			await gotoReady(page, path);
+			await expect(page.getByText('Perubahan tampil di situs dalam ±1 menit')).toBeVisible();
+		}
+	});
+});
+
 test.describe('[package-cms] Terbitkan dan sembunyikan', () => {
 	test('menyembunyikan paket menghapus tab dan pilihan kalkulator; menerbitkan mengembalikannya', async ({ page }) => {
 		await adminLogin(page, admin, PW);

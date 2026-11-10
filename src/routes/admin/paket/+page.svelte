@@ -16,6 +16,7 @@
 		<h1 class="text-2xl font-black tracking-tight">Kelola paket</h1>
 		<p class="mt-2 max-w-2xl text-xs leading-[1.8] text-muted">
 			Hanya paket berstatus <strong>Terbit</strong> yang tampil di situs dan kalkulator, sesuai urutan di bawah.
+			Perubahan tampil di situs dalam ±1 menit.
 		</p>
 	</div>
 	<Button href="/admin/paket/baru" variant="accent">Tambah paket</Button>

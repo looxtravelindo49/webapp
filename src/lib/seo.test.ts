@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-	absoluteUrl, articleNodes, breadcrumbNode, collectionNodes, jsonLdGraph, organizationNode, serializeJsonLd, shareImage, travelAgencyNode, websiteNode
+	absoluteUrl, articleNodes, breadcrumbNode, businessNode, collectionNodes, jsonLdGraph, packageNodes, serializeJsonLd, shareImage, websiteNode
 } from './seo';
 
 const BASE = 'https://contoh.id';
@@ -42,7 +42,7 @@ describe('shareImage dengan foto Unsplash', () => {
 		expect(shareImage(BASE, 'https://evil.com/a.jpg')).toEqual({ url: `${BASE}/og-default.png`, isDefault: true });
 	});
 	it('JSON-LD artikel memakai URL Unsplash yang sama', () => {
-		const [post] = articleNodes(BASE, site, { slug: 't', title: 'T', excerpt: 'e', published_at: null, updated_at: '2026-01-01T00:00:00.000Z', cover_image: RAW }) as [{ image: string[] }];
+		const [post] = articleNodes(BASE, { slug: 't', title: 'T', excerpt: 'e', published_at: null, updated_at: '2026-01-01T00:00:00.000Z', cover_image: RAW }) as [{ image: string[] }];
 		expect(post.image[0]).toBe(shareImage(BASE, RAW).url);
 	});
 });
@@ -57,20 +57,27 @@ describe('serializeJsonLd', () => {
 });
 
 describe('node JSON-LD', () => {
-	it('Organization memuat contactPoint hanya bila nomor WhatsApp ada', () => {
-		const withWa = organizationNode(BASE, site, '6282120209900') as { contactPoint?: { telephone: string } };
+	const ORG = { '@id': `${BASE}/#organization` };
+	const MAPS = /^https:\/\/www\.google\.com\/maps\/place\/Loox\+Travel/;
+
+	it('node bisnis memuat contactPoint hanya bila nomor WhatsApp ada', () => {
+		const withWa = businessNode(BASE, '6282120209900') as { contactPoint?: { telephone: string } };
 		expect(withWa.contactPoint?.telephone).toBe('+6282120209900');
-		expect('contactPoint' in organizationNode(BASE, site, null)).toBe(false);
-		expect('contactPoint' in organizationNode(BASE, site)).toBe(false);
+		expect('contactPoint' in businessNode(BASE, null)).toBe(false);
+		expect('contactPoint' in businessNode(BASE)).toBe(false);
 	});
 
-	it('TravelAgency memuat NAP dan area layanan, tanpa rating, ulasan, atau jam buka', () => {
-		const node = travelAgencyNode(BASE);
+	it('node bisnis tunggal: TravelAgency ber-@id #organization dengan NAP, badan hukum, lokasi, dan logo', () => {
+		const node = businessNode(BASE) as Record<string, unknown> & { hasMap: string; sameAs: string[] };
 		expect(node).toMatchObject({
 			'@type': 'TravelAgency',
-			'@id': `${BASE}/#travel-agency`,
+			'@id': `${BASE}/#organization`,
 			name: 'Lembang Adventure',
-			url: BASE,
+			alternateName: 'Lembang Adventure by Loox Travel',
+			legalName: 'PT Loox Travel Luxury',
+			url: `${BASE}/`,
+			logo: { '@type': 'ImageObject', url: `${BASE}/apple-touch-icon.png`, width: 180, height: 180 },
+			image: `${BASE}/og-default.png`,
 			telephone: '+6282120209900',
 			address: {
 				'@type': 'PostalAddress',
@@ -80,19 +87,35 @@ describe('node JSON-LD', () => {
 				postalCode: '40391',
 				addressCountry: 'ID'
 			},
-			areaServed: ['Lembang', 'Bandung']
+			geo: { '@type': 'GeoCoordinates', latitude: -6.810069, longitude: 107.6206394 },
+			areaServed: [{ '@type': 'City', name: 'Lembang' }, { '@type': 'City', name: 'Bandung' }]
 		});
-		expect(node).not.toHaveProperty('aggregateRating');
-		expect(node).not.toHaveProperty('review');
-		expect(node).not.toHaveProperty('openingHours');
-		expect(node).not.toHaveProperty('openingHoursSpecification');
+		expect(node.hasMap).toMatch(MAPS);
+		expect(node.sameAs).toEqual([node.hasMap]);
+		for (const key of ['aggregateRating', 'review', 'openingHours', 'openingHoursSpecification']) {
+			expect(node).not.toHaveProperty(key);
+		}
 	});
 
-	it('WebSite menunjuk publisher Organization lewat @id yang sama', () => {
-		const org = organizationNode(BASE, site) as { '@id': string };
+	it('WebSite menunjuk publisher bisnis lewat @id yang sama', () => {
 		const web = websiteNode(BASE, site) as { publisher: { '@id': string }; inLanguage: string };
-		expect(web.publisher['@id']).toBe(org['@id']);
+		expect(web.publisher).toEqual(ORG);
+		expect((businessNode(BASE) as { '@id': string })['@id']).toBe(ORG['@id']);
 		expect(web.inLanguage).toBe('id');
+	});
+
+	const pkg = { slug: 'offroad', title: 'Offroad', summary: 'Ringkas.', image: null, price_per_person: 249000, updated_at: '2026-10-01T00:00:00.000Z' };
+
+	it('Service paket merujuk bisnis lewat @id, dan remah roti dua butir tanpa fragmen', () => {
+		const [service, crumbs] = packageNodes(BASE, pkg) as [Record<string, unknown>, { itemListElement: { item: string }[] }];
+		expect(service).toMatchObject({ '@type': 'Service', provider: ORG, offers: { '@type': 'Offer', priceCurrency: 'IDR', price: 249000 } });
+		expect(crumbs.itemListElement.map((i) => i.item)).toEqual([`${BASE}/`, `${BASE}/paket/offroad`]);
+		expect(crumbs.itemListElement.every((i) => !i.item.includes('#'))).toBe(true);
+	});
+
+	it('paket tanpa harga tidak memuat offers', () => {
+		const [service] = packageNodes(BASE, { ...pkg, price_per_person: null }) as [Record<string, unknown>];
+		expect('offers' in service).toBe(false);
 	});
 
 	it('BreadcrumbList berposisi 1..n dengan URL absolut', () => {
@@ -104,7 +127,7 @@ describe('node JSON-LD', () => {
 	const article = { slug: 'tips', title: 'Tips Gathering', excerpt: 'Ringkas.', published_at: '2026-09-15T00:00:00.000Z', updated_at: '2026-09-20T00:00:00.000Z', cover_image: `/uploads/${UUID}.jpg` };
 
 	it('BlogPosting + BreadcrumbList tiga butir untuk artikel', () => {
-		const [post, crumbs] = articleNodes(BASE, site, article) as [Record<string, unknown>, { itemListElement: { name: string }[] }];
+		const [post, crumbs] = articleNodes(BASE, article) as [Record<string, unknown>, { itemListElement: { name: string }[] }];
 		expect(post).toMatchObject({
 			'@type': 'BlogPosting',
 			headline: 'Tips Gathering',
@@ -112,13 +135,15 @@ describe('node JSON-LD', () => {
 			dateModified: '2026-09-20T00:00:00.000Z',
 			image: [`${BASE}/uploads/${UUID}.jpg`],
 			mainEntityOfPage: { '@id': `${BASE}/artikel/tips` },
+			author: ORG,
+			publisher: ORG,
 			inLanguage: 'id'
 		});
 		expect(crumbs.itemListElement.map((i) => i.name)).toEqual(['Beranda', 'Artikel', 'Tips Gathering']);
 	});
 
 	it('artikel tanpa sampul unggahan memakai gambar bawaan; tanpa published_at tidak ada datePublished', () => {
-		const [post] = articleNodes(BASE, site, { ...article, cover_image: '/media/forest.svg', published_at: null }) as [Record<string, unknown>];
+		const [post] = articleNodes(BASE, { ...article, cover_image: '/media/forest.svg', published_at: null }) as [Record<string, unknown>];
 		expect(post.image).toEqual([`${BASE}/og-default.png`]);
 		expect('datePublished' in post).toBe(false);
 	});

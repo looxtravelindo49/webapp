@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { catalogAlt, catalogImage, catalogLocation, catalogMatches, catalogPrice, catalogProfile, CATALOG_FILTERS, unitPriceNote, type CatalogFilterId } from '#lib/catalog.js';
-	import { kegiatanHash, openKegiatan } from '#lib/kegiatan.js';
+	import { openKegiatan } from '#lib/kegiatan.js';
 	import type { Package } from '#lib/types.js';
 
 	function openDetail(event: MouseEvent, slug: string) {
@@ -99,7 +99,7 @@
 										{price.amount}{#if price.unit}<small class="text-xs font-semibold text-muted">{price.unit}</small>{/if}
 									</p>
 									<a
-										href={kegiatanHash(p.slug)}
+										href="/paket/{p.slug}"
 										class="block rounded-[10px] bg-green-100 px-2 py-2.5 text-center text-[12.5px] font-bold text-green-800 hover:bg-[#d6e5df] sm:py-[11px] sm:text-sm"
 										onclick={(event) => openDetail(event, p.slug)}
 									>

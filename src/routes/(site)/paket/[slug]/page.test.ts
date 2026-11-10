@@ -15,6 +15,9 @@ const pkg = {
 	duration: '2-3 Jam' as string | null,
 	price_per_person: 249000,
 	min_pax: 7,
+	pricing_mode: 'per_unit' as const,
+	kapasitas_per_unit: 7,
+	nama_unit: 'mobil',
 	published: 1,
 	sort_order: 1,
 	updated_at: '2026-10-02T00:00:00.000Z'
@@ -22,7 +25,7 @@ const pkg = {
 
 const html = (over: Partial<typeof pkg> = {}, gallery?: { src: string; alt: string | null }[]) =>
 	render(Page, {
-		props: { data: { pkg: { ...pkg, ...over }, siteUrl: 'https://contoh.id', waNumber: null, gallery }, form: null, params: { slug: 'offroad' } } as never
+		props: { data: { pkg: { ...pkg, ...over }, siteUrl: 'https://contoh.id', waNumber: null, gallery, otherPackages: [] }, form: null, params: { slug: 'offroad' } } as never
 	}).body;
 
 describe('halaman detail paket', () => {
@@ -38,7 +41,8 @@ describe('halaman detail paket', () => {
 		expect(body).toContain('Rp 249.000');
 		expect(body).toContain('Min. 7 orang');
 		expect(body).toContain('Offroad di Cikole, Lembang, Bandung');
-		expect(body).toContain('Rp 249.000 per mobil');
+		expect(body).toContain('Rp 249.000 per orang, dihitung per mobil isi maksimal 7 orang (Rp 1.743.000 per mobil)');
+		expect(body).not.toContain('Rp 249.000 per mobil');
 		expect(body).toContain('>Include<');
 		expect(body).not.toContain('Pilihan yang dapat dibahas');
 		expect(body).toContain('href="/?paket=offroad#konsultasi"');
@@ -81,8 +85,9 @@ describe('halaman detail paket', () => {
 			summary: 'Susuri arus sungai bersama tim dengan perahu karet dan arahan pemandu.',
 			includes: 'Briefing sebelum mulai'
 		});
-		expect(body).toContain('Rafting di Ciater, Lembang, Bandung');
-		expect(body).toContain('Lokasi Ciater');
+		expect(body).toContain('Rafting di Ciater, Subang, dekat Lembang');
+		expect(body).not.toContain('Ciater, Lembang');
+		expect(body).toContain('Lokasi Ciater, Subang');
 		expect(body).toContain('Peralatan rafting');
 		expect(body).not.toContain('perahu');
 		expect(body).not.toContain('Briefing');

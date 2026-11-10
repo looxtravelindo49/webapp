@@ -11,7 +11,7 @@
 	import PromoPopup from '#lib/components/PromoPopup.svelte';
 	import Seo from '#lib/components/Seo.svelte';
 	import { site } from '#lib/content/site.js';
-	import { organizationNode, shareImage, websiteNode } from '#lib/seo.js';
+	import { shareImage, websiteNode } from '#lib/seo.js';
 	import { untrack } from 'svelte';
 	import { setTripContext } from '#lib/trip.svelte.js';
 	import type { PageProps } from './$types';
@@ -29,11 +29,12 @@
 		});
 	});
 
-	const nodes = $derived([organizationNode(data.siteUrl, site, data.waNumber), websiteNode(data.siteUrl, site)]);
+	const nodes = $derived([websiteNode(data.siteUrl, site)]);
 </script>
 
 <Seo
 	siteUrl={data.siteUrl}
+	waNumber={data.waNumber}
 	path="/"
 	title={site.seoTitle}
 	description={site.description}

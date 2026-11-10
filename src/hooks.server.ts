@@ -1,6 +1,7 @@
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { ADMIN_HEADERS, guardAdmin, isAdminPath, robotsHeaderFor } from '#lib/server/admin-guard.js';
 import { initAdmin } from '#lib/server/admin-init.js';
+import { applyResponseHeaders } from '#lib/server/response-headers.js';
 import { getDb } from '#lib/server/database.js';
 import { getSessionUser, SESSION_COOKIE } from '#lib/server/sessions.js';
 import { initOrExit, warnIfLocalSiteUrl } from '#lib/server/startup.js';
@@ -22,7 +23,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		const response = await resolve(event);
 		const robots = robotsHeaderFor(pathname, response.status);
 		if (robots) response.headers.set('X-Robots-Tag', robots);
-		return response;
+		return applyResponseHeaders(pathname, event.request.method, response);
 	}
 
 	const token = event.cookies.get(SESSION_COOKIE) ?? null;
@@ -42,5 +43,5 @@ export const handle: Handle = async ({ event, resolve }) => {
 		: await resolve(event);
 
 	for (const [k, v] of Object.entries(ADMIN_HEADERS)) response.headers.set(k, v);
-	return response;
+	return applyResponseHeaders(pathname, event.request.method, response);
 };

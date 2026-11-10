@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { formatGoogleSummary, parseGoogleSummary } from './reviews';
+import { formatGoogleSummary, GOOGLE_REVIEWS_URL, parseGoogleSummary } from './reviews';
+import { businessProfile } from './site';
+
+describe('GOOGLE_REVIEWS_URL', () => {
+	it('sama dengan URL tempat Google Maps di profil bisnis (satu sumber untuk ulasan dan JSON-LD)', () => {
+		expect(GOOGLE_REVIEWS_URL).toBe(businessProfile.mapsUrl);
+		expect(GOOGLE_REVIEWS_URL).toMatch(/^https:\/\/www\.google\.com\/maps\/place\/Loox\+Travel/);
+		expect(GOOGLE_REVIEWS_URL).toContain('0x2e68e196d5f5124b:0x84f49e021326b3eb');
+	});
+});
 
 describe('parseGoogleSummary', () => {
 	it('menormalkan 5 dan 5,0 menjadi 5.0 dari 41 ulasan Google', () => {

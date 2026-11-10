@@ -3,6 +3,10 @@ import { render } from 'svelte/server';
 import ClientLogos from './ClientLogos.svelte';
 import { DEFAULT_CLIENTS } from '#lib/clients.js';
 
+/** Jumlah logo pada pita desktop. Pita berisi satu set dua kali, lalu digeser `translateX(-50%)` tanpa sambungan. */
+const desktopItems = (body: string) =>
+	(body.split('clients-desktop')[1]?.split('clients-mobile')[0] ?? '').match(/class="clients-item/g)?.length ?? 0;
+
 describe('Our Clients', () => {
 	it('desktop satu baris dan ponsel dua baris yang bersama-sama memuat 11 klien', () => {
 		const { body } = render(ClientLogos, { props: { clients: DEFAULT_CLIENTS } });
@@ -15,7 +19,7 @@ describe('Our Clients', () => {
 		expect(body).toContain('--clients-visible: 6');
 		expect(body).toContain('--clients-visible: 3');
 		expect(body.match(/--clients-visible: 3/g)).toHaveLength(2);
-		expect(body).toContain('--clients-shift: 50%');
+		expect(desktopItems(body)).toBe(22);
 		expect(body.match(/src="\/media\/clients\/mandiri.svg"/g)?.length).toBeGreaterThanOrEqual(4);
 		const mobile = body.split('clients-mobile')[1] ?? '';
 		expect(mobile).toContain('Sanbe Farma');
@@ -31,7 +35,8 @@ describe('Our Clients', () => {
 			props: { clients: [{ id: 'satu', name: 'Satu', src: '/media/clients/mandiri.svg' }] }
 		});
 		expect(body.match(/src="\/media\/clients\/mandiri.svg"/g)?.length).toBeGreaterThanOrEqual(12);
-		expect(body).toContain('--clients-shift: 8.3333%');
+		// Satu klien diulang sampai mengisi 6 kolom desktop, lalu set itu digandakan.
+		expect(desktopItems(body)).toBe(12);
 		expect(body.match(/--clients-visible: 3/g)).toHaveLength(1);
 	});
 });

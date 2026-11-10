@@ -138,7 +138,7 @@ test.describe('[article-cms] Artikel populer', () => {
 		try {
 			await gotoReady(page, '/');
 			await expect(page.locator('#artikel-populer')).toHaveCount(0);
-			expect(await page.$$eval('main > section[id]', (s) => s.map((x) => x.id))).toEqual(['katalog', 'paket', 'konsultasi', 'ulasan', 'rencanakan']);
+			expect(await page.$$eval('main > section[id]', (s) => s.map((x) => x.id))).toEqual(['katalog', 'paket', 'konsultasi', 'klien', 'ulasan', 'rencanakan']);
 			const res = await page.goto('/artikel');
 			expect(res?.status()).toBe(200);
 			await expect(page.getByText('Artikel segera hadir')).toBeVisible();
@@ -307,7 +307,7 @@ test.describe('[seo-metadata] Gambar bagikan artikel', () => {
 		const row = insertArticle(evil, { published: 1 });
 		await gotoReady(page, `/artikel/${row.slug}`);
 		const scripts = page.locator('script[type="application/ld+json"]');
-		await expect(scripts).toHaveCount(2);
+		await expect(scripts).toHaveCount(1);
 		const ld = await blogPosting(page);
 		expect(ld.headline).toBe(evil);
 		expect(await page.evaluate(() => (window as unknown as { __ld?: number }).__ld)).toBeUndefined();

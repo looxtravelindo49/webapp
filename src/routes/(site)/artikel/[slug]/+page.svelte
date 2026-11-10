@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from '#lib/components/Button.svelte';
+	import PackageLinks from '#lib/components/PackageLinks.svelte';
 	import Seo from '#lib/components/Seo.svelte';
 	import { site } from '#lib/content/site.js';
 	import { formatDate } from '#lib/format.js';
@@ -22,6 +23,7 @@
 
 <Seo
 	siteUrl={data.siteUrl}
+	waNumber={data.waNumber}
 	path="/artikel/{a.slug}"
 	{title}
 	description={a.excerpt}
@@ -30,7 +32,7 @@
 	imageAlt={share.isDefault ? undefined : a.cover_alt || a.title}
 	publishedTime={a.published_at}
 	modifiedTime={a.updated_at}
-	nodes={articleNodes(data.siteUrl, site, a)}
+	nodes={articleNodes(data.siteUrl, a)}
 />
 
 <article class="wrap py-11 sm:py-16">
@@ -65,6 +67,8 @@
 
 		<!-- HTML ini hanya berasal dari renderMarkdown (daftar putih), bukan masukan mentah. -->
 		<div class="article-body">{@html data.html}</div>
+
+		<PackageLinks heading="Pilihan paket" packages={data.packages} />
 
 		<aside class="mt-12 rounded-xl bg-cream p-6 sm:p-7">
 			<strong class="block text-sm">Punya rencana trip untuk timmu?</strong>

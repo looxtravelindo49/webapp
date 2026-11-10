@@ -1,10 +1,14 @@
 /** Pembangun metadata dan JSON-LD (murni, aman dipakai di server maupun klien). */
-import { businessAddress, site as brand } from './content/site';
+import { businessAddress, businessProfile, site as brand } from './content/site';
 import { unsplashSized } from './images';
 import { FLOAT_WA_NUMBER } from './whatsapp';
 
 export const OG_DEFAULT_PATH = '/og-default.png';
 export const OG_DEFAULT_SIZE = { width: 1200, height: 630 } as const;
+
+/** Logo bisnis untuk JSON-LD: raster persegi ≥112 px (syarat logo Google). */
+const LOGO_PATH = '/apple-touch-icon.png';
+const LOGO_SIZE = 180;
 
 /** URL absolut dari origin situs dan path (`/artikel`, `artikel`). */
 export function absoluteUrl(base: string, path: string): string {
@@ -41,29 +45,29 @@ export function jsonLdGraph(nodes: Node[]): Node {
 
 export type Site = { name: string; description: string };
 
-export function organizationNode(base: string, site: Site, waNumber?: string | null): Node {
-	return {
-		'@type': 'Organization',
-		'@id': `${base}/#organization`,
-		name: site.name,
-		url: `${base}/`,
-		description: site.description,
-		...(waNumber
-			? { contactPoint: { '@type': 'ContactPoint', contactType: 'customer service', telephone: `+${waNumber}`, availableLanguage: 'id' } }
-			: {})
-	};
+/** `@id` satu-satunya entitas bisnis; semua node lain merujuk bisnis lewat id ini. */
+export function businessId(base: string): string {
+	return `${base}/#organization`;
 }
 
+const businessRef = (base: string) => ({ '@id': businessId(base) });
+
 /**
- * `TravelAgency` (subtipe `LocalBusiness`) untuk seluruh situs.
- * Tanpa rating, ulasan, atau jam buka: data itu tidak tersedia.
+ * Satu node bisnis untuk seluruh situs: `TravelAgency` (turunan `LocalBusiness` → `Organization`).
+ * `contactPoint` hanya bila nomor WhatsApp pengaturan diisi. Tanpa rating, ulasan, atau jam buka:
+ * rating Google tidak boleh ditandai sendiri, dan jam buka belum tersedia.
  */
-export function travelAgencyNode(base: string): Node {
+export function businessNode(base: string, waNumber?: string | null): Node {
 	return {
 		'@type': 'TravelAgency',
-		'@id': `${base}/#travel-agency`,
+		'@id': businessId(base),
 		name: brand.name,
-		url: base,
+		alternateName: businessProfile.alternateName,
+		legalName: businessProfile.legalName,
+		description: brand.description,
+		url: `${base}/`,
+		logo: { '@type': 'ImageObject', url: absoluteUrl(base, LOGO_PATH), width: LOGO_SIZE, height: LOGO_SIZE },
+		image: absoluteUrl(base, OG_DEFAULT_PATH),
 		telephone: `+${FLOAT_WA_NUMBER}`,
 		address: {
 			'@type': 'PostalAddress',
@@ -73,7 +77,13 @@ export function travelAgencyNode(base: string): Node {
 			postalCode: businessAddress.postalCode,
 			addressCountry: businessAddress.addressCountry
 		},
-		areaServed: ['Lembang', 'Bandung']
+		geo: { '@type': 'GeoCoordinates', latitude: businessProfile.geo.latitude, longitude: businessProfile.geo.longitude },
+		hasMap: businessProfile.mapsUrl,
+		sameAs: [businessProfile.mapsUrl],
+		areaServed: businessProfile.areaServed.map((name) => ({ '@type': 'City', name })),
+		...(waNumber
+			? { contactPoint: { '@type': 'ContactPoint', contactType: 'customer service', telephone: `+${waNumber}`, availableLanguage: 'id' } }
+			: {})
 	};
 }
 
@@ -84,7 +94,7 @@ export function websiteNode(base: string, site: Site): Node {
 		name: site.name,
 		url: `${base}/`,
 		inLanguage: 'id',
-		publisher: { '@id': `${base}/#organization` }
+		publisher: businessRef(base)
 	};
 }
 
@@ -107,9 +117,8 @@ export type ArticleMeta = {
 };
 
 /** `BlogPosting` + `BreadcrumbList` untuk halaman artikel. */
-export function articleNodes(base: string, site: Site, a: ArticleMeta): Node[] {
+export function articleNodes(base: string, a: ArticleMeta): Node[] {
 	const url = absoluteUrl(base, `/artikel/${a.slug}`);
-	const organization = { '@type': 'Organization', name: site.name, url: `${base}/` };
 	return [
 		{
 			'@type': 'BlogPosting',
@@ -118,8 +127,8 @@ export function articleNodes(base: string, site: Site, a: ArticleMeta): Node[] {
 			...(a.published_at ? { datePublished: a.published_at } : {}),
 			dateModified: a.updated_at,
 			image: [shareImage(base, a.cover_image).url],
-			author: organization,
-			publisher: organization,
+			author: businessRef(base),
+			publisher: businessRef(base),
 			mainEntityOfPage: { '@type': 'WebPage', '@id': url },
 			url,
 			inLanguage: 'id'
@@ -141,8 +150,8 @@ export type PackageMeta = {
 	updated_at: string;
 };
 
-/** `Service` + remah roti untuk halaman detail paket. */
-export function packageNodes(base: string, site: Site, p: PackageMeta): Node[] {
+/** `Service` + remah roti dua butir (Beranda › paket) untuk halaman detail paket. */
+export function packageNodes(base: string, p: PackageMeta): Node[] {
 	const url = absoluteUrl(base, `/paket/${p.slug}`);
 	const service: Node = {
 		'@type': 'Service',
@@ -151,7 +160,7 @@ export function packageNodes(base: string, site: Site, p: PackageMeta): Node[] {
 		serviceType: 'Paket aktivitas',
 		url,
 		image: [shareImage(base, p.image).url],
-		provider: { '@type': 'Organization', name: site.name, url: `${base}/` },
+		provider: businessRef(base),
 		areaServed: 'Lembang, Bandung, Jawa Barat',
 		dateModified: p.updated_at
 	};
@@ -162,7 +171,6 @@ export function packageNodes(base: string, site: Site, p: PackageMeta): Node[] {
 		service,
 		breadcrumbNode(base, [
 			{ name: 'Beranda', path: '/' },
-			{ name: 'Aktivitas Pilihan di Lembang', path: '/#katalog' },
 			{ name: p.title, path: `/paket/${p.slug}` }
 		])
 	];

@@ -14,6 +14,7 @@
 
 <Seo
 	siteUrl={data.siteUrl}
+	waNumber={data.waNumber}
 	path="/portfolio"
 	{title}
 	{description}

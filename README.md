@@ -174,7 +174,7 @@ bila akun awal sudah pernah diganti; gunakan database baru untuk menjalankannya 
 | `DATABASE_AUTH_TOKEN` | (kosong) | Token otentikasi Turso (untuk `libsql://`). |
 | `DATABASE_PATH` | `./data/app.db` (container: `/data/app.db`) | Berkas SQLite lokal bila `DATABASE_URL` tidak diset; direktori dibuat otomatis. |
 | `BLOB_READ_WRITE_TOKEN` | (kosong) | Bila diset, foto unggahan disimpan di Vercel Blob. **Wajib di Vercel** (disk fungsi tidak persisten). |
-| `VERCEL_REGIONS` | (kosong) | Saat build di Vercel: daftar wilayah fungsi dipisah koma (mis. `sin1`), samakan dengan wilayah Turso. |
+| `VERCEL_REGIONS` | `hnd1` | Saat build di Vercel: daftar wilayah fungsi dipisah koma. Bawaan `hnd1` (Tokyo) mengikuti wilayah Turso produksi; isi hanya bila database dipindah. |
 | `PUBLIC_SITE_URL` | `http://localhost:3000` | Alamat publik untuk canonical, Open Graph, JSON-LD, sitemap, RSS, dan robots. **Wajib diisi domain produksi** `https://www.lembangadventure.com`. Host `lembangadventure.com` (dengan atau tanpa `www`) selalu dijadikan origin itu. Bila masih `localhost` saat `NODE_ENV=production`, server mencatat peringatan. |
 | `PROTOCOL_HEADER` / `HOST_HEADER` / `PORT_HEADER` | (kosong) | Header dari reverse proxy untuk menurunkan alamat asal (mis. `x-forwarded-proto`, `x-forwarded-host`). Tanpa ini protokol dianggap `https` dan host diambil dari `Host`. |
 | `PORT` | `3000` | Port server produksi. |
@@ -199,6 +199,8 @@ Nilai ini dibaca dari environment proses (di dev, default sudah cukup; file `.en
 - **Sitemap** `/sitemap.xml` berisi beranda, `/artikel`, dan tiap artikel terbit dengan `lastmod`. **RSS** ada di `/artikel/rss.xml` (20 artikel terbaru). Keduanya di-cache CDN selama 1 jam (`s-maxage=3600`), jadi artikel baru bisa terlambat muncul sampai satu jam.
 - **Gambar bagikan**: artikel memakai sampul unggahan JPEG/PNG/WebP sebagai `og:image`; sampul SVG bawaan, AVIF, atau tanpa sampul memakai `static/og-default.png` (1200×630). Untuk membuat ulang gambar bawaan, ubah `scripts/og-default.html` lalu ambil tangkapan layar Chromium berukuran 1200×630 dari berkas itu ke `static/og-default.png`.
 - Respons galat publik (4xx/5xx) membawa `X-Robots-Tag: noindex`; area admin selalu `noindex`.
+- **Cache HTML**: halaman publik yang sukses dikirim dengan `Cache-Control: public, max-age=0, s-maxage=60, stale-while-revalidate=60` (`src/lib/server/response-headers.ts`). Di Vercel, perubahan dari admin tampil di situs publik paling lambat ±2 menit; tanpa CDN (`node build`) tetap langsung. Admin, `/api`, invoice, `/uploads`, `/healthz`, dan halaman galat tidak diberi header ini.
+- **Header keamanan** `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options` (`SAMEORIGIN`; admin `DENY`), dan `Permissions-Policy` dipasang di semua respons.
 - Setelah deploy: cek JSON-LD di Rich Results Test, pratinjau tautan di WhatsApp/Facebook Debugger, dan kirim `/sitemap.xml` ke Search Console (verifikasi domain lewat DNS TXT).
 
 ## Foto sampul dari Unsplash
@@ -225,13 +227,14 @@ Build memakai `adapter-vercel` otomatis di Vercel (variabel `VERCEL` terisi). Ya
    pertama start; tidak ada langkah migrasi manual.
 2. **Vercel Blob**: buat store **privat** dan hubungkan ke proyek (Storage → Blob); `BLOB_READ_WRITE_TOKEN` terisi otomatis.
 3. **Environment variable** di proyek Vercel: `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `BLOB_READ_WRITE_TOKEN`,
-   `PUBLIC_SITE_URL` (alamat publik), dan opsional `VERCEL_REGIONS` (mis. `sin1`). Isi **berbeda untuk Production dan
+   `PUBLIC_SITE_URL` (alamat publik), dan opsional `VERCEL_REGIONS` (bawaan `hnd1`). Isi **berbeda untuk Production dan
    Preview** (database dan Blob terpisah) supaya deployment Preview tidak menulis ke data produksi.
 4. **Ganti password admin bawaan** (`admin@looxtravel` / `12345678`) segera setelah deployment pertama, sebelum situs
    dibuka ke publik; atau setel `ADMIN_SEED_LOGIN`/`ADMIN_SEED_PASSWORD` sejak awal.
 
 Catatan: batas badan permintaan fungsi Vercel 4,5 MB, maka batas foto 4 MB. Setiap render halaman membaca database lewat
-jaringan, jadi samakan wilayah fungsi dan Turso. Syarat layanan paket Vercel Hobby setahu kami hanya untuk penggunaan
+jaringan, jadi samakan wilayah fungsi dan Turso. Setelah deploy, header `x-vercel-id` harus berakhir di `hnd1`
+(bukan `iad1`). Syarat layanan paket Vercel Hobby setahu kami hanya untuk penggunaan
 non-komersial; periksa ketentuan terbaru Vercel sebelum dipakai untuk situs bisnis.
 
 ## Container

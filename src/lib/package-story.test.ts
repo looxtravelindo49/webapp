@@ -18,13 +18,16 @@ describe('packageStory', () => {
 			min_pax: 7,
 			duration: '2-3 Jam',
 			kapasitas_per_unit: 7,
-			nama_unit: 'mobil'
+			nama_unit: 'mobil',
+			pricing_mode: 'per_unit'
 		});
 		const text = story?.paragraphs.join(' ') ?? '';
 		expect(text).toContain('Offroad di Cikole, Lembang, Bandung');
 		expect(text).toContain('Titik kumpul Cikole, bisa juga start dari hotel area Lembang');
 		expect(text).toContain('Maksimal 7 orang per mobil');
-		expect(text).toContain('Rp 249.000 per mobil');
+		// Harga tersimpan per orang; total satu mobil diturunkan dari kapasitas.
+		expect(text).toContain('Harga Rp 249.000 per orang, dihitung per mobil isi maksimal 7 orang (Rp 1.743.000 per mobil).');
+		expect(text).not.toContain('Rp 249.000 per mobil');
 		expect(text).toContain('Minimal 7 peserta');
 		expect(text).not.toContain('2-3 Jam');
 		expect(story?.includes).toEqual([
@@ -50,12 +53,30 @@ describe('packageStory', () => {
 
 		const rafting = packageStory({ ...base, slug: 'rafting', price_per_person: 125_000, min_pax: 5 });
 		const raftingText = rafting?.paragraphs.join(' ') ?? '';
-		expect(raftingText).toContain('Rafting di Ciater, Lembang, Bandung');
+		expect(raftingText).toContain('Rafting di Ciater, Subang, dekat Lembang');
+		expect(raftingText).not.toContain('Ciater, Lembang');
 		expect(raftingText).toContain('Titik kumpul kegiatan di Cikole');
 		expect(raftingText).not.toContain('perahu');
 		expect(raftingText).not.toContain('Briefing');
-		expect(rafting?.includes).toEqual(['Lokasi Ciater', 'Peralatan rafting', 'Pemandu', 'Durasi 20–30 menit']);
+		expect(rafting?.includes).toEqual(['Lokasi Ciater, Subang', 'Peralatan rafting', 'Pemandu', 'Durasi 20–30 menit']);
 		expect(rafting?.excludes).toEqual(['Transport', 'Makan', 'Dokumentasi']);
+	});
+
+	it('paket per orang tidak menyebut total per unit', () => {
+		const team = packageStory({ ...base, slug: 'team-building', price_per_person: 125_000, min_pax: 20, pricing_mode: 'per_person' });
+		const text = team?.paragraphs.join(' ') ?? '';
+		expect(text).toContain('Harga Rp 125.000 per orang. Minimal 20 peserta.');
+		expect(text).not.toContain('dihitung per');
+	});
+
+	it('per_unit tanpa kapasitas atau unit kembali ke kalimat per orang', () => {
+		const story = packageStory({ ...base, slug: 'offroad', price_per_person: 249_000, pricing_mode: 'per_unit' });
+		expect(story?.paragraphs.join(' ')).toContain('Harga Rp 249.000 per orang. Minimal');
+	});
+
+	it('harga kosong ditulis menyusul', () => {
+		const story = packageStory({ ...base, slug: 'paintball', price_per_person: null });
+		expect(story?.paragraphs.join(' ')).toContain('Harga menyusul. Minimal');
 	});
 
 	it('team building dan fun games memakai catatan lokasi pemilik', () => {

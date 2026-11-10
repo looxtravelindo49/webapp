@@ -71,7 +71,7 @@ test.describe('[admin-auth] Header keamanan area admin', () => {
 	test('situs publik tidak memuat header khusus admin', async ({ request }) => {
 		const res = await request.get('/');
 		expect(res.headers()['x-robots-tag'] ?? '').not.toContain('noindex');
-		expect(res.headers()['x-frame-options']).toBeUndefined();
+		expect(res.headers()['x-frame-options']).toBe('SAMEORIGIN');
 		expect(res.headers()['cache-control'] ?? '').not.toBe('no-store');
 	});
 });

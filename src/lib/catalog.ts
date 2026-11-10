@@ -22,11 +22,11 @@ type Profile = {
 
 /** Badge, filter, dan baris lokasi untuk paket bawaan, sesuai mockup yang disetujui. */
 const PROFILES: Record<string, Profile> = {
-	offroad: { badge: 'Paling Dicari', hot: true, filter: 'adv', location: 'Cikole, Lembang · Setengah hari' },
+	offroad: { badge: 'Paling Dicari', hot: true, filter: 'adv', location: 'Cikole, Lembang · 1–3 jam' },
 	'team-building': { badge: 'Corporate', filter: 'corp', location: 'Cikole, Lembang · Setengah hari' },
 	'fun-games': { badge: 'Untuk Grup', filter: 'grup', location: 'Cikole, Lembang · Sesuai program' },
 	paintball: { badge: 'Adventure', filter: 'adv', location: 'Cikole, Lembang · Termasuk 40 peluru' },
-	rafting: { badge: 'Outdoor', filter: 'adv', location: 'Ciater, Lembang' }
+	rafting: { badge: 'Outdoor', filter: 'adv', location: 'Ciater, Subang' }
 };
 
 export function catalogProfile(slug: string): Profile | null {

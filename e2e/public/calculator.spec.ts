@@ -160,7 +160,8 @@ test.describe('[trip-calculator] Perhitungan estimasi', () => {
 		await expect(c.addon(/Dokumentasi Pro/)).toBeChecked();
 		await expect(c.summary).toContainText('Rp 5.500.000');
 		await expect(page.locator('#katalog')).not.toContainText('Makan siang Liwet');
-		await expect(page.locator('#paket')).not.toContainText('Dokumentasi');
+		// Nama add-on kalkulator tidak bocor ke panel paket (Exclude "Dokumentasi" milik paket tetap boleh).
+		await expect(page.locator('#paket')).not.toContainText(/Dokumentasi (Basic|Pro)/);
 		await c.addon(/Dokumentasi Pro/).uncheck();
 		await expect(c.summary).toContainText('Rp 4.000.000');
 	});

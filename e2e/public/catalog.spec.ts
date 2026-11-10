@@ -94,7 +94,7 @@ test.describe('[katalog] Katalog paket dan halaman detail', () => {
 			.toBe(true);
 	});
 
-	test('tanpa JavaScript, Lihat Detail mengarah ke hash kegiatan', async ({ browser, baseURL }) => {
+	test('tanpa JavaScript, Lihat Detail membuka halaman paket', async ({ browser, baseURL }) => {
 		const context = await browser.newContext({
 			javaScriptEnabled: false,
 			baseURL,
@@ -103,26 +103,19 @@ test.describe('[katalog] Katalog paket dan halaman detail', () => {
 		const page = await context.newPage();
 		await page.goto('/');
 		const link = page.locator('#katalog article').filter({ hasText: 'Rafting' }).getByRole('link', { name: 'Lihat Detail' });
-		await expect(link).toHaveAttribute('href', '#kegiatan-rafting');
+		await expect(link).toHaveAttribute('href', '/paket/rafting');
 		await link.click();
-		await expect(page).toHaveURL(/#kegiatan-rafting$/);
-		await expect
-			.poll(() =>
-				page.evaluate(() => {
-					const header = document.querySelector('header')!.getBoundingClientRect();
-					const target = document.getElementById('kegiatan-rafting')!.getBoundingClientRect();
-					const gap = target.top - header.bottom;
-					return gap >= 4 && gap < 40;
-				})
-			)
-			.toBe(true);
+		await expect(page).toHaveURL(/\/paket\/rafting$/);
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Rafting/);
 		await context.close();
 	});
 
 	test('detail paket tetap ada dan menambahkannya ke kalkulator', async ({ page }) => {
 		await gotoReady(page, '/paket/offroad');
 		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Offroad');
-		await expect(page.getByText('2-3 Jam')).toBeVisible();
+		// Paket bawaan memakai teks cerita: durasi dari Include, bukan kolom durasi database.
+		await expect(page.getByText('Durasi 1–3 jam')).toBeVisible();
+		await expect(page.getByText('2-3 Jam')).toHaveCount(0);
 		await expect(page.getByText('Rp 250.000 / orang')).toBeVisible();
 		await expect(page.getByText('Min. 1 orang')).toBeVisible();
 		await expect(page).toHaveTitle(/Offroad \| Lembang Adventure/);
@@ -133,6 +126,16 @@ test.describe('[katalog] Katalog paket dan halaman detail', () => {
 		await expect(page).toHaveURL(/\/\?paket=offroad#konsultasi$/);
 		await expect(page.getByRole('checkbox', { name: /Offroad/ })).toBeChecked();
 		await expect(page.getByRole('checkbox', { name: /Rafting/ })).not.toBeChecked();
+	});
+
+	test('halaman paket menautkan empat paket lain, tidak menautkan dirinya sendiri', async ({ page }) => {
+		await gotoReady(page, '/paket/offroad');
+		const section = page.getByRole('navigation', { name: 'Paket lain' });
+		const links = section.getByRole('link');
+		await expect(links).toHaveCount(4);
+		const hrefs = await links.evaluateAll((els) => els.map((a) => a.getAttribute('href')));
+		expect(hrefs).toEqual(['/paket/team-building', '/paket/rafting', '/paket/paintball', '/paket/fun-games']);
+		await expect(section.getByRole('link', { name: 'Rafting' })).toBeVisible();
 	});
 
 	test('slug yang tidak ada mengembalikan 404', async ({ page }) => {

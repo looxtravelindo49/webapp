@@ -13,8 +13,15 @@ const PACKAGE_QUERY = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export const load: PageServerLoad = async ({ url }) => {
 	const db = await getDb();
-	const rows = await listPublishedPackages(db);
-	const galleries = await packageGalleries(db, rows.map((p) => p.id));
+	// Galeri bergantung pada id paket; query lain lepas satu sama lain dan berjalan paralel.
+	const [[rows, galleries], popularArticles, reviews, googleSummary, promoSetting, clientsSetting] = await Promise.all([
+		listPublishedPackages(db).then(async (rows) => [rows, await packageGalleries(db, rows.map((p) => p.id))] as const),
+		listPopularArticles(db),
+		loadPublicReviews(db),
+		loadGoogleSummary(db),
+		getSetting(db, PROMO_SETTING_KEY),
+		getSetting(db, CLIENTS_SETTING_KEY)
+	]);
 	const packages = rows.map((p) => {
 		const photos = galleries.get(p.id) ?? [];
 		const cover = photos[0];
@@ -30,11 +37,11 @@ export const load: PageServerLoad = async ({ url }) => {
 	const preselect = PACKAGE_QUERY.test(requested) && packages.some((p) => p.slug === requested) ? requested : null;
 	return {
 		packages,
-		popularArticles: await listPopularArticles(db),
-		reviews: await loadPublicReviews(db),
-		googleSummary: await loadGoogleSummary(db),
+		popularArticles,
+		reviews,
+		googleSummary,
 		preselect,
-		promo: promoFromStored(await getSetting(db, PROMO_SETTING_KEY)),
-		clients: clientsFromStored(await getSetting(db, CLIENTS_SETTING_KEY))
+		promo: promoFromStored(promoSetting),
+		clients: clientsFromStored(clientsSetting)
 	};
 };

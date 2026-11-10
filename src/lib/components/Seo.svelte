@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { site } from '#lib/content/site.js';
-	import { absoluteUrl, jsonLdGraph, OG_DEFAULT_SIZE, serializeJsonLd, type ShareImage } from '#lib/seo.js';
+	import { absoluteUrl, businessNode, jsonLdGraph, OG_DEFAULT_SIZE, serializeJsonLd, type ShareImage } from '#lib/seo.js';
 
 	let {
 		siteUrl,
@@ -12,7 +12,8 @@
 		imageAlt,
 		publishedTime,
 		modifiedTime,
-		nodes = []
+		nodes = [],
+		waNumber = null
 	}: {
 		/** Origin situs (`PUBLIC_SITE_URL`), dari data layout. */
 		siteUrl: string;
@@ -26,13 +27,16 @@
 		imageAlt?: string;
 		publishedTime?: string | null;
 		modifiedTime?: string | null;
-		/** Node JSON-LD yang dibungkus menjadi satu `@graph`. */
+		/** Node JSON-LD halaman; node bisnis selalu ditaruh di depannya dalam satu `@graph`. */
 		nodes?: Record<string, unknown>[];
+		/** Nomor WhatsApp pengaturan (data layout) untuk `contactPoint` node bisnis. */
+		waNumber?: string | null;
 	} = $props();
 
 	const url = $derived(absoluteUrl(siteUrl, path));
 	const alt = $derived(imageAlt || `${site.name}. ${site.footerNote}`);
-	const ld = $derived(nodes.length ? serializeJsonLd(jsonLdGraph(nodes)) : '');
+	// Satu blok JSON-LD per halaman: node bisnis + node halaman.
+	const ld = $derived(serializeJsonLd(jsonLdGraph([businessNode(siteUrl, waNumber), ...nodes])));
 </script>
 
 <svelte:head>
@@ -60,5 +64,5 @@
 	<meta name="twitter:description" content={description} />
 	<meta name="twitter:image" content={image.url} />
 	<meta name="twitter:image:alt" content={alt} />
-	{#if ld}{@html `<script type="application/ld+json">${ld}</script>`}{/if}
+	{@html `<script type="application/ld+json">${ld}</script>`}
 </svelte:head>
