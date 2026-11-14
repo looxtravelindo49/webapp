@@ -222,11 +222,20 @@ describe('cetak invoice', () => {
 });
 
 describe('aset fase 1', () => {
-	it('hero memakai foto natural dan alt yang diminta', () => {
-		expect(hero.image).toBe('/media/hero-2.jpg');
+	it('hero memakai lukisan Renaissance dan alt yang diminta', () => {
+		expect(hero.desktopImage).toBe('/images/hero/hero-renaissance-1-desktop.webp');
+		expect(hero.mobileImage).toBe('/images/hero/hero-renaissance-1-mobile.webp');
+		expect(hero.imageWidth).toBe(1920);
+		expect(hero.imageHeight).toBe(1080);
 		expect(hero.imageAlt).toBe(
-			'Tiga mobil offroad melintasi jalur berbatu di hutan pinus Lembang saat kegiatan outbound rombongan.'
+			'Lukisan gaya Renaissance: rombongan jeep offroad biru melintasi jalur hutan pinus Lembang, peserta duduk di dalam mobil memakai helm adventure.'
 		);
+		expect(hero.titleEmphasis).toBe('rutinitas.');
+		expect(hero.promise).toEqual(['Program bisa disesuaikan', 'Sesuai kebutuhan tim', 'Konsultasi sebelum booking']);
+		for (const path of [hero.desktopImage, hero.mobileImage]) {
+			const bytes = readFileSync(new URL(`../../static${path}`, import.meta.url));
+			expect(bytes.subarray(0, 4).toString('ascii')).toBe('RIFF');
+		}
 	});
 
 	it('rekening dan peringatan sesuai spek', () => {

@@ -73,7 +73,6 @@ test.describe('[site-shell] Navbar', () => {
 test.describe('[site-shell] Tombol konsultasi menuju #konsultasi', () => {
 	const cases: [string, (p: import('@playwright/test').Page) => Promise<void>][] = [
 		['Navbar "Konsultasi Trip"', (p) => p.locator('header').getByRole('link', { name: 'Konsultasi Trip' }).and(p.locator(':visible')).click()],
-		['Hero "Diskusi dulu, yuk"', (p) => p.getByRole('link', { name: 'Diskusi dulu, yuk' }).click()],
 		['Planner "Mulai rencanakan"', (p) => p.locator('#rencanakan').getByRole('link', { name: 'Mulai rencanakan' }).click()]
 	];
 	for (const [name, act] of cases) {
@@ -92,6 +91,13 @@ test.describe('[site-shell] Tombol konsultasi menuju #konsultasi', () => {
 		const nh = await navHeight(page);
 		await expect.poll(() => top(page, '#paket')).toBeGreaterThanOrEqual(nh - 2);
 		await expect.poll(() => top(page, '#paket')).toBeLessThan(200);
+	});
+
+	test('Hero: "Chat kami" memakai nomor dan teks WhatsApp yang sudah ada', async ({ page }) => {
+		await gotoReady(page, '/');
+		const href = await page.locator('main').getByRole('link', { name: 'Chat kami', exact: true }).getAttribute('href');
+		expect(href?.startsWith('https://wa.me/6282120209900?text=')).toBe(true);
+		expect(decodeURIComponent(href ?? '')).toContain('Halooo LembangAdventure.com !');
 	});
 });
 

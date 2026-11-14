@@ -80,19 +80,25 @@ test.describe('[site-shell] Tema warna', () => {
 		await calc(page).box('Offroad').check();
 		await calc(page).team.fill('Tim Alfa');
 		await calc(page).pax.fill('40');
-		const results = await contrast(page, [
-			{ name: 'Navbar: tautan', css: 'header nav a' },
-			{ name: 'Navbar: tombol Konsultasi Trip (putih di hijau)', css: 'header a[href="/#konsultasi"]:not(nav a)' },
-			{ name: 'Hero: judul (putih di hijau)', css: 'main > section h1' },
-			{ name: 'Hero: deskripsi (hijau muda di hijau)', css: 'main > section p' },
-			{ name: 'Hero: tombol emas (hijau di emas)', css: 'main > section a[href="#paket"]' },
-			{ name: 'Hero: eyebrow (emas di hijau)', css: 'main > section .eyebrow' },
+		const home = await contrast(page, [
+			{ name: 'Hero: judul (putih di latar hero)', css: 'main > section h1' },
+			{ name: 'Hero: deskripsi (putih di latar hero)', css: 'main > section p' },
+			{ name: 'Hero: tombol Temukan ide trip (biru di lime)', css: 'main > section a[href="#paket"]' },
+			{ name: 'Hero: chip OFFROAD (biru di lime)', css: 'main > section .chips li' },
 			{ name: 'Paket: teks sekunder (abu-hijau di putih)', css: '#paket p.text-muted' },
 			{ name: 'Kalkulator: tombol Booking via WhatsApp (hijau di emas)', tag: 'button', text: 'Booking via WhatsApp' },
 			{ name: 'Kalkulator: label isian (hijau di putih)', css: '#konsultasi label' },
 			{ name: 'Footer: merek (putih di hijau)', css: 'footer a' },
 			{ name: 'Footer: keterangan (hijau muda di hijau)', css: 'footer p' }
 		]);
+		// Nav beranda transparan di atas foto, jadi kontrasnya tidak bisa diukur dari warna CSS.
+		// Bar putih lengket (halaman dalam) tetap diperiksa.
+		await gotoReady(page, '/artikel');
+		const nav = await contrast(page, [
+			{ name: 'Navbar: tautan', css: 'header nav a' },
+			{ name: 'Navbar: tombol Konsultasi Trip (putih di hijau)', css: 'header a[href="/#konsultasi"]:not(nav a)' }
+		]);
+		const results = [...home, ...nav];
 		for (const r of results) {
 			expect(r.found, `${r.name}: elemen ditemukan`).toBe(true);
 			expect(r.ratio, `${r.name}: kontras ${r.ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
