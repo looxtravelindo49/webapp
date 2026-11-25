@@ -1,5 +1,52 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { gaMeasurementId, isTrackedPath, trackEvent, whatsappClickParams } from './analytics';
+import {
+	calculatorErrorType,
+	firstChangedField,
+	gaMeasurementId,
+	generateLeadParams,
+	isTrackedPath,
+	trackEvent,
+	whatsappClickParams
+} from './analytics';
+
+const blank = { paket: '', tambahan: '', nama: '', whatsapp: '', peserta: '', tanggal: '', catatan: '' };
+
+describe('firstChangedField', () => {
+	it('null bila belum ada perubahan', () => {
+		expect(firstChangedField(blank, { ...blank })).toBeNull();
+	});
+	it('nama kolom yang berubah, bukan isinya', () => {
+		expect(firstChangedField(blank, { ...blank, peserta: '40' })).toBe('peserta');
+		expect(firstChangedField(blank, { ...blank, paket: 'offroad' })).toBe('paket');
+	});
+});
+
+describe('calculatorErrorType', () => {
+	it('membedakan jaringan, ditolak, dan server', () => {
+		expect(calculatorErrorType(null)).toBe('jaringan');
+		expect(calculatorErrorType(400)).toBe('ditolak');
+		expect(calculatorErrorType(429)).toBe('ditolak');
+		expect(calculatorErrorType(503)).toBe('server');
+	});
+});
+
+describe('generateLeadParams', () => {
+	it('nilai Rupiah, peserta, dan paket', () => {
+		expect(generateLeadParams({ total: 7_500_000, pax: 30, packages: ['Offroad', 'Rafting'] })).toEqual({
+			lead_source: 'kalkulator',
+			currency: 'IDR',
+			value: 7_500_000,
+			pax: 30,
+			package: 'Offroad, Rafting'
+		});
+	});
+	it('tanpa value bila paket tidak berharga', () => {
+		expect(generateLeadParams({ total: 0, pax: null, packages: [] })).toEqual({
+			lead_source: 'kalkulator',
+			currency: 'IDR'
+		});
+	});
+});
 
 afterEach(() => {
 	vi.unstubAllGlobals();

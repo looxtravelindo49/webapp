@@ -56,6 +56,50 @@ export function whatsappClickParams(
 	return params;
 }
 
+/** Event kalkulator trip. `generate_lead` adalah event rekomendasi GA4 untuk prospek. */
+export const CALCULATOR_START_EVENT = 'calculator_start';
+export const CALCULATOR_ERROR_EVENT = 'calculator_error';
+export const GENERATE_LEAD_EVENT = 'generate_lead';
+
+/** Kolom kalkulator yang dipantau. Hanya namanya yang dikirim ke GA, tidak pernah isinya. */
+export type CalculatorField = 'paket' | 'tambahan' | 'nama' | 'whatsapp' | 'peserta' | 'tanggal' | 'catatan';
+
+/**
+ * Kolom pertama yang berubah dari keadaan awal, atau null bila belum ada yang berubah.
+ * Dipakai untuk `calculator_start` (sekali per kunjungan halaman).
+ */
+export function firstChangedField(
+	initial: Record<CalculatorField, string>,
+	current: Record<CalculatorField, string>
+): CalculatorField | null {
+	for (const key of Object.keys(current) as CalculatorField[]) {
+		if (current[key] !== initial[key]) return key;
+	}
+	return null;
+}
+
+/** Jenis kegagalan kirim: 4xx = data ditolak server, 5xx = server bermasalah, tanpa respons = jaringan. */
+export function calculatorErrorType(status: number | null): 'ditolak' | 'server' | 'jaringan' {
+	if (status === null) return 'jaringan';
+	return status >= 500 ? 'server' : 'ditolak';
+}
+
+/**
+ * Parameter `generate_lead`. `value` (Rupiah) hanya diisi bila ada estimasi berharga; paket tanpa
+ * harga ("hubungi kami") tidak memberi nilai supaya laporan nilai lead tidak menyesatkan.
+ */
+export function generateLeadParams(input: {
+	total: number;
+	pax: number | null;
+	packages: string[];
+}): Record<string, string | number> {
+	const params: Record<string, string | number> = { lead_source: 'kalkulator', currency: 'IDR' };
+	if (input.total > 0) params.value = input.total;
+	if (input.pax !== null) params.pax = input.pax;
+	if (input.packages.length) params.package = input.packages.join(', ');
+	return params;
+}
+
 type Gtag = (...args: unknown[]) => void;
 
 /** Kirim event ke GA4 bila tag sudah terpasang; tanpa tag (dev, tes, /invoice) tidak melakukan apa pun. */

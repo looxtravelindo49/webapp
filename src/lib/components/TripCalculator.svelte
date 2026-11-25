@@ -1,7 +1,18 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { ADDONS, addonPriceLabel, withAddons } from '#lib/addons.js';
-	import { trackEvent, WHATSAPP_EVENT, whatsappClickParams } from '#lib/analytics.js';
+	import {
+		CALCULATOR_ERROR_EVENT,
+		CALCULATOR_START_EVENT,
+		calculatorErrorType,
+		type CalculatorField,
+		firstChangedField,
+		GENERATE_LEAD_EVENT,
+		generateLeadParams,
+		trackEvent,
+		WHATSAPP_EVENT,
+		whatsappClickParams
+	} from '#lib/analytics.js';
 	import { DISCLAIMER, perPaxText, totalNote, totalText, unitBreakdown } from '#lib/estimate.js';
 	import { formatRupiah } from '#lib/format.js';
 	import { calculateEstimate, MAX_PAX, parsePax } from '#lib/pricing.js';
@@ -43,6 +54,33 @@
 		});
 	});
 
+	// GA: `calculator_start` sekali per kunjungan halaman, saat kolom pertama berubah dari keadaan awal
+	// (termasuk memilih paket dari katalog, karena pilihannya berbagi state dengan kalkulator).
+	const fieldValues = (): Record<CalculatorField, string> => ({
+		paket: trip.selected.join(),
+		tambahan: trip.addons.join(),
+		nama: trip.team,
+		whatsapp: trip.whatsapp,
+		peserta: trip.pax,
+		tanggal: trip.date,
+		catatan: trip.notes
+	});
+	const initialFields = untrack(fieldValues);
+	let started = false;
+	$effect(() => {
+		const changed = firstChangedField(initialFields, fieldValues());
+		if (started || !changed) return;
+		started = true;
+		trackEvent(CALCULATOR_START_EVENT, { first_field: changed });
+	});
+
+	function reportError(httpStatus: number | null) {
+		trackEvent(CALCULATOR_ERROR_EVENT, {
+			error_type: calculatorErrorType(httpStatus),
+			...(httpStatus !== null && { status_code: httpStatus })
+		});
+	}
+
 	async function sendWhatsapp() {
 		if (!ready || !waNumber || status.kind === 'busy') return;
 		status = { kind: 'busy' };
@@ -64,6 +102,8 @@
 			});
 			const data = (await res.json().catch(() => null)) as { waUrl?: string; invoicePath?: string; message?: string } | null;
 			if (!res.ok || !data?.waUrl || !data.invoicePath) {
+				// Respons 2xx tanpa data lengkap tetap kesalahan server.
+				reportError(res.ok ? 500 : res.status);
 				popup?.close();
 				status = {
 					kind: 'error',
@@ -72,6 +112,7 @@
 				return;
 			}
 			const chosen = packages.filter((p) => trip.selected.includes(p.slug)).map((p) => p.title);
+			trackEvent(GENERATE_LEAD_EVENT, generateLeadParams({ total: estimate.total, pax, packages: chosen }));
 			const params = whatsappClickParams(data.waUrl, 'kalkulator', chosen.join(', '));
 			if (params) trackEvent(WHATSAPP_EVENT, params);
 			if (popup && !popup.closed) {
@@ -83,6 +124,7 @@
 			}
 			window.location.assign(data.invoicePath);
 		} catch {
+			reportError(null);
 			popup?.close();
 			status = { kind: 'error', message: 'Estimasi belum tersimpan. WhatsApp tidak kami buka. Coba lagi, ya.' };
 		}
