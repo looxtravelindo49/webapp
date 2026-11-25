@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { site } from '#lib/content/site.js';
 	import Footer from '#lib/components/Footer.svelte';
+	import GoogleAnalytics from '#lib/components/GoogleAnalytics.svelte';
 	import Navbar from '#lib/components/Navbar.svelte';
 	import WhatsAppFloat from '#lib/components/WhatsAppFloat.svelte';
 	import type { LayoutProps } from './$types';
@@ -31,3 +32,6 @@
 </main>
 <Footer />
 <WhatsAppFloat packageTitle={data.chatPackage} />
+{#if data.gaId}
+	<GoogleAnalytics id={data.gaId} />
+{/if}

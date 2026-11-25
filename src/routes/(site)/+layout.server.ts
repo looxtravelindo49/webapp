@@ -1,3 +1,4 @@
+import { gaMeasurementId } from '#lib/analytics.js';
 import { getDb } from '#lib/server/database.js';
 import { getPublishedPackageBySlug } from '#lib/server/packages.js';
 import { getSetting } from '#lib/server/settings.js';
@@ -13,6 +14,7 @@ export const load: LayoutServerLoad = async ({ url }) => {
 	return {
 		waNumber: normalizeWhatsapp(await getSetting(db, 'whatsapp')),
 		siteUrl: siteUrl(),
-		chatPackage: pkg?.title ?? null
+		chatPackage: pkg?.title ?? null,
+		gaId: gaMeasurementId(process.env.PUBLIC_GA_MEASUREMENT_ID)
 	};
 };
