@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { ADDONS, addonPriceLabel, withAddons } from '#lib/addons.js';
+	import { trackEvent, WHATSAPP_EVENT, whatsappClickParams } from '#lib/analytics.js';
 	import { DISCLAIMER, perPaxText, totalNote, totalText, unitBreakdown } from '#lib/estimate.js';
 	import { formatRupiah } from '#lib/format.js';
 	import { calculateEstimate, MAX_PAX, parsePax } from '#lib/pricing.js';
@@ -70,6 +71,9 @@
 				};
 				return;
 			}
+			const chosen = packages.filter((p) => trip.selected.includes(p.slug)).map((p) => p.title);
+			const params = whatsappClickParams(data.waUrl, 'kalkulator', chosen.join(', '));
+			if (params) trackEvent(WHATSAPP_EVENT, params);
 			if (popup && !popup.closed) {
 				try {
 					popup.location.href = data.waUrl;

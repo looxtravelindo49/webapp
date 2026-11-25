@@ -11,6 +11,7 @@
 	target="_blank"
 	rel="noopener noreferrer"
 	aria-label="Chat kami di WhatsApp"
+	data-wa="float"
 	class="print-hide print:hidden fixed z-30 flex items-center gap-2 rounded-full bg-[#25D366] p-3 text-white shadow-[0_8px_24px_rgb(8_28_24/0.28)] right-[max(0.75rem,env(safe-area-inset-right))] bottom-[max(0.75rem,env(safe-area-inset-bottom))] hover:bg-[#1daf54] md:right-[max(1rem,env(safe-area-inset-right))] md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:px-4 md:py-3"
 >
 	<svg class="size-6 shrink-0" viewBox="0 0 24 24" aria-hidden="true">

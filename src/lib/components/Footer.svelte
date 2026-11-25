@@ -16,7 +16,7 @@
 				<p class="mt-3 text-[11px] text-green-100">{site.byline}</p>
 				<p class="mt-2 max-w-sm text-[11px] leading-relaxed text-green-100">
 					{businessAddress.line}<br />
-					<a href="https://wa.me/{FLOAT_WA_NUMBER}" class="text-green-100">WhatsApp {formatWhatsappDisplay(FLOAT_WA_NUMBER)}</a>
+					<a href="https://wa.me/{FLOAT_WA_NUMBER}" class="text-green-100" data-wa="footer">WhatsApp {formatWhatsappDisplay(FLOAT_WA_NUMBER)}</a>
 				</p>
 			</div>
 			<div>

@@ -51,7 +51,7 @@
 			<p>{hero.description}</p>
 			<div class="btns">
 				<a class="pk" href={hero.primaryCta.href}>{hero.primaryCta.label}</a>
-				<a class="wa" href={chatHref} target="_blank" rel="noopener noreferrer">{hero.chatCta.label}</a>
+				<a class="wa" href={chatHref} target="_blank" rel="noopener noreferrer" data-wa="hero">{hero.chatCta.label}</a>
 			</div>
 			<ul class="promise">
 				{#each hero.promise as item (item)}

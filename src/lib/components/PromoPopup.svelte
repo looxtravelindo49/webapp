@@ -151,6 +151,7 @@
 						href={waHref}
 						target="_blank"
 						rel="noopener"
+						data-wa="promo"
 						class="flex-1 rounded-xl border-[1.5px] border-green-900 px-3.5 py-3 text-center text-sm font-bold text-green-900 hover:bg-cream"
 					>
 						Chat WhatsApp

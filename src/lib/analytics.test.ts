@@ -1,5 +1,48 @@
-import { describe, expect, it } from 'vitest';
-import { gaMeasurementId, isTrackedPath } from './analytics';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { gaMeasurementId, isTrackedPath, trackEvent, whatsappClickParams } from './analytics';
+
+afterEach(() => {
+	vi.unstubAllGlobals();
+});
+
+describe('whatsappClickParams', () => {
+	it('mengenali wa.me dan membuang isi pesan', () => {
+		expect(whatsappClickParams('https://wa.me/6282120209900?text=Halo%20Nama%3A%20Budi', 'float')).toEqual({
+			placement: 'float',
+			link_url: 'https://wa.me/6282120209900'
+		});
+	});
+	it('mengenali api.whatsapp.com dengan parameter phone', () => {
+		expect(whatsappClickParams('https://api.whatsapp.com/send?phone=6282120209900&text=x')).toEqual({
+			placement: 'lainnya',
+			link_url: 'https://wa.me/6282120209900'
+		});
+	});
+	it('menyertakan nama paket bila ada', () => {
+		expect(whatsappClickParams('https://wa.me/62811', 'hero', '  Tur Jeep ')).toEqual({
+			placement: 'hero',
+			link_url: 'https://wa.me/62811',
+			package: 'Tur Jeep'
+		});
+	});
+	it('null untuk tautan lain atau URL rusak', () => {
+		expect(whatsappClickParams('https://www.lembangadventure.com/paket/x')).toBeNull();
+		expect(whatsappClickParams('https://evilwa.me/62811')).toBeNull();
+		expect(whatsappClickParams('/paket')).toBeNull();
+	});
+});
+
+describe('trackEvent', () => {
+	it('memanggil gtag bila ada', () => {
+		const gtag = vi.fn();
+		vi.stubGlobal('gtag', gtag);
+		trackEvent('whatsapp_click', { placement: 'float' });
+		expect(gtag).toHaveBeenCalledWith('event', 'whatsapp_click', { placement: 'float' });
+	});
+	it('tidak melakukan apa pun tanpa gtag', () => {
+		expect(() => trackEvent('whatsapp_click', {})).not.toThrow();
+	});
+});
 
 describe('gaMeasurementId', () => {
 	it('menerima ID GA4 yang valid', () => {

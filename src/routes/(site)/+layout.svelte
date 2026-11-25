@@ -33,5 +33,5 @@
 <Footer />
 <WhatsAppFloat packageTitle={data.chatPackage} />
 {#if data.gaId}
-	<GoogleAnalytics id={data.gaId} />
+	<GoogleAnalytics id={data.gaId} packageTitle={data.chatPackage} />
 {/if}
